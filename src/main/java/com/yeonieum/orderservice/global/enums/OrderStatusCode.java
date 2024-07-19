@@ -14,11 +14,10 @@ public enum OrderStatusCode {
     PAYMENT_COMPLETED("PAYMENT_COMPLETED"),
     PREPARING_PRODUCT("PREPARING_PRODUCT"),
     AWAITING_RELEASE("AWAITING_RELEASE"),
-    //RELEASE_COMPLETED("RELEASE_COMPLETED"),
     SHIPPED("SHIPPED"),
     IN_DELIVERY("IN_DELIVERY"),
     DELIVERED("DELIVERED"),
-    REFUNDE_REQUEST("REFUNDE_REQUEST"),
+    REFUND_REQUEST("REFUND_REQUEST"),
     REFUNDED("REFUNDED");
 
     private String code;
@@ -49,6 +48,8 @@ public enum OrderStatusCode {
                 return IN_DELIVERY;
             case "DELIVERED":
                 return DELIVERED;
+            case "REFUND_REQUEST":
+                return REFUND_REQUEST;
             case "REFUNDED":
                 return REFUNDED;
             default:
