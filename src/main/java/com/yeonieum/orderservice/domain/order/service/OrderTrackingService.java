@@ -27,7 +27,7 @@ public class OrderTrackingService {
      * @return
      */
     @Transactional(readOnly = true)
-    public Page<OrderResponse.OfRetrieveForCustomer> getOrdersForCustomer(Long customerId, OrderStatusCode orderStatusCode, Pageable pageable) {
+    public Page<OrderResponse.OfRetrieveForCustomer> retrieveOrdersForCustomer(Long customerId, OrderStatusCode orderStatusCode, Pageable pageable) {
         Page<OrderDetail> orderDetailsPage =
                 orderDetailRepository.findByCustomerIdAndOrderStatus(customerId, orderStatusRepository.findByStatusName(orderStatusCode), pageable);
 
@@ -41,7 +41,7 @@ public class OrderTrackingService {
      * @return
      */
     @Transactional(readOnly = true)
-    public Long getTotalOrderCountForCustomer(Long customerId, OrderStatusCode orderStatusCode) {
+    public Long retrieveTotalOrderCountForCustomer(Long customerId, OrderStatusCode orderStatusCode) {
         return orderDetailRepository.countByCustomerIdAndOrderStatus(customerId, orderStatusRepository.findByStatusName(orderStatusCode));
     }
 
