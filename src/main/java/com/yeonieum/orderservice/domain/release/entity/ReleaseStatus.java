@@ -5,6 +5,7 @@ import com.yeonieum.orderservice.global.enums.ReleaseStatusCode;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -23,6 +24,10 @@ public class ReleaseStatus {
     @Convert(converter = ReleaseStatusCodeConverter.class)
     @Column(name = "status_name", nullable = false)
     private ReleaseStatusCode statusName;
+
+    @OneToMany(mappedBy = "releaseStatus")
+    @Builder.Default
+    private List<Release> releaseList = new ArrayList<>();
 
 
 }
