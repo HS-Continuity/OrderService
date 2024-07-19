@@ -18,6 +18,10 @@ public class RegularDeliveryApplicationDay {
     @Column(name = "regular_delivery_application_day_id")
     private Long regularDeliveryApplicationDayId;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "regular_delivery_application_id", nullable = false)
+    private RegularDeliveryApplication regularDeliveryApplication;
+
     @Convert(converter = DayOfWeekConverter.class)
     @Column(name = "day_code", nullable = false)
     private DayOfWeek dayCode;
