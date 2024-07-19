@@ -9,7 +9,7 @@ public class StockUsageRequest {
     @Getter
     @Builder
     public static class IncreaseStockUsageDto {
-        Long orderId;
+        String orderId;
         Long productId;
         int quantity;
     }
