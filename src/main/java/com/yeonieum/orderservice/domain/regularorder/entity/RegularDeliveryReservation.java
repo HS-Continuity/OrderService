@@ -19,6 +19,10 @@ public class RegularDeliveryReservation {
     private long regularDeliveryReservationId;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "regular_delivery_application_id", nullable = false)
+    private RegularDeliveryApplication regularDeliveryApplication;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "regular_delivery_status_id", nullable = false)
     private RegularDeliveryStatus regularDeliveryStatus;
 
