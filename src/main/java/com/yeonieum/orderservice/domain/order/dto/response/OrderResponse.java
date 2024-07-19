@@ -1,4 +1,4 @@
-package com.yeonieum.orderservice.domain.delivery.dto.response;
+package com.yeonieum.orderservice.domain.order.dto.response;
 
 import com.yeonieum.orderservice.domain.order.entity.OrderDetail;
 import com.yeonieum.orderservice.domain.order.entity.PaymentInformation;
