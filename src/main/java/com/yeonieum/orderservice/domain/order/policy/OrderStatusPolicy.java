@@ -21,8 +21,8 @@ public class OrderStatusPolicy {
         addTransitionRule(OrderStatusCode.SHIPPED, OrderStatusCode.AWAITING_RELEASE);
         addTransitionRule(OrderStatusCode.IN_DELIVERY, OrderStatusCode.SHIPPED);
         addTransitionRule(OrderStatusCode.DELIVERED, OrderStatusCode.IN_DELIVERY);
-        addTransitionRule(OrderStatusCode.REFUNDE_REQUEST, OrderStatusCode.DELIVERED);
-        addTransitionRule(OrderStatusCode.REFUNDED, OrderStatusCode.REFUNDE_REQUEST);
+        addTransitionRule(OrderStatusCode.REFUND_REQUEST, OrderStatusCode.DELIVERED);
+        addTransitionRule(OrderStatusCode.REFUNDED, OrderStatusCode.REFUND_REQUEST);
         orderStatusTransitionRule = Collections.unmodifiableMap(orderStatusTransitionMap);
 
         Map<OrderStatusCode, Set<String>> orderStatusPermissionMap = new EnumMap(OrderStatusCode.class);
@@ -34,7 +34,7 @@ public class OrderStatusPolicy {
         orderStatusPermissionMap.put(OrderStatusCode.SHIPPED, Set.of("CUSTOMER"));
         orderStatusPermissionMap.put(OrderStatusCode.IN_DELIVERY, Collections.emptySet());
         orderStatusPermissionMap.put(OrderStatusCode.DELIVERED, Collections.emptySet());
-        orderStatusPermissionMap.put(OrderStatusCode.REFUNDE_REQUEST, Set.of("USER"));
+        orderStatusPermissionMap.put(OrderStatusCode.REFUND_REQUEST, Set.of("USER"));
         orderStatusPermissionMap.put(OrderStatusCode.REFUNDED, Set.of("CUSTOMER"));
         orderStatusPermission = Collections.unmodifiableMap(orderStatusPermissionMap);
     }
