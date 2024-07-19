@@ -5,6 +5,9 @@ import com.yeonieum.orderservice.global.enums.OrderStatusCode;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -21,5 +24,9 @@ public class OrderStatus {
     @Convert(converter = OrderStatusCodeConverter.class)
     @Column(name = "status_name", nullable = false)
     private OrderStatusCode statusName;
+
+    @OneToMany(mappedBy = "orderStatus")
+    @Builder.Default
+    private List<OrderDetail> orderDetailList = new ArrayList<>();
 }
 

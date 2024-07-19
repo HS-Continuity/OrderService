@@ -30,5 +30,9 @@ public class PaymentInformation {
 
     @Column(name = "payment_amount", nullable = false)
     private int paymentAmount;
+
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "order_detail_id", nullable = false)
+    private OrderDetail orderDetail;
 }
 
