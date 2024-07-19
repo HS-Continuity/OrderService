@@ -16,8 +16,8 @@ public class StockUsageResponse {
     }
 
 
-    @Builder
     @Getter
+    @Builder
     public static class AvailableResponseList{
         List<AvailableStockDto> availableProductInventoryResponseList;
     }
