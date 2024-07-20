@@ -1,4 +1,4 @@
-package com.yeonieum.orderservice.global.code.code;
+package com.yeonieum.orderservice.global.responses.code;
 
 import lombok.Getter;
 
