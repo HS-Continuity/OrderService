@@ -4,4 +4,5 @@ import com.yeonieum.orderservice.domain.regularorder.entity.RegularDeliveryStatu
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface RegularDeliveryStatusRepository extends JpaRepository<RegularDeliveryStatus, Long> {
+    RegularDeliveryStatus findByStatusName(String statusName);
 }
