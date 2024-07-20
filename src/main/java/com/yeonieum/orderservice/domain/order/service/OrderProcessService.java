@@ -192,10 +192,10 @@ public class OrderProcessService {
      * @return
      */
     public StockUsageRequest.IncreaseStockUsageList makeRequestObject(OrderRequest.ProductOrderList productOrderList, String orderDetailId) {
-        List<StockUsageRequest.IncreaseStockUsageDto> stockUsageDtoList = new ArrayList<>();
+        List<StockUsageRequest.OfIncreasing> stockUsageDtoList = new ArrayList<>();
 
         for(OrderRequest.ProductOrder product : productOrderList.getProductOrderList()) {
-            stockUsageDtoList.add(StockUsageRequest.IncreaseStockUsageDto.builder()
+            stockUsageDtoList.add(StockUsageRequest.OfIncreasing.builder()
                     .orderId(orderDetailId)
                     .productId(product.getProductId())
                     .quantity(product.getQuantity())
@@ -204,7 +204,7 @@ public class OrderProcessService {
 
         StockUsageRequest.IncreaseStockUsageList increaseStockUsageList =
                 StockUsageRequest.IncreaseStockUsageList.builder()
-                        .increaseStockUsageDtoList(stockUsageDtoList)
+                        .ofIncreasingList(stockUsageDtoList)
                         .build();
 
         return increaseStockUsageList;
