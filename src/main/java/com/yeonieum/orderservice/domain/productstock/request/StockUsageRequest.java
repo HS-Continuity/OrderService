@@ -8,7 +8,7 @@ import java.util.List;
 public class StockUsageRequest {
     @Getter
     @Builder
-    public static class IncreaseStockUsageDto {
+    public static class OfIncreasing {
         String orderId;
         Long productId;
         int quantity;
@@ -17,6 +17,6 @@ public class StockUsageRequest {
     @Getter
     @Builder
     public static class IncreaseStockUsageList {
-        List<IncreaseStockUsageDto> increaseStockUsageDtoList;
+        List<OfIncreasing> ofIncreasingList;
     }
 }

@@ -14,7 +14,7 @@ import java.util.Map;
 
 @FeignClient(name = "productservice", url = "http://localhost:8020")
 public interface ProductServiceFeignClient {
-    @PostMapping("/api/inventory/")
+    @PostMapping("/api/inventory/stock-usage")
     StockUsageResponse.AvailableResponseList checkAvailableOrderProduct(@RequestBody StockUsageRequest.IncreaseStockUsageList increaseStockUsageDtoList);
 
     @GetMapping("/api/management/{productId}")
