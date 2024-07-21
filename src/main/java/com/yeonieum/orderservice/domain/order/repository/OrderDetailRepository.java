@@ -1,5 +1,6 @@
 package com.yeonieum.orderservice.domain.order.repository;
 
+import com.yeonieum.orderservice.domain.order.dto.response.OrderSummaryResponse;
 import com.yeonieum.orderservice.domain.order.entity.OrderDetail;
 import com.yeonieum.orderservice.domain.order.entity.OrderStatus;
 import org.springframework.data.domain.Page;
@@ -9,6 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 public interface OrderDetailRepository extends JpaRepository<OrderDetail, String> {
     @Query(value = "SELECT o FROM OrderDetail o WHERE o.memberId =" +
@@ -28,4 +30,11 @@ public interface OrderDetailRepository extends JpaRepository<OrderDetail, String
     Long countByCustomerIdAndOrderStatus(@Param("customerId") Long customerId,
                                          @Param("orderStatus") OrderStatus orderStatus);
 
+    @Query("SELECT new com.yeonieum.orderservice.domain.order.dto.response.OrderSummaryResponse(os.statusName, COUNT(od)) " +
+            "FROM OrderDetail od " +
+            "JOIN od.orderStatus os " +
+            "WHERE od.customerId = :customerId " +
+            "GROUP BY os.statusName")
+    List<OrderSummaryResponse> countByCustomerIdGroupedByOrderStatus(@Param("customerId") Long customerId);
 }
+
