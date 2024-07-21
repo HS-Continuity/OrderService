@@ -5,7 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-public interface RegularDeliveryReservationRepository extends JpaRepository<RegularDeliveryReservation, Long> {
+public interface RegularDeliveryReservationRepository extends JpaRepository<RegularDeliveryReservation, Long>, RegularDeliveryReservationRepositoryCustom {
     @Query("SELECT r FROM RegularDeliveryReservation r " +
             "JOIN r.regularDeliveryApplication a " +
             "WHERE a.regularDeliveryApplicationId = :applicationId " +

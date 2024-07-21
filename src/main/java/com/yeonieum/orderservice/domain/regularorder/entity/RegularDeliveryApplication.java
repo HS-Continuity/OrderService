@@ -23,6 +23,9 @@ public class RegularDeliveryApplication {
     @Column(name = "main_product_id", nullable = false)
     public Long mainProductId;
 
+    @Column(name = "customer_id", nullable = false)
+    private Long customerId;
+
     @Column(name = "member_id", nullable = false)
     private String memberId;
 
