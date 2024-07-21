@@ -13,6 +13,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
+
 /**
  * 1. 정기주문 생성
  * 2. 정기주문 내역 조회
@@ -95,6 +97,22 @@ public class RegularOrderController {
     public ResponseEntity<ApiResponse> retrieveRegularOrderDetail(@PathVariable(name = "regularOrderId") Long regularDeliveryApplicationId) {
         return new ResponseEntity<>(ApiResponse.builder()
                 .result(regularOrderService.retrieveRegularDeliveryDetails(regularDeliveryApplicationId))
+                .successCode(SuccessCode.SELECT_SUCCESS)
+                .build(), HttpStatus.OK);
+    }
+
+    @Operation(summary = "고객에게 접수된 정기주문 월별 조회", description = "고객에게 접수된 정기주문을 월별로 조회합니다.")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "정기주문월별 조회 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 오류 발생")
+    })
+    @GetMapping("/count")
+    public ResponseEntity<ApiResponse> retrieveRegularOrderCountsBetweenMonth(@RequestParam LocalDate startDate,
+                                                                              @RequestParam LocalDate endDate) {
+
+        Long customerId = 1L; // TODO: 로그인한 사용자의 ID를 컨텍스트에서 가져와야 함
+        return new ResponseEntity<>(ApiResponse.builder()
+                .result(regularOrderService.retrieveRegularOrderCountsBetween(startDate, endDate, customerId))
                 .successCode(SuccessCode.SELECT_SUCCESS)
                 .build(), HttpStatus.OK);
     }
