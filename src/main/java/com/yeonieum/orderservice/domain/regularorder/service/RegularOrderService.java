@@ -45,8 +45,24 @@ public class RegularOrderService {
     private final RegularDeliveryApplicationDayRepository regularDeliveryApplicationDayRepository;
     private final ProductServiceFeignClient feignClient;
 
+    @Transactional
+    public List<RegularOrderResponse.OfRetrieveDailyCount> retrieveRegularOrderCountsBetween(LocalDate startDate, LocalDate endDate, Long customerId) {
+        List<RegularOrderResponse.OfRetrieveDailyCount> regularOrderCountsForMonth = regularDeliveryReservationRepository.findRegularOrderCountsBetween(startDate, endDate, customerId);
+
+        // 상품Id 리스트 추출 후 상품서비스의 상품정보 조회 API 호출
+        List<Long> productIdList = regularOrderCountsForMonth.stream().map(dailyOrderCount -> dailyOrderCount.getProductId()).collect(Collectors.toList());
+        Map<Long, RegularOrderResponse.ProductOrder> productOrderMap =
+                (Map<Long, RegularOrderResponse.ProductOrder>) ((ApiResponse)feignClient.bulkRetrieveProductInformation(productIdList).getBody()).getResult();
+
+        // 받아온 응답을 바탕으로 상품명 바인딩
+        for(RegularOrderResponse.OfRetrieveDailyCount dailyOrderCount : regularOrderCountsForMonth) {
+            dailyOrderCount.bindProductName(productOrderMap.get(dailyOrderCount.getProductId()).getProductName());
+        }
+        return regularOrderCountsForMonth;
+    }
+
     /**
-     * 정기배송신청 생성 및 정기배송예약 드르륵 생성
+     * 정기배송신청 생성 및 정기배송예약 모두 생성
      * 스케쥴 작업 등록하기
      * @param creationRequest
      */
@@ -57,11 +73,8 @@ public class RegularOrderService {
         regularDeliveryApplicationDayRepository.saveAll(creationRequest.toApplicationDayEnityList(regularDeliveryApplication));
 
         Set<LocalDate> deliveryDateSet = calculateDeliveryDates(creationRequest.getDeliveryPeriod());
-
-        RegularDeliveryStatus status =
-                regularDeliveryStatusRepository.findByStatusName(RegularDeliveryStatusCode.PENDING.getCode());
-        List<RegularDeliveryReservation> regularDeliveryReservationList = creationRequest.toReservationEntityList(deliveryDateSet, regularDeliveryApplication, status);
-        regularDeliveryReservationRepository.saveAll(regularDeliveryReservationList);
+        RegularDeliveryStatus status = regularDeliveryStatusRepository.findByStatusName(RegularDeliveryStatusCode.PENDING.getCode());
+        regularDeliveryReservationRepository.saveAll(creationRequest.toReservationEntityList(deliveryDateSet, regularDeliveryApplication, status));
     }
 
     /**
@@ -73,13 +86,13 @@ public class RegularOrderService {
     @Transactional
     public Page<RegularOrderResponse.OfRetrieve> retrieveRegularDeliveryList(String memberId, Pageable pageable) {
         Page<RegularDeliveryApplication> applicationList = regularDeliveryApplicationRepository.findByMemberIdOrderByCreatedAtAsc(memberId, pageable);
-        List<Long> productIdList = applicationList.map(application -> application.getMainProductId()).stream().collect(Collectors.toList());
-        ResponseEntity response = feignClient.bulkRetrieveProductInformation(productIdList);
-        Map<Long, RegularOrderResponse.ProductOrder> productOrderMap =
-                (Map<Long, RegularOrderResponse.ProductOrder>) ((ApiResponse) response.getBody()).getResult();
 
-        return applicationList.map(application ->
-                RegularOrderResponse.OfRetrieve.convertedBy(application, productOrderMap));
+        // 상품Id 리스트 추출 후 상품서비스의 상품정보 조회 API 호출
+        List<Long> productIdList = applicationList.map(application -> application.getMainProductId()).stream().collect(Collectors.toList());
+        Map<Long, RegularOrderResponse.ProductOrder> productOrderMap =
+                (Map<Long, RegularOrderResponse.ProductOrder>) ((ApiResponse)feignClient.bulkRetrieveProductInformation(productIdList).getBody()).getResult();
+
+        return applicationList.map(application -> RegularOrderResponse.OfRetrieve.convertedBy(application, productOrderMap));
     }
 
     /**
@@ -90,11 +103,11 @@ public class RegularOrderService {
     @Transactional
     public RegularOrderResponse.OfRetrieveDetails retrieveRegularDeliveryDetails(Long regularDeliveryApplicationId) {
         RegularDeliveryApplication application = regularDeliveryApplicationRepository.findWithReservationsAndApplicationDaysById(regularDeliveryApplicationId);
-        List<Long> productIdList = application.getRegularDeliveryReservationList().stream().map(reservation
-                -> reservation.getProductId()).collect(Collectors.toList());
-        ResponseEntity response = feignClient.bulkRetrieveProductInformation(productIdList);
+
+        // 상품Id 리스트 추출 후 상품서비스의 상품정보 조회 API 호출
+        List<Long> productIdList = application.getRegularDeliveryReservationList().stream().map(reservation -> reservation.getProductId()).collect(Collectors.toList());
         Map<Long, RegularOrderResponse.ProductOrder> productOrderMap =
-                (Map<Long, RegularOrderResponse.ProductOrder>) ((ApiResponse) response.getBody()).getResult();
+                (Map<Long, RegularOrderResponse.ProductOrder>) ((ApiResponse)feignClient.bulkRetrieveProductInformation(productIdList).getBody()).getResult();
 
         return RegularOrderResponse.OfRetrieveDetails.convertedBy(application, productOrderMap);
     }
@@ -125,8 +138,7 @@ public class RegularOrderService {
         RegularDeliveryReservation regularDeliveryReservation =
                 regularDeliveryReservationRepository.findByDeliveryApplicationAndProductId(regularOrderApplicationId, postPoneRequest.getProductId());
 
-        RegularDeliveryStatus status = regularDeliveryStatusRepository.findByStatusName(RegularDeliveryStatusCode.POSTPONED.getCode());
-        regularDeliveryReservation.changeStatus(status);
+        regularDeliveryReservation.changeStatus(regularDeliveryStatusRepository.findByStatusName(RegularDeliveryStatusCode.POSTPONED.getCode()));
         regularDeliveryReservation.getRegularDeliveryApplication().changeCompletedRounds(regularDeliveryReservation.getDeliveryRounds());
     }
 
@@ -156,5 +168,4 @@ public class RegularOrderService {
 
         return deliveryDateSet;
     }
-
 }
