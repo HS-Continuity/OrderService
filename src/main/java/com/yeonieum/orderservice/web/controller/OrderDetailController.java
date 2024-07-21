@@ -1,5 +1,6 @@
 package com.yeonieum.orderservice.web.controller;
 
+import com.yeonieum.orderservice.domain.notification.service.OrderNotificationService;
 import com.yeonieum.orderservice.domain.order.dto.request.OrderRequest;
 import com.yeonieum.orderservice.domain.order.service.OrderProcessService;
 import com.yeonieum.orderservice.domain.order.service.OrderTrackingService;
@@ -25,6 +26,7 @@ public class OrderDetailController {
 
     private final OrderTrackingService orderTrackingService;
     private final OrderProcessService orderProcessService;
+    private final OrderNotificationService notificationService;
 
     @Operation(summary = "고객용 주문 조회", description = "고객(seller)에게 접수된 주문리스트를 조회합니다. 주문상태에 따라 필터링이 가능합니다.")
     @ApiResponses({
@@ -117,6 +119,7 @@ public class OrderDetailController {
     public ResponseEntity<ApiResponse> placeOrder (@RequestBody OrderRequest.OfCreation creationRequest) {
         String memberId = "컨텍스트에서 가져올 예정";
         orderProcessService.placeOrder(creationRequest, memberId);
+        notificationService.sendEventMessage(creationRequest.getCustomerId());
         return new ResponseEntity<>(ApiResponse.builder()
                 .result(null)
                 .successCode(SuccessCode.UPDATE_SUCCESS)
