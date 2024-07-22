@@ -3,6 +3,7 @@ package com.yeonieum.orderservice.domain.regularorder.dto.response;
 import com.yeonieum.orderservice.domain.regularorder.entity.RegularDeliveryApplication;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.ToString;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -51,6 +52,26 @@ public class RegularOrderResponse {
                     .build();
         }
     }
+
+    @Getter
+    public static class OfRetrieveDailyCount {
+        private Long orderApplicationId;
+        private LocalDate date;
+        private Long productCount;
+        private Long productId;
+        private String productName;
+        public OfRetrieveDailyCount(Long orderApplicationId, LocalDate date, Long productCount, Long productId) {
+            this.orderApplicationId = orderApplicationId;
+            this.date = date;
+            this.productCount = productCount;
+            this.productId = productId;
+        }
+        public void bindProductName(String productName) {
+            this.productName = productName;
+        }
+    }
+
+
 
     @Getter
     @Builder
