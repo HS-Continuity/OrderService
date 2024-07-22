@@ -65,15 +65,7 @@ public class OrderProcessService {
             throw new RuntimeException("주문상태 트랜지션 룰 위반.");
         }
 
-
-
         switch (updateStatus.getOrderStatusCode()) {
-            case SHIPPED -> {
-                Delivery.builder()
-                        .orderDetail(orderDetail)
-                        .deliveryStatus(deliveryStatusRepository.findByStatusName(DeliveryStatusCode.SHIPPED))
-                        .build();
-            }
             case PREPARING_PRODUCT -> {
                 ReleaseStatus releaseStatus = releaseStatusRepository.findByStatusName(ReleaseStatusCode.AWAITING_RELEASE);
                 releaseRepository.save(Release.builder()
