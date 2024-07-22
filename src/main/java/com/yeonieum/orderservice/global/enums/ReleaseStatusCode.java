@@ -2,6 +2,7 @@ package com.yeonieum.orderservice.global.enums;
 
 public enum ReleaseStatusCode {
     AWAITING_RELEASE("AWAITING_RELEASE"),
+    HOLD_RELEASE("HOLD_RELEASE"),
     RELEASE_COMPLETED("RELEASE_COMPLETED");
 
     private final String code;
@@ -18,6 +19,8 @@ public enum ReleaseStatusCode {
         switch (code) {
             case "AWAITING_RELEASE":
                 return AWAITING_RELEASE;
+            case "HOLD_RELEASE":
+                return HOLD_RELEASE;
             case "RELEASE_COMPLETED":
                 return RELEASE_COMPLETED;
             default:

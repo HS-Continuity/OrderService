@@ -4,7 +4,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 /**
- * 주문대기 - 주문취소/결제완료 - 상품준비중 - 출고대기 - 배송시작 - 배송중 - 배송완료 - 환불
+ * 주문대기 - 주문취소/결제완료 - 상품준비중 - 출고대기 - 배송시작(== 출고완료) - 배송중 - 배송완료 - 환불
  */
 @Getter
 @NoArgsConstructor

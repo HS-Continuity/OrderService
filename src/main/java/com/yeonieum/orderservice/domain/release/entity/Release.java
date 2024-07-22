@@ -30,5 +30,11 @@ public class Release {
 
     @Column(name = "hold_reason", length = 900)
     private String holdReason;
+
+    public void changeReleaseMemo(String memo) {
+        this.memo = memo;
+    }
+    public void changeReleaseStatus(ReleaseStatus releaseStatus) { this.releaseStatus = releaseStatus; }
+    public void changeReleaseHoldReason(String holdReason) {this.holdReason = holdReason; }
 }
 
