@@ -22,5 +22,5 @@ public interface ProductServiceFeignClient {
 
     @GetMapping("/api/management/products")
     ResponseEntity<ApiResponse<Map<Long, RegularOrderResponse.ProductOrder>>> bulkRetrieveProductInformation(@RequestParam List<Long> productIdList);
-
 }
+

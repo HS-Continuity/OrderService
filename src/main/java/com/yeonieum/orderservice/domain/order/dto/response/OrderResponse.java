@@ -18,15 +18,13 @@ public class OrderResponse {
     @Getter
     @Builder
     public static class OfRetrieveForCustomer {
-        String memberId;
-        String memberName;
+        MemberInfo memberInfo;
         Recipient recipient;
         ProductOrderList productOrderList;
 
-        public static OfRetrieveForCustomer convertedBy(OrderDetail orderDetail) {
+        public static OfRetrieveForCustomer convertedBy(OrderDetail orderDetail, MemberInfo memberInfo) {
             return OfRetrieveForCustomer.builder()
-                    .memberId(orderDetail.getMemberId())
-                    .memberName(orderDetail.getStoreName())
+                    .memberInfo(memberInfo)
                     .productOrderList(ProductOrderList.convertedBy(orderDetail))
                     .recipient(new Recipient(
                             orderDetail.getRecipient(),
@@ -143,11 +141,20 @@ public class OrderResponse {
         int quantity;
         String status;
     }
+
     @Getter
     @Builder
     public static class Recipient {
         String recipient;
         String recipientPhoneNumber;
         String recipientAddress;
+    }
+
+    @Getter
+    @Builder
+    public static class MemberInfo{
+        String memberId;
+        String memberName;
+        String memberPhoneNumber;
     }
 }

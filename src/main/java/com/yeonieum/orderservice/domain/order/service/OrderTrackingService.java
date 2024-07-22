@@ -5,19 +5,24 @@ import com.yeonieum.orderservice.domain.order.entity.OrderDetail;
 import com.yeonieum.orderservice.domain.order.repository.OrderDetailRepository;
 import com.yeonieum.orderservice.domain.order.repository.OrderStatusRepository;
 import com.yeonieum.orderservice.global.enums.OrderStatusCode;
+import com.yeonieum.orderservice.infrastructure.feignclient.MemberServiceFeignClient;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class OrderTrackingService {
     private final OrderDetailRepository orderDetailRepository;
     private final OrderStatusRepository orderStatusRepository;
+    private final MemberServiceFeignClient feignClient;
 
     /**
      * 고객용 주문 조회 서비스
@@ -31,7 +36,14 @@ public class OrderTrackingService {
         Page<OrderDetail> orderDetailsPage =
                 orderDetailRepository.findByCustomerIdAndOrderStatus(customerId, orderStatusRepository.findByStatusName(orderStatusCode), pageable);
 
-        return orderDetailsPage.map(OrderResponse.OfRetrieveForCustomer::convertedBy);
+        List<OrderResponse.OfRetrieveForCustomer> convertedOrders = new ArrayList<>();
+
+        for (OrderDetail orderDetail : orderDetailsPage) {
+            OrderResponse.MemberInfo targetMember = (OrderResponse.MemberInfo) feignClient.getOrderMemberInfo(orderDetail.getMemberId()).getBody().getResult();
+            convertedOrders.add(OrderResponse.OfRetrieveForCustomer.convertedBy(orderDetail, targetMember));
+        }
+
+        return new PageImpl<>(convertedOrders, pageable, orderDetailsPage.getTotalElements());
     }
 
     /**
