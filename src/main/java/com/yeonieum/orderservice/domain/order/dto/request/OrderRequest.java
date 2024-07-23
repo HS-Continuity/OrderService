@@ -32,6 +32,13 @@ public class OrderRequest {
 
     @Getter
     @NoArgsConstructor
+    public static class OfBulkUpdateOrderStatus {
+        List<String> orderIds;
+        OrderStatusCode orderStatusCode;
+    }
+
+    @Getter
+    @NoArgsConstructor
     public static class OfUpdateProductOrderStatus {
         String orderId;
         Long productId;

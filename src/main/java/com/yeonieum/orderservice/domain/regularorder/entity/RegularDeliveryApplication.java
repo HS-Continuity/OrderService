@@ -65,6 +65,9 @@ public class RegularDeliveryApplication {
     @Column(name = "ordered_product_count", nullable = false)
     private int orderedProductCount;
 
+    @Column(name = "next_delivery_date", nullable = false)
+    private LocalDate nextDeliveryDate;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "regular_delivery_status_id", nullable = false)
     private RegularDeliveryStatus regularDeliveryStatus;

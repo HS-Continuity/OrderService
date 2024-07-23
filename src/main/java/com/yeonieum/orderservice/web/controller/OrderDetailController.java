@@ -18,7 +18,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 
-
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/order")
@@ -121,6 +120,25 @@ public class OrderDetailController {
         String memberId = "컨텍스트에서 가져올 예정";
         orderProcessService.placeOrder(creationRequest, memberId);
         notificationService.sendEventMessage(creationRequest.getCustomerId());
+        return new ResponseEntity<>(ApiResponse.builder()
+                .result(null)
+                .successCode(SuccessCode.UPDATE_SUCCESS)
+                .build(), HttpStatus.OK);
+    }
+
+    @Operation(summary = "주문상태 일괄 변경 요청", description = "고객이 상품의 주문상태를 일괄 변경 요청합니다.")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "주문 상태 일괄 변경 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "주문 상태 일괄 변경 실패")
+    })
+    @PatchMapping("/bulk-status")
+    public ResponseEntity<ApiResponse> changeBulkOrderStatus(@RequestBody OrderRequest.OfBulkUpdateOrderStatus updateStatus) {
+        String Role = "CUSTOMER";
+        if(!orderStatusPolicy.getOrderStatusPermission().get(updateStatus.getOrderStatusCode()).contains(Role)) {
+            throw new RuntimeException("접근권한이 없습니다.");
+        }
+
+        orderProcessService.changeBulkOrderStatus(updateStatus);
         return new ResponseEntity<>(ApiResponse.builder()
                 .result(null)
                 .successCode(SuccessCode.UPDATE_SUCCESS)
