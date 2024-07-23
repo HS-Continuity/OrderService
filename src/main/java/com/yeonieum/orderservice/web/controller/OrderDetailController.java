@@ -2,6 +2,7 @@ package com.yeonieum.orderservice.web.controller;
 
 import com.yeonieum.orderservice.domain.notification.service.OrderNotificationService;
 import com.yeonieum.orderservice.domain.order.dto.request.OrderRequest;
+import com.yeonieum.orderservice.domain.order.policy.OrderStatusPolicy;
 import com.yeonieum.orderservice.domain.order.service.OrderProcessService;
 import com.yeonieum.orderservice.domain.order.service.OrderTrackingService;
 import com.yeonieum.orderservice.global.enums.OrderStatusCode;
@@ -17,7 +18,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 
-import static com.yeonieum.orderservice.domain.order.policy.OrderStatusPolicy.orderStatusPermission;
 
 @RestController
 @RequiredArgsConstructor
@@ -27,6 +27,7 @@ public class OrderDetailController {
     private final OrderTrackingService orderTrackingService;
     private final OrderProcessService orderProcessService;
     private final OrderNotificationService notificationService;
+    private final OrderStatusPolicy orderStatusPolicy;
 
     @Operation(summary = "고객용 주문 조회", description = "고객(seller)에게 접수된 주문리스트를 조회합니다. 주문상태에 따라 필터링이 가능합니다.")
     @ApiResponses({
@@ -98,7 +99,7 @@ public class OrderDetailController {
     @PatchMapping("/status")
     public ResponseEntity<ApiResponse> changeOrderStatus(@RequestBody OrderRequest.OfUpdateOrderStatus updateStatus) {
         String Role = "컨텍스트에서 가져올 예정";
-        if(!orderStatusPermission.get(updateStatus.getOrderStatusCode().getCode()).equals(Role)) {
+        if(!orderStatusPolicy.getOrderStatusPermission().get(updateStatus.getOrderStatusCode().getCode()).equals(Role)) {
             throw new RuntimeException("접근권한이 없습니다.");
         }
 

@@ -20,12 +20,14 @@ public interface OrderDetailRepository extends JpaRepository<OrderDetail, String
                                      @Param("startDate") LocalDateTime startDate,
                                      @Param("endDate") LocalDateTime endDate,
                                      Pageable pageable);
+
     @Query("SELECT o FROM OrderDetail o WHERE o.customerId =" +
             ":customerId AND (:orderStatus IS NULL OR o.orderStatus =" +
             ":orderStatus) ORDER BY o.orderDateTime DESC")
     Page<OrderDetail> findByCustomerIdAndOrderStatus(@Param("customerId")Long customerId,
                                                      @Param("orderStatus") OrderStatus orderStatus,
                                                      Pageable pageable);
+
     @Query("SELECT COUNT(o) FROM OrderDetail o WHERE o.customerId = :customerId AND (:orderStatus IS NULL OR o.orderStatus = :orderStatus)")
     Long countByCustomerIdAndOrderStatus(@Param("customerId") Long customerId,
                                          @Param("orderStatus") OrderStatus orderStatus);

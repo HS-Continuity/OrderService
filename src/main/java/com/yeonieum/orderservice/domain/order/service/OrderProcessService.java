@@ -6,6 +6,7 @@ import com.yeonieum.orderservice.domain.order.dto.request.OrderRequest;
 import com.yeonieum.orderservice.domain.order.entity.OrderDetail;
 import com.yeonieum.orderservice.domain.order.entity.OrderStatus;
 import com.yeonieum.orderservice.domain.order.entity.ProductOrderEntity;
+import com.yeonieum.orderservice.domain.order.policy.OrderStatusPolicy;
 import com.yeonieum.orderservice.domain.order.repository.OrderDetailRepository;
 import com.yeonieum.orderservice.domain.order.repository.OrderStatusRepository;
 import com.yeonieum.orderservice.domain.order.repository.PaymentInformationRepository;
@@ -32,8 +33,6 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static com.yeonieum.orderservice.domain.order.policy.OrderStatusPolicy.orderStatusTransitionRule;
-
 
 @Service
 @RequiredArgsConstructor
@@ -45,7 +44,7 @@ public class OrderProcessService {
     private final ReleaseStatusRepository releaseStatusRepository;
     private final DeliveryStatusRepository deliveryStatusRepository;
     private final ProductServiceFeignClient stockFeignClient;
-
+    private final OrderStatusPolicy orderStatusPolicy;
 
     /**
      * 전체 주문상태 수정 서비스[상품주문에 대한 주문상태 변경은 일어나지 않음]
@@ -61,7 +60,7 @@ public class OrderProcessService {
         OrderStatus requestedStatus = orderStatusRepository.findByStatusName(updateStatus.getOrderStatusCode());
         OrderStatusCode requestedStatusCode = requestedStatus.getStatusName();
         OrderStatusCode orderStatus = orderDetail.getOrderStatus().getStatusName();
-        if(!orderStatusTransitionRule.get(requestedStatusCode).getRequiredPreviosConditionSet().contains(orderStatus)) {
+        if(!orderStatusPolicy.getOrderStatusTransitionRule().get(requestedStatusCode).getRequiredPreviosConditionSet().contains(orderStatus)) {
             throw new RuntimeException("주문상태 트랜지션 룰 위반.");
         }
 
@@ -104,7 +103,7 @@ public class OrderProcessService {
         OrderStatus requestedStatus = orderStatusRepository.findByStatusName(updateProductOrderStatus.getOrderStatusCode());
         OrderStatusCode requestedStatusCode = requestedStatus.getStatusName();
         OrderStatusCode productOrderStatus = productOrder.getStatus();
-        if(!orderStatusTransitionRule.get(requestedStatusCode).getRequiredPreviosConditionSet().contains(productOrderStatus)) {
+        if(!orderStatusPolicy.getOrderStatusTransitionRule().get(requestedStatusCode).getRequiredPreviosConditionSet().contains(productOrderStatus)) {
             throw new RuntimeException("주문상태 트랜지션 룰 위반.");
         }
 
