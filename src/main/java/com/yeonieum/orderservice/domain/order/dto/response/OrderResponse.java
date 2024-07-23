@@ -149,6 +149,12 @@ public class OrderResponse {
         String recipient;
         String recipientPhoneNumber;
         String recipientAddress;
+
+        public Recipient(String recipient, String recipientPhoneNumber, String recipientAddress) {
+            this.recipient = recipient;
+            this.recipientPhoneNumber = recipientPhoneNumber;
+            this.recipientAddress = recipientAddress;
+        }
     }
 
     @Getter
