@@ -2,6 +2,7 @@ package com.yeonieum.orderservice.web.controller;
 
 import com.yeonieum.orderservice.domain.regularorder.dto.request.RegularOrderRequest;
 import com.yeonieum.orderservice.domain.regularorder.service.RegularOrderService;
+import com.yeonieum.orderservice.global.auth.Role;
 import com.yeonieum.orderservice.global.responses.ApiResponse;
 import com.yeonieum.orderservice.global.responses.code.SuccessCode;
 import io.swagger.v3.oas.annotations.Operation;
@@ -33,6 +34,7 @@ public class RegularOrderController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "정기주문 생성 성공"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 오류 발생")
     })
+    @Role(role = {"ROLE_CUSTOMER", "ROLE_MEMBER"}, url = "/api/regular-order", method = "POST")
     @PostMapping
     public ResponseEntity<ApiResponse> subscriptionRegularDelivery(@RequestBody  RegularOrderRequest.OfCreation creationRequest) {
         regularOrderService.subscriptionDelivery(creationRequest);
@@ -47,9 +49,10 @@ public class RegularOrderController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "정기주문내역 조회 성공"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 오류 발생")
     })
+    @Role(role = {"ROLE_CUSTOMER", "ROLE_MEMBER"}, url = "/api/regular-order/list", method = "GET")
     @GetMapping("/list")
     public ResponseEntity<ApiResponse> retrieveRegularOrderList(@RequestParam(defaultValue = "0") int page,
-                                                           @RequestParam(defaultValue = "10") int size) {
+                                                                @RequestParam(defaultValue = "10") int size) {
         String memberId = "memberId"; // TODO: 로그인한 사용자의 ID를 컨텍스트에서 가져와야 함
         Pageable pageable = PageRequest.of(page, size);
 
@@ -64,6 +67,7 @@ public class RegularOrderController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "정기주문신청 해지 성공"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 오류 발생")
     })
+    @Role(role = {"ROLE_MEMBER"}, url = "/api/regular-order/cancel", method = "PUT")
     @PutMapping("/cancel")
     public ResponseEntity<ApiResponse> cancelRegularOrder(@RequestParam(name = "regularOrderId") Long regularDeliveryApplicationId) {
         regularOrderService.cancelRegularDelivery(regularDeliveryApplicationId);
@@ -78,6 +82,7 @@ public class RegularOrderController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "정기주문 연기 성공"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 오류 발생")
     })
+    @Role(role = {"ROLE_MEMBER"}, url = "/api/regular-order/{regularOrderId}/postpone", method = "PUT")
     @PutMapping("/{regularOrderId}/postpone")
     public ResponseEntity<ApiResponse> postponeRegularOrder(@RequestParam(name = "regularOrderId") Long regularDeliveryApplicationId,
                                                             @RequestBody RegularOrderRequest.OfPostPone postPoneRequest) {
