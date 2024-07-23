@@ -1,6 +1,7 @@
 package com.yeonieum.orderservice.web.controller;
 
 import com.yeonieum.orderservice.domain.notification.service.OrderNotificationService;
+import com.yeonieum.orderservice.global.auth.Role;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -18,6 +19,7 @@ import java.io.IOException;
 public class SseController {
     private final OrderNotificationService notificationService;
 
+    @Role(role = {"ROLE_CUSTOMER"}, url = "/api/order-notification/{customerId}/subscription", method = "GET")
     @GetMapping(value = "/{customerId}/subscription", produces = MediaType.ALL_VALUE)
     public ResponseEntity<SseEmitter> connect(@PathVariable Long customerId) throws IOException {
         return ResponseEntity.ok(notificationService.subscribe(customerId));

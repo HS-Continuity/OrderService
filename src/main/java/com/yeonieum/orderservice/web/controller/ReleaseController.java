@@ -4,6 +4,7 @@ import com.yeonieum.orderservice.domain.order.dto.request.OrderRequest;
 import com.yeonieum.orderservice.domain.release.dto.ReleaseRequest;
 import com.yeonieum.orderservice.domain.release.policy.ReleaseStatusPolicy;
 import com.yeonieum.orderservice.domain.release.service.ReleaseService;
+import com.yeonieum.orderservice.global.auth.Role;
 import com.yeonieum.orderservice.global.enums.OrderStatusCode;
 import com.yeonieum.orderservice.global.enums.ReleaseStatusCode;
 import com.yeonieum.orderservice.global.responses.ApiResponse;
@@ -29,6 +30,7 @@ public class ReleaseController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "주문조회 성공"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 오류 발생")
     })
+    @Role(role = {"ROLE_CUSTOMER"}, url = "/api/release/list", method = "GET")
     @GetMapping("/list")
     public ResponseEntity<ApiResponse> getCustomersRelease (@RequestParam Long customerId,
                                                             @RequestParam(required = false) ReleaseStatusCode releaseStatus,
@@ -46,6 +48,7 @@ public class ReleaseController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "배송 시작일 설정 성공"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "배송 시작일 설정 실패")
     })
+    @Role(role = {"ROLE_CUSTOMER"}, url = "/api/release/deliveryDate", method = "PATCH")
     @PatchMapping("/deliveryDate")
     public ResponseEntity<ApiResponse> changeDeliveryDate(@RequestBody ReleaseRequest.OfUpdateDeliveryDate updateDeliveryDate) {
 
@@ -62,6 +65,7 @@ public class ReleaseController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "출고 상태 변경 성공"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "출고 상태 변경 실패")
     })
+    @Role(role = {"ROLE_CUSTOMER"}, url = "/api/release/status", method = "PATCH")
     @PatchMapping("/status")
     public ResponseEntity<ApiResponse> changeOrderStatus(@RequestBody ReleaseRequest.OfUpdateReleaseStatus updateStatus) {
         String Role = "CUSTOMER";
