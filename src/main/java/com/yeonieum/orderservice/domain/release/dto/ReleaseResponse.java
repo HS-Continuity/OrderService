@@ -15,12 +15,18 @@ public class ReleaseResponse {
     public static class OfRetrieve {
         OrderResponse.MemberInfo memberInfo;
         LocalDate startDeliveryDate;
+        OrderResponse.Recipient recipient;
         OrderResponse.ProductOrderList productOrderList;
 
         public static OfRetrieve convertedBy(OrderDetail orderDetail, Release release, OrderResponse.MemberInfo memberInfo) {
             return OfRetrieve.builder()
                     .memberInfo(memberInfo)
                     .startDeliveryDate(release.getStartDeliveryDate())
+                    .recipient(new OrderResponse.Recipient(
+                            orderDetail.getRecipient(),
+                            orderDetail.getRecipientPhoneNumber(),
+                            orderDetail.getDeliveryAddress()
+                    ))
                     .productOrderList(OrderResponse.ProductOrderList.convertedBy(orderDetail))
                     .build();
         }

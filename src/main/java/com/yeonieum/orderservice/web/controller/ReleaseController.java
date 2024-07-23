@@ -1,10 +1,8 @@
 package com.yeonieum.orderservice.web.controller;
 
-import com.yeonieum.orderservice.domain.order.dto.request.OrderRequest;
 import com.yeonieum.orderservice.domain.release.dto.ReleaseRequest;
 import com.yeonieum.orderservice.domain.release.policy.ReleaseStatusPolicy;
 import com.yeonieum.orderservice.domain.release.service.ReleaseService;
-import com.yeonieum.orderservice.global.enums.OrderStatusCode;
 import com.yeonieum.orderservice.global.enums.ReleaseStatusCode;
 import com.yeonieum.orderservice.global.responses.ApiResponse;
 import com.yeonieum.orderservice.global.responses.code.SuccessCode;
@@ -70,6 +68,36 @@ public class ReleaseController {
         }
 
         releaseService.changReleaseStatus(updateStatus);
+        return new ResponseEntity<>(ApiResponse.builder()
+                .result(null)
+                .successCode(SuccessCode.UPDATE_SUCCESS)
+                .build(), HttpStatus.OK);
+    }
+
+    @Operation(summary = "출고 메모 작성", description = "고객은 출고메모를 작성할 수 있습니다.")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "출고 메모 작성 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "출고 메모 작성 실패")
+    })
+    @PatchMapping("/memo")
+    public ResponseEntity<ApiResponse> changeReleaseMemo(@RequestBody ReleaseRequest.OfRegisterMemo updateRegisterMemo) {
+
+        releaseService.changeReleaseMemo(updateRegisterMemo);
+        return new ResponseEntity<>(ApiResponse.builder()
+                .result(null)
+                .successCode(SuccessCode.UPDATE_SUCCESS)
+                .build(), HttpStatus.OK);
+    }
+
+    @Operation(summary = "출고 보류 사유 작성", description = "고객은 출고 보류 사유를 작성할 수 있습니다.")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "출고 보류 사유 작성 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "출고 보류 사유 작성 실패")
+    })
+    @PatchMapping("/hold-memo")
+    public ResponseEntity<ApiResponse> changeReleaseHoldMemo(@RequestBody ReleaseRequest.OfHoldMemo updateHoldMemo) {
+
+        releaseService.changeReleaseHoldMemo(updateHoldMemo);
         return new ResponseEntity<>(ApiResponse.builder()
                 .result(null)
                 .successCode(SuccessCode.UPDATE_SUCCESS)

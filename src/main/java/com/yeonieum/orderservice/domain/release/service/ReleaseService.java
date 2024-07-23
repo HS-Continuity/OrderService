@@ -42,6 +42,9 @@ public class ReleaseService {
     /**
      * 상품의 출고 상태 수정 (출고 대기 -> 출고 보류, 출고 대기 -> 출고 완료, 출고 보류 -> 출고 완료)
      * @param updateStatus (주문 ID, 업데이트 될 출고 상태값) DTO
+     * @throws IllegalStateException 존재하지 않는 주문 ID인 경우
+     * @throws RuntimeException 출고 상태 트랜지션 룰 위반일 경우
+     * @throws RuntimeException 주문 상태 트랜지션 룰 위반일 경우
      * @return
      */
     @Transactional
@@ -69,13 +72,6 @@ public class ReleaseService {
             case HOLD_RELEASE -> {
                 //출고객체의 출고 상태 '출고 보류'로 변경
                 targetRelease.changeReleaseStatus(requestedStatus);
-
-                //출고객체의 출고 상태가 '출고 보류'가 되더라도 주문 상태는 '출고 대기'로 유지
-                presentOrderStatus = orderStatusRepository.findByStatusName(OrderStatusCode.AWAITING_RELEASE);
-                presentOrderStatusCode = OrderStatusCode.AWAITING_RELEASE;
-                if(!orderStatusPolicy.getOrderStatusTransitionRule().get(presentOrderStatus.getStatusName()).getRequiredPreviosConditionSet().contains(orderStatus)) {
-                    throw new RuntimeException("주문상태 트랜지션 룰 위반!");
-                }
             }
             //출고 완료 -> 배송 객체 생성 (배송시작)
             case RELEASE_COMPLETED -> {
@@ -100,15 +96,15 @@ public class ReleaseService {
                 if(!orderStatusPolicy.getOrderStatusTransitionRule().get(presentOrderStatus.getStatusName()).getRequiredPreviosConditionSet().contains(orderStatus)) {
                     throw new RuntimeException("주문상태 트랜지션 룰 위반!");
                 }
+
+                // 주문 상태 변경
+                targetOrderDetail.changeOrderStatus(presentOrderStatus);
+
+                for (ProductOrderEntity productOrderEntity : targetOrderDetail.getOrderList().getProductOrderEntityList()) {
+                    productOrderEntity.changeStatus(presentOrderStatusCode);
+                }
             }
             default -> throw new RuntimeException("잘못된 접근입니다.");
-        }
-
-        // 주문 상태 변경
-        targetOrderDetail.changeOrderStatus(presentOrderStatus);
-
-        for (ProductOrderEntity productOrderEntity : targetOrderDetail.getOrderList().getProductOrderEntityList()) {
-            productOrderEntity.changeStatus(presentOrderStatusCode);
         }
 
         // 명시적 저장
@@ -123,7 +119,7 @@ public class ReleaseService {
      * @param pageable 페이지 요청 정보
      * @return 페이지 처리된 출고 상품 응답 객체
      */
-    @Transactional(readOnly = true)
+    @Transactional
     public Page<ReleaseResponse.OfRetrieve> getReleaseDetailsByCustomerAndStatus(Long customerId, ReleaseStatusCode statusCode, Pageable pageable) {
         Page<Release> releasesPage;
         if (statusCode == null) {
@@ -133,12 +129,8 @@ public class ReleaseService {
         }
 
         return releasesPage.map(release -> {
-            OrderResponse.MemberInfo targetMember = feignClient.getOrderMemberInfo(release.getOrderDetail().getMemberId()).getBody().getResult();
-            return ReleaseResponse.OfRetrieve.builder()
-                    .memberInfo(targetMember)
-                    .startDeliveryDate(release.getStartDeliveryDate())
-                    .productOrderList(OrderResponse.ProductOrderList.convertedBy(release.getOrderDetail()))
-                    .build();
+            OrderResponse.MemberInfo memberInfo = feignClient.getOrderMemberInfo(release.getOrderDetail().getMemberId()).getBody().getResult();
+            return ReleaseResponse.OfRetrieve.convertedBy(release.getOrderDetail(),release, memberInfo);
         });
     }
 
@@ -152,10 +144,51 @@ public class ReleaseService {
         Release targetRelease = releaseRepository.findByOrderDetailId(updateDeliveryDate.getOrderId());
 
         if (targetRelease == null) {
-            throw new IllegalArgumentException("존재하지 않는 주문 ID: " + updateDeliveryDate.getOrderId());
+            throw new IllegalArgumentException("존재하지 않는 주문 ID 입니다.");
         }
 
         targetRelease.changeStartDeliveryDate(updateDeliveryDate.getStartDeliveryDate());
+        releaseRepository.save(targetRelease);
+    }
+
+    /**
+     * 출고 메모 작성
+     * @param updateMemo 출고 메모 작성 DTO
+     * @throws IllegalStateException 존재하지 않는 주문 ID인 경우
+     */
+    @Transactional
+    public void changeReleaseMemo (ReleaseRequest.OfRegisterMemo updateMemo) {
+
+        Release targetRelease = releaseRepository.findByOrderDetailId(updateMemo.getOrderId());
+
+        if (targetRelease == null) {
+            throw new IllegalArgumentException("존재하지 않는 주문 ID 입니다.");
+        }
+
+        targetRelease.changeReleaseMemo(updateMemo.getMemo());
+        releaseRepository.save(targetRelease);
+    }
+
+    /**
+     * 출고 보류 사유 메모 작성 (출고 상태가 '출고 보류'일 경우만 작성 가능)
+     * @throws IllegalStateException 존재하지 않는 주문 ID인 경우
+     * @throws IllegalStateException 출고 상태가 '출고 보류'가 아닌 경우
+     * @param updateHoldMemo 출고 보류 메모 작성 DTO
+     */
+    @Transactional
+    public void changeReleaseHoldMemo (ReleaseRequest.OfHoldMemo updateHoldMemo) {
+
+        Release targetRelease = releaseRepository.findByOrderDetailId(updateHoldMemo.getOrderId());
+
+        if (targetRelease == null) {
+            throw new IllegalArgumentException("존재하지 않는 주문 ID 입니다.");
+        }
+
+        if(targetRelease.getReleaseStatus().getStatusName() != ReleaseStatusCode.HOLD_RELEASE){
+            throw new IllegalStateException("현재 출고 상태가 '출고 보류' 상태가 아닙니다.");
+        }
+
+        targetRelease.changeReleaseHoldReason(updateHoldMemo.getMemo());
         releaseRepository.save(targetRelease);
     }
 }

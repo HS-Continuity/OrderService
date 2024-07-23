@@ -21,4 +21,18 @@ public class ReleaseRequest {
         String orderId;
         LocalDate startDeliveryDate;
     }
+
+    @Getter
+    @NoArgsConstructor
+    public static class OfRegisterMemo {
+        String orderId;
+        String memo;
+    }
+
+    @Getter
+    @NoArgsConstructor
+    public static class OfHoldMemo{
+        String orderId;
+        String memo;
+    }
 }
