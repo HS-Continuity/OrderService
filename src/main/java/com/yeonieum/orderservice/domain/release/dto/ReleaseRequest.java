@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.util.List;
 
 public class ReleaseRequest {
 
@@ -12,6 +13,13 @@ public class ReleaseRequest {
     @NoArgsConstructor
     public static class OfUpdateReleaseStatus {
         String orderId;
+        ReleaseStatusCode releaseStatusCode;
+    }
+
+    @Getter
+    @NoArgsConstructor
+    public static class OfBulkUpdateReleaseStatus  {
+        List<String> orderIds;
         ReleaseStatusCode releaseStatusCode;
     }
 

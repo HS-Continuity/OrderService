@@ -1,6 +1,7 @@
 package com.yeonieum.orderservice.domain.release.service;
 
 import com.yeonieum.orderservice.domain.delivery.entity.Delivery;
+import com.yeonieum.orderservice.domain.delivery.repository.DeliveryRepository;
 import com.yeonieum.orderservice.domain.delivery.repository.DeliveryStatusRepository;
 import com.yeonieum.orderservice.domain.order.dto.response.OrderResponse;
 import com.yeonieum.orderservice.domain.order.entity.OrderDetail;
@@ -27,6 +28,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class ReleaseService {
@@ -38,6 +41,7 @@ public class ReleaseService {
     private final ReleaseStatusRepository releaseStatusRepository;
     private final MemberServiceFeignClient feignClient;
     private final OrderStatusPolicy orderStatusPolicy;
+    private final DeliveryRepository deliveryRepository;
 
     /**
      * 상품의 출고 상태 수정 (출고 대기 -> 출고 보류, 출고 대기 -> 출고 완료, 출고 보류 -> 출고 완료)
@@ -49,7 +53,7 @@ public class ReleaseService {
      */
     @Transactional
     public void changReleaseStatus (ReleaseRequest.OfUpdateReleaseStatus updateStatus) {
-
+        // 주문 상세 정보 조회
         OrderDetail targetOrderDetail = orderDetailRepository.findById(updateStatus.getOrderId())
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 주문 ID 입니다."));
 
@@ -58,8 +62,10 @@ public class ReleaseService {
         ReleaseStatus requestedStatus = releaseStatusRepository.findByStatusName(updateStatus.getReleaseStatusCode());
         ReleaseStatusCode requestedStatusCode = requestedStatus.getStatusName();
 
+        // 현재 출고 상태
         ReleaseStatusCode releaseStatus = targetRelease.getReleaseStatus().getStatusName();
 
+        // 출고 상태 전환 규칙 검증
         if(!releaseStatusPolicy.getReleaseStatusTransitionRule().get(requestedStatusCode).getRequiredPreviosConditionSet().contains(releaseStatus)) {
             throw new RuntimeException("출고상태 트랜지션 룰 위반!");
         }
@@ -67,12 +73,16 @@ public class ReleaseService {
         OrderStatus presentOrderStatus = null;
         OrderStatusCode presentOrderStatusCode = null;
         OrderStatusCode orderStatus = targetOrderDetail.getOrderStatus().getStatusName();
+
+        // 출고 상태 변경 로직
         switch (updateStatus.getReleaseStatusCode()) {
             //출고 보류
             case HOLD_RELEASE -> {
                 //출고객체의 출고 상태 '출고 보류'로 변경
                 targetRelease.changeReleaseStatus(requestedStatus);
+
             }
+
             //출고 완료 -> 배송 객체 생성 (배송시작)
             case RELEASE_COMPLETED -> {
 
@@ -97,7 +107,7 @@ public class ReleaseService {
                     throw new RuntimeException("주문상태 트랜지션 룰 위반!");
                 }
 
-                // 주문 상태 변경
+                // 주문 상태 업데이트
                 targetOrderDetail.changeOrderStatus(presentOrderStatus);
 
                 for (ProductOrderEntity productOrderEntity : targetOrderDetail.getOrderList().getProductOrderEntityList()) {
@@ -190,5 +200,85 @@ public class ReleaseService {
 
         targetRelease.changeReleaseHoldReason(updateHoldMemo.getMemo());
         releaseRepository.save(targetRelease);
+    }
+
+    /**
+     * 상품의 출고 상태 일괄 수정 (출고 대기 -> 출고 보류, 출고 대기 -> 출고 완료, 출고 보류 -> 출고 완료)
+     * @param bulkUpdateStatus (업데이틀 될 여러 주문 ID 들, 업데이트 될 출고 상태값) DTO
+     * @throws IllegalStateException 존재하지 않는 주문 ID인 경우
+     * @throws RuntimeException 출고 상태 트랜지션 룰 위반일 경우
+     * @throws RuntimeException 주문 상태 트랜지션 룰 위반일 경우
+     * @return
+     */
+    @Transactional
+    public void changeBulkReleaseStatus(ReleaseRequest.OfBulkUpdateReleaseStatus bulkUpdateStatus) {
+        // 요청된 모든 주문 상세 정보를 가져옴
+        List<OrderDetail> orderDetails = orderDetailRepository.findAllById(bulkUpdateStatus.getOrderIds());
+
+        // 요청된 ID 수와 조회된 결과 수가 다르면 존재하지 않는 ID가 있다는 의미
+        if (orderDetails.size() != bulkUpdateStatus.getOrderIds().size()) {
+            throw new IllegalArgumentException("하나 이상의 주문 ID가 존재하지 않습니다.");
+        }
+
+        // 요청된 출고 상태 객체를 가져옴
+        ReleaseStatus requestedStatus = releaseStatusRepository.findByStatusName(bulkUpdateStatus.getReleaseStatusCode());
+        ReleaseStatusCode requestedStatusCode = requestedStatus.getStatusName();
+
+        // 모든 주문에 대해 상태 변경 수행
+        for (OrderDetail orderDetail : orderDetails) {
+            Release targetRelease = releaseRepository.findByOrderDetailId(orderDetail.getOrderDetailId());
+            ReleaseStatusCode currentReleaseStatus =  targetRelease.getReleaseStatus().getStatusName();
+
+            // 출고 상태 전환 규칙 확인
+            if (!releaseStatusPolicy.getReleaseStatusTransitionRule().get(requestedStatusCode).getRequiredPreviosConditionSet().contains(currentReleaseStatus)) {
+                throw new RuntimeException("출고 상태 전환 규칙 위반!");
+            }
+
+            // 출고 상태 업데이트
+            targetRelease.changeReleaseStatus(requestedStatus);
+            releaseRepository.save(targetRelease);
+
+            // 주문 상태 및 배송 정보 업데이트
+            updateOrderAndDeliveryStatus(orderDetail, requestedStatusCode);
+        }
+    }
+
+    /**
+     * 상품의 출고 상태 일괄 수정에 주문 및 배송 상태 변경
+     * @param orderDetail 주문내역 엔티티
+     * @param requestedStatusCode 요청된 상태 코드
+     * @throws RuntimeException 주문 상태 트랜지션 룰 위반일 경우
+     * @return
+     */
+    @Transactional
+    public void updateOrderAndDeliveryStatus(OrderDetail orderDetail, ReleaseStatusCode requestedStatusCode) {
+        OrderStatus newOrderStatus;
+
+        switch (requestedStatusCode) {
+            case HOLD_RELEASE:
+                //출고 보류 상태로 변경될 시, 주문 상태는 그래도 출고 대기로 유지
+                break;
+            case RELEASE_COMPLETED:
+                if (orderDetail.getOrderStatus().getStatusName() != OrderStatusCode.SHIPPED) {
+                    // 출고 완료 상태일 경우, 배송 시작 처리
+                    Delivery.builder()
+                            .orderDetail(orderDetail)
+                            .deliveryStatus(deliveryStatusRepository.findByStatusName(DeliveryStatusCode.SHIPPED))
+                            .build();
+
+                    // 주문 상태를 배송 시작으로 변경
+                    newOrderStatus = orderStatusRepository.findByStatusName(OrderStatusCode.SHIPPED);
+                    orderDetail.changeOrderStatus(newOrderStatus);
+
+                    // 연관된 모든 상품 주문의 상태를 배송 시작으로 변경
+                    orderDetail.getOrderList().getProductOrderEntityList().forEach(productOrder -> {
+                        productOrder.changeStatus(newOrderStatus.getStatusName());
+                    });
+                }
+                break;
+            default:
+                throw new IllegalArgumentException("잘못된 출고 상태 코드입니다.");
+        }
+        orderDetailRepository.save(orderDetail);
     }
 }

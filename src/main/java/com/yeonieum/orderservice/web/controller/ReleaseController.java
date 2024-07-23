@@ -61,7 +61,7 @@ public class ReleaseController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "출고 상태 변경 실패")
     })
     @PatchMapping("/status")
-    public ResponseEntity<ApiResponse> changeOrderStatus(@RequestBody ReleaseRequest.OfUpdateReleaseStatus updateStatus) {
+    public ResponseEntity<ApiResponse> changeReleaseStatus(@RequestBody ReleaseRequest.OfUpdateReleaseStatus updateStatus) {
         String Role = "CUSTOMER";
         if(!releaseStatusPolicy.getReleaseStatusPermission().get(updateStatus.getReleaseStatusCode()).contains(Role)) {
             throw new RuntimeException("접근권한이 없습니다.");
@@ -98,6 +98,25 @@ public class ReleaseController {
     public ResponseEntity<ApiResponse> changeReleaseHoldMemo(@RequestBody ReleaseRequest.OfHoldMemo updateHoldMemo) {
 
         releaseService.changeReleaseHoldMemo(updateHoldMemo);
+        return new ResponseEntity<>(ApiResponse.builder()
+                .result(null)
+                .successCode(SuccessCode.UPDATE_SUCCESS)
+                .build(), HttpStatus.OK);
+    }
+
+    @Operation(summary = "출고상태 일괄 변경 요청", description = "고객이 상품의 출고상태를 일괄 변경 요청합니다.")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "출고 상태 일괄 변경 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "출고 상태 일괄 변경 실패")
+    })
+    @PatchMapping("/bulk-status")
+    public ResponseEntity<ApiResponse> changeBulkReleaseStatus(@RequestBody ReleaseRequest.OfBulkUpdateReleaseStatus updateStatus) {
+        String Role = "CUSTOMER";
+        if(!releaseStatusPolicy.getReleaseStatusPermission().get(updateStatus.getReleaseStatusCode()).contains(Role)) {
+            throw new RuntimeException("접근권한이 없습니다.");
+        }
+
+        releaseService.changeBulkReleaseStatus(updateStatus);
         return new ResponseEntity<>(ApiResponse.builder()
                 .result(null)
                 .successCode(SuccessCode.UPDATE_SUCCESS)
