@@ -9,6 +9,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -119,7 +120,7 @@ public class OrderResponse {
     @Builder
     @AllArgsConstructor
     @NoArgsConstructor
-    public static class ProductOrderList {
+    public static class ProductOrderList implements Serializable {
         List<ProductOrder> productOrderList;
 
         public static ProductOrderList convertedBy(OrderDetail orderDetail) {
