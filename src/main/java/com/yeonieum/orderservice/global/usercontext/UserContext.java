@@ -20,8 +20,12 @@ public class UserContext {
     public static final String USER_ID = "user-id";
     public static final String SERVICE_ID = "service-id";
 
+    @Builder.Default
     private String transactionId = new String();
+    @Builder.Default
     private String authToken = new String();
+    @Builder.Default
     private String userId = new String();
+    @Builder.Default
     private String serviceId = new String();
 }
