@@ -49,30 +49,31 @@ public class OrderProcessService {
     /**
      * 전체 주문상태 수정 서비스[상품주문에 대한 주문상태 변경은 일어나지 않음]
      * (수정 권한 체크는 컨트롤러에서 진행)
+     *
      * @param updateStatus
      * @return
      */
     @Transactional
-    public void changeOrderStatus (OrderRequest.OfUpdateOrderStatus updateStatus) {
+    public void changeOrderStatus(OrderRequest.OfUpdateOrderStatus updateStatus) {
         OrderDetail orderDetail = orderDetailRepository.findById(updateStatus.getOrderId()).orElseThrow(
                 () -> new IllegalArgumentException("존재하지 않는 주문입니다."));
 
         OrderStatus requestedStatus = orderStatusRepository.findByStatusName(updateStatus.getOrderStatusCode());
         OrderStatusCode requestedStatusCode = requestedStatus.getStatusName();
         OrderStatusCode orderStatus = orderDetail.getOrderStatus().getStatusName();
-        if(!orderStatusPolicy.getOrderStatusTransitionRule().get(requestedStatusCode).getRequiredPreviosConditionSet().contains(orderStatus)) {
+        if (!orderStatusPolicy.getOrderStatusTransitionRule().get(requestedStatusCode).getRequiredPreviosConditionSet().contains(orderStatus)) {
             throw new RuntimeException("주문상태 트랜지션 룰 위반.");
         }
 
         switch (updateStatus.getOrderStatusCode()) {
-            case PREPARING_PRODUCT -> {
+            case AWAITING_RELEASE -> {
                 ReleaseStatus releaseStatus = releaseStatusRepository.findByStatusName(ReleaseStatusCode.AWAITING_RELEASE);
                 releaseRepository.save(Release.builder()
                         .orderDetail(orderDetail)
                         .releaseStatus(releaseStatus)
                         .build());
             }
-            case CANCELED, REFUND_REQUEST ,REFUNDED-> orderDetail.changeOrderStatus(requestedStatus);
+            case PREPARING_PRODUCT, CANCELED, REFUND_REQUEST, REFUNDED -> orderDetail.changeOrderStatus(requestedStatus);
             default -> throw new RuntimeException("잘못된 접근입니다.");
         }
         // 주문 상태 변경
@@ -85,12 +86,13 @@ public class OrderProcessService {
 
     /**
      * 주문상품에 대한 주문상태 변경 서비스
+     *
      * @param updateProductOrderStatus
      */
     @Transactional
-    public void changeOrderProductStatus (OrderRequest.OfUpdateProductOrderStatus updateProductOrderStatus) {
-        OrderDetail orderDetail = orderDetailRepository.findById(updateProductOrderStatus.getOrderId()).orElseThrow(
-                () -> new IllegalArgumentException("존재하지 않는 주문입니다."));
+    public void changeOrderProductStatus(OrderRequest.OfUpdateProductOrderStatus updateProductOrderStatus) {
+        OrderDetail orderDetail = orderDetailRepository.findById(updateProductOrderStatus.getOrderId())
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 주문입니다."));
 
         // TODO : 상품 json 변경감지 할 수 있는지 테스트 예정 -> 명시적 save
 
@@ -103,19 +105,18 @@ public class OrderProcessService {
         OrderStatus requestedStatus = orderStatusRepository.findByStatusName(updateProductOrderStatus.getOrderStatusCode());
         OrderStatusCode requestedStatusCode = requestedStatus.getStatusName();
         OrderStatusCode productOrderStatus = productOrder.getStatus();
-        if(!orderStatusPolicy.getOrderStatusTransitionRule().get(requestedStatusCode).getRequiredPreviosConditionSet().contains(productOrderStatus)) {
+        if (!orderStatusPolicy.getOrderStatusTransitionRule().get(requestedStatusCode).getRequiredPreviosConditionSet().contains(productOrderStatus)) {
             throw new RuntimeException("주문상태 트랜지션 룰 위반.");
         }
 
 
         switch (updateProductOrderStatus.getOrderStatusCode()) {
-            case CANCELED, REFUND_REQUEST ,REFUNDED-> productOrder.changeStatus(updateProductOrderStatus.getOrderStatusCode());
+            case CANCELED, REFUND_REQUEST, REFUNDED ->
+                    productOrder.changeStatus(updateProductOrderStatus.getOrderStatusCode());
             default -> throw new RuntimeException("잘못된 접근입니다.");
         }
         orderDetailRepository.save(orderDetail);
     }
-
-
 
 
     /**
@@ -126,6 +127,7 @@ public class OrderProcessService {
      * 3. 주문서에 대한 결제 요청 & 결제 완료 응답받으면 주문서 상태 변경
      * 4. 주문서 및 결제 정보 저장
      * 5. 주문생성 성공 이벤트 발행(카프카 인프라 구축 예정)
+     *
      * @param orderCreation
      */
     @Transactional(rollbackFor = {RuntimeException.class})
@@ -140,8 +142,8 @@ public class OrderProcessService {
         int canceledOriginProductPrice = 0;
         Map<Long, OrderRequest.ProductOrder> productOrderMap = orderCreation.getProductOrderList().getProductOrderList()
                 .stream().collect(Collectors.toMap(OrderRequest.ProductOrder::getProductId, Function.identity()));
-;
-        for(StockUsageResponse.AvailableStockDto result : response.getAvailableProductInventoryResponseList()) {
+        ;
+        for (StockUsageResponse.AvailableStockDto result : response.getAvailableProductInventoryResponseList()) {
             if (!result.getIsAvailableOrder()) {
                 OrderRequest.ProductOrder productOrder = productOrderMap.get(result.getProductId());
 
@@ -158,7 +160,7 @@ public class OrderProcessService {
 
         // 주문서에 대한 결제 요청 & 결제 완료 됐으면 주문서 상태 변경
         boolean isPayment = checkPaymentValidation();
-        if(isPayment) {
+        if (isPayment) {
             // 결제성공시 각 상품 주문 상태 수정
             orderDetail.changeOrderStatus(orderStatusRepository.findByStatusName(OrderStatusCode.PAYMENT_COMPLETED));
             orderDetail.getOrderList().getProductOrderEntityList().stream()
@@ -178,6 +180,7 @@ public class OrderProcessService {
 
     /**
      * 외부 API 호출을 위한 요청 객체 생성
+     *
      * @param productOrderList
      * @param orderDetailId
      * @return
@@ -185,7 +188,7 @@ public class OrderProcessService {
     public StockUsageRequest.IncreaseStockUsageList makeRequestObject(OrderRequest.ProductOrderList productOrderList, String orderDetailId) {
         List<StockUsageRequest.OfIncreasing> stockUsageDtoList = new ArrayList<>();
 
-        for(OrderRequest.ProductOrder product : productOrderList.getProductOrderList()) {
+        for (OrderRequest.ProductOrder product : productOrderList.getProductOrderList()) {
             stockUsageDtoList.add(StockUsageRequest.OfIncreasing.builder()
                     .orderId(orderDetailId)
                     .productId(product.getProductId())
@@ -203,6 +206,7 @@ public class OrderProcessService {
 
     /**
      * 가상 결제 시스템
+     *
      * @return
      */
     private boolean checkPaymentValidation() {
@@ -211,6 +215,7 @@ public class OrderProcessService {
 
     /**
      * 현재 날짜 및 시간과 UUID 4자리 조합으로 주문ID 생성
+     *
      * @return
      */
     private String makeOrderId() {
@@ -218,5 +223,59 @@ public class OrderProcessService {
         String timestamp = now.format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
         String uniqueId = UUID.randomUUID().toString().replace("-", "").substring(0, 4);
         return timestamp + "-" + uniqueId;
+    }
+
+    /**
+     * 주문상태 일괄 변경 (상품 준비중 -> 출고 대기)
+     * @param bulkUpdateStatus (업데이틀 될 여러 주문 ID 들, 업데이트 될 출고 상태값) DTO
+     * @return
+     */
+    @Transactional
+    public void changeBulkOrderStatus(OrderRequest.OfBulkUpdateOrderStatus bulkUpdateStatus) {
+        // 요청된 모든 주문 상세 정보를 가져옴
+        List<OrderDetail> orderDetails = orderDetailRepository.findAllById(bulkUpdateStatus.getOrderIds());
+
+        // 요청된 ID 수와 조회된 결과 수가 다르면 존재하지 않는 ID가 있다는 의미
+        if (orderDetails.size() != bulkUpdateStatus.getOrderIds().size()) {
+            throw new IllegalArgumentException("하나 이상의 주문 ID가 존재하지 않습니다.");
+        }
+
+        OrderStatus requestedStatus = orderStatusRepository.findByStatusName(bulkUpdateStatus.getOrderStatusCode());
+        OrderStatusCode requestedStatusCode = requestedStatus.getStatusName();
+
+        for (OrderDetail orderDetail : orderDetails) {
+
+            OrderStatusCode currentOrderStatus = orderDetail.getOrderStatus().getStatusName();
+
+            if (!orderStatusPolicy.getOrderStatusTransitionRule().get(requestedStatusCode).getRequiredPreviosConditionSet().contains(currentOrderStatus)) {
+                throw new RuntimeException("주문상태 트랜지션 룰 위반.");
+            }
+
+            // 주문 상태 변경
+            switch (bulkUpdateStatus.getOrderStatusCode()) {
+                case AWAITING_RELEASE -> {
+                    //주문 상태 변경
+                    orderDetail.changeOrderStatus(requestedStatus);
+                    orderDetail.getOrderList().getProductOrderEntityList().forEach(productOrderEntity ->
+                            productOrderEntity.changeStatus(requestedStatusCode));
+
+                    //출고 객체 생성
+                    ReleaseStatus releaseStatus = releaseStatusRepository.findByStatusName(ReleaseStatusCode.AWAITING_RELEASE);
+                    releaseRepository.save(Release.builder()
+                            .orderDetail(orderDetail)
+                            .releaseStatus(releaseStatus)
+                            .build());
+                }
+                case PREPARING_PRODUCT, CANCELED, REFUND_REQUEST, REFUNDED -> {
+                    orderDetail.changeOrderStatus(requestedStatus);
+                    orderDetail.getOrderList().getProductOrderEntityList().forEach(productOrderEntity ->
+                            productOrderEntity.changeStatus(requestedStatusCode));
+                }
+                default -> throw new RuntimeException("잘못된 접근입니다.");
+            }
+
+            // 명시적 저장
+            orderDetailRepository.save(orderDetail);
+        }
     }
 }

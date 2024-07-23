@@ -250,7 +250,6 @@ public class ReleaseService {
      * @throws RuntimeException 주문 상태 트랜지션 룰 위반일 경우
      * @return
      */
-    @Transactional
     public void updateOrderAndDeliveryStatus(OrderDetail orderDetail, ReleaseStatusCode requestedStatusCode) {
         OrderStatus newOrderStatus;
 
@@ -261,10 +260,10 @@ public class ReleaseService {
             case RELEASE_COMPLETED:
                 if (orderDetail.getOrderStatus().getStatusName() != OrderStatusCode.SHIPPED) {
                     // 출고 완료 상태일 경우, 배송 시작 처리
-                    Delivery.builder()
+                    deliveryRepository.save(Delivery.builder()
                             .orderDetail(orderDetail)
                             .deliveryStatus(deliveryStatusRepository.findByStatusName(DeliveryStatusCode.SHIPPED))
-                            .build();
+                            .build());
 
                     // 주문 상태를 배송 시작으로 변경
                     newOrderStatus = orderStatusRepository.findByStatusName(OrderStatusCode.SHIPPED);

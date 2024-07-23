@@ -25,7 +25,7 @@ public class Delivery {
     @JoinColumn(name = "delivery_status_id", nullable = false)
     private DeliveryStatus deliveryStatus;
 
-    @Column(name = "shipment_number", nullable = false)
+    @Column(name = "shipment_number")
     private String shipmentNumber;
 }
 
