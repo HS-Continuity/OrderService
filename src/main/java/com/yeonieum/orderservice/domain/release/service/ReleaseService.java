@@ -1,5 +1,7 @@
 package com.yeonieum.orderservice.domain.release.service;
 
+import com.yeonieum.orderservice.domain.combinedpackaging.entity.Packaging;
+import com.yeonieum.orderservice.domain.combinedpackaging.repository.PackagingRepository;
 import com.yeonieum.orderservice.domain.delivery.entity.Delivery;
 import com.yeonieum.orderservice.domain.delivery.repository.DeliveryRepository;
 import com.yeonieum.orderservice.domain.delivery.repository.DeliveryStatusRepository;
@@ -28,7 +30,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
+import java.util.Random;
 
 @Service
 @RequiredArgsConstructor
@@ -42,6 +47,7 @@ public class ReleaseService {
     private final MemberServiceFeignClient feignClient;
     private final OrderStatusPolicy orderStatusPolicy;
     private final DeliveryRepository deliveryRepository;
+    private final PackagingRepository packagingRepository;
 
     /**
      * 상품의 출고 상태 수정 (출고 대기 -> 출고 보류, 출고 대기 -> 출고 완료, 출고 보류 -> 출고 완료)
@@ -96,7 +102,6 @@ public class ReleaseService {
 
                 //배송객체 '배송시작'상태로 생성
                 Delivery.builder()
-                        .orderDetail(targetOrderDetail)
                         .deliveryStatus(deliveryStatusRepository.findByStatusName(DeliveryStatusCode.SHIPPED))
                         .build();
 
@@ -226,8 +231,8 @@ public class ReleaseService {
 
         // 모든 주문에 대해 상태 변경 수행
         for (OrderDetail orderDetail : orderDetails) {
-            Release targetRelease = releaseRepository.findByOrderDetailId(orderDetail.getOrderDetailId());
-            ReleaseStatusCode currentReleaseStatus =  targetRelease.getReleaseStatus().getStatusName();
+            Release currentRelease = releaseRepository.findByOrderDetailId(orderDetail.getOrderDetailId());
+            ReleaseStatusCode currentReleaseStatus =  currentRelease.getReleaseStatus().getStatusName();
 
             // 출고 상태 전환 규칙 확인
             if (!releaseStatusPolicy.getReleaseStatusTransitionRule().get(requestedStatusCode).getRequiredPreviosConditionSet().contains(currentReleaseStatus)) {
@@ -235,11 +240,13 @@ public class ReleaseService {
             }
 
             // 출고 상태 업데이트
-            targetRelease.changeReleaseStatus(requestedStatus);
-            releaseRepository.save(targetRelease);
+            currentRelease.changeReleaseStatus(requestedStatus);
+            releaseRepository.save(currentRelease);
 
             // 주문 상태 및 배송 정보 업데이트
-            updateOrderAndDeliveryStatus(orderDetail, requestedStatusCode);
+            updateOrderAndDeliveryStatus(orderDetail,
+                    requestedStatusCode,
+                    currentRelease);
         }
     }
 
@@ -250,21 +257,30 @@ public class ReleaseService {
      * @throws RuntimeException 주문 상태 트랜지션 룰 위반일 경우
      * @return
      */
-    private void updateOrderAndDeliveryStatus(OrderDetail orderDetail, ReleaseStatusCode requestedStatusCode) {
+    private void updateOrderAndDeliveryStatus(OrderDetail orderDetail,
+                                              ReleaseStatusCode requestedStatusCode,
+                                              Release targetRelease) {
         OrderStatus newOrderStatus;
 
         switch (requestedStatusCode) {
             case HOLD_RELEASE:
-                //출고 보류 상태로 변경될 시, 주문 상태는 그래도 출고 대기로 유지
+                //출고 보류 상태로 변경될 시, 주문 상태는 그대로 출고 대기로 유지
                 break;
             case RELEASE_COMPLETED:
                 if (orderDetail.getOrderStatus().getStatusName() != OrderStatusCode.SHIPPED) {
-                    // 출고 완료 상태일 경우, 배송 시작 처리
-                    deliveryRepository.save(Delivery.builder()
-                            .orderDetail(orderDetail)
+
+                    // 출고 완료 상태일 경우, 배송 객체 생성
+                    Delivery delivery = deliveryRepository.save(Delivery.builder()
                             .deliveryStatus(deliveryStatusRepository.findByStatusName(DeliveryStatusCode.SHIPPED))
+                            .shipmentNumber(makeShipNumber())
                             .build());
 
+                    //출고 완료 상태일 경우, 포장 객체 생성
+                    packagingRepository.save(Packaging.builder()
+                            .release(targetRelease)
+                            .orderDetail(orderDetail)
+                            .delivery(delivery)
+                            .build());
 
                     // 주문 상태를 배송 시작으로 변경
                     newOrderStatus = orderStatusRepository.findByStatusName(OrderStatusCode.SHIPPED);
@@ -280,5 +296,42 @@ public class ReleaseService {
                 throw new IllegalArgumentException("잘못된 출고 상태 코드입니다.");
         }
         orderDetailRepository.save(orderDetail);
+    }
+
+    /**
+     * 운송장 번호 랜덤 생성 메서드
+     * @return 운송장 번호
+     */
+    private String makeShipNumber() {
+        // 현재 시간 밀리초 단위로 가져오기
+        long currentTimeMillis = System.currentTimeMillis();
+
+        // 밀리초 단위를 날짜 형식으로 변환
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmssSSS");
+        String datePart = sdf.format(new Date(currentTimeMillis));
+
+        // 랜덤한 4자리 문자열 생성
+        String randomPart = generateRandomString(4);
+
+        // 날짜 형식과 랜덤 문자열 결합하여 운송장 번호 생성
+        return datePart + randomPart;
+    }
+
+    /**
+     * 랜덤한 문자열을 생성하는 메서드
+     * @param length 랜덤 문자열 길이
+     * @return 랜덤한 문자열
+     */
+    private String generateRandomString(int length) {
+        String characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        Random random = new Random();
+        StringBuilder sb = new StringBuilder();
+
+        for (int i = 0; i < length; i++) {
+            int randomIndex = random.nextInt(characters.length());
+            sb.append(characters.charAt(randomIndex));
+        }
+
+        return sb.toString();
     }
 }
