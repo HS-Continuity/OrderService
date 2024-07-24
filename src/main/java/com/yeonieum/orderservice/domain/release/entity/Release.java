@@ -1,6 +1,5 @@
 package com.yeonieum.orderservice.domain.release.entity;
 
-import com.yeonieum.orderservice.domain.combinedpackaging.entity.CombinedPackaging;
 import com.yeonieum.orderservice.domain.order.entity.OrderDetail;
 import jakarta.persistence.*;
 import lombok.*;
@@ -23,10 +22,6 @@ public class Release {
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_detail_id", nullable = false)
     private OrderDetail orderDetail;
-
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "combined_packaging_id")
-    private CombinedPackaging combinedPackaging;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "release_status_id", nullable = false)
