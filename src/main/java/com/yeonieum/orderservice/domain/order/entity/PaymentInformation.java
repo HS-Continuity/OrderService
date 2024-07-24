@@ -1,5 +1,7 @@
 package com.yeonieum.orderservice.domain.order.entity;
 
+import com.yeonieum.orderservice.global.converter.ActiveStatusConverter;
+import com.yeonieum.orderservice.global.enums.ActiveStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -30,6 +32,14 @@ public class PaymentInformation {
 
     @Column(name = "payment_amount", nullable = false)
     private int paymentAmount;
+
+    @Convert(converter = ActiveStatusConverter.class)
+    @Column(name = "is_refunded", nullable = false)
+    @Builder.Default
+    private ActiveStatus isRefunded = ActiveStatus.INACTIVE;
+
+    @Column(name = "coupon_id")
+    private int couponId;
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_detail_id", nullable = false)
