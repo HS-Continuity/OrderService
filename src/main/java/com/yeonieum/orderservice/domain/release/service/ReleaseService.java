@@ -299,6 +299,85 @@ public class ReleaseService {
     }
 
     /**
+     * 고객의 합포장 신청
+     * @param bulkUpdateStatus (업데이틀 될 여러 주문 ID 들, 업데이트 될 출고 상태값) DTO
+     * @throws IllegalStateException 존재하지 않는 주문 ID인 경우
+     * @throws IllegalStateException 출고 상태가 합포장완료가 아닌 경우
+     * @throws RuntimeException 출고 상태 트랜지션 룰 위반일 경우
+     * @throws IllegalStateException 출고 상품들의 정보가 모두 일치하지 않은 경우
+     * @return
+     */
+    @Transactional
+    public void changeCombinedPackaging(ReleaseRequest.OfBulkUpdateReleaseStatus bulkUpdateStatus) {
+        // 요청된 모든 주문 상세 정보를 가져옴
+        List<OrderDetail> orderDetails = orderDetailRepository.findAllById(bulkUpdateStatus.getOrderIds());
+
+        // 요청된 ID 수와 조회된 결과 수가 다르면 존재하지 않는 ID가 있다는 의미
+        if (orderDetails.size() != bulkUpdateStatus.getOrderIds().size()) {
+            throw new IllegalArgumentException("하나 이상의 주문 ID가 존재하지 않습니다.");
+        }
+
+        // 요청된 출고 상태 객체 정보
+        ReleaseStatus requestedStatus = releaseStatusRepository.findByStatusName(bulkUpdateStatus.getReleaseStatusCode());
+        ReleaseStatusCode requestedStatusCode = requestedStatus.getStatusName();
+
+        // 상품들의 회원, 배송지, 출고상태, 배송시작일이 같아야 함
+        boolean isUniformOrder = orderDetails.stream().allMatch(od ->
+                od.getMemberId().equals(orderDetails.get(0).getMemberId()) &&
+                        od.getDeliveryAddress().equals(orderDetails.get(0).getDeliveryAddress()) &&
+                        releaseRepository.findByOrderDetailId(od.getOrderDetailId()).getReleaseStatus().equals(releaseRepository.findByOrderDetailId(orderDetails.get(0).getOrderDetailId()).getReleaseStatus()) &&
+                        releaseRepository.findByOrderDetailId(od.getOrderDetailId()).getStartDeliveryDate().equals(releaseRepository.findByOrderDetailId(orderDetails.get(0).getOrderDetailId()).getStartDeliveryDate()));
+
+
+        // 합포장일 경우, 배송 객체를 단 한개만 생성
+        Delivery sharedDelivery = null;
+        if (requestedStatusCode == ReleaseStatusCode.COMBINED_PACKAGING_COMPLETED) {
+            sharedDelivery = deliveryRepository.save(Delivery.builder()
+                    .deliveryStatus(deliveryStatusRepository.findByStatusName(DeliveryStatusCode.SHIPPED))
+                    .shipmentNumber(makeShipNumber())
+                    .build());
+        } else {
+            throw new IllegalStateException("업데이트 할 출고 상태 코드가 합포장인지 확인해주세요.");
+        }
+
+        if(isUniformOrder){
+            // 모든 주문에 대해 상태 변경 수행
+            for (OrderDetail orderDetail : orderDetails) {
+                Release currentRelease = releaseRepository.findByOrderDetailId(orderDetail.getOrderDetailId());
+                ReleaseStatusCode currentReleaseStatus =  currentRelease.getReleaseStatus().getStatusName();
+
+                // 출고 상태 전환 규칙 확인
+                if (!releaseStatusPolicy.getReleaseStatusTransitionRule().get(requestedStatusCode).getRequiredPreviosConditionSet().contains(currentReleaseStatus)) {
+                    throw new RuntimeException("출고 상태 전환 규칙 위반!");
+                }
+
+                // 출고 상태 업데이트
+                currentRelease.changeReleaseStatus(requestedStatus);
+                releaseRepository.save(currentRelease);
+
+                //상품 각각의 포장객체 생성
+                packagingRepository.save(Packaging.builder()
+                        .release(currentRelease)
+                        .orderDetail(orderDetail)
+                        .delivery(sharedDelivery)
+                        .build());
+
+                // 주문 상태를 배송 시작으로 변경
+                OrderStatus newOrderStatus = orderStatusRepository.findByStatusName(OrderStatusCode.SHIPPED);
+                orderDetail.changeOrderStatus(newOrderStatus);
+
+                // 연관된 모든 상품 주문의 상태를 배송 시작으로 변경
+                orderDetail.getOrderList().getProductOrderEntityList().forEach(productOrder -> {
+                    productOrder.changeStatus(newOrderStatus.getStatusName());
+                });
+                orderDetailRepository.save(orderDetail);
+            }
+        } else {
+            throw new IllegalStateException("선택한 상품들의 회원, 배송지, 배송일, 출고 상태가 같은지 확인해주세요.");
+        }
+    }
+
+    /**
      * 운송장 번호 랜덤 생성 메서드
      * @return 운송장 번호
      */

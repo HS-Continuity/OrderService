@@ -25,10 +25,12 @@ public class ReleaseStatusPolicy {
 
         addTransitionRule(ReleaseStatusCode.HOLD_RELEASE,Arrays.asList(ReleaseStatusCode.AWAITING_RELEASE));
         addTransitionRule(ReleaseStatusCode.RELEASE_COMPLETED, Arrays.asList(ReleaseStatusCode.AWAITING_RELEASE, ReleaseStatusCode.HOLD_RELEASE));
+        addTransitionRule(ReleaseStatusCode.COMBINED_PACKAGING_COMPLETED, Arrays.asList(ReleaseStatusCode.AWAITING_RELEASE, ReleaseStatusCode.HOLD_RELEASE));
         releaseStatusTransitionRule = Collections.unmodifiableMap(releaseStatusTransitionMap);
 
         releaseStatusCodeSetMap.put(ReleaseStatusCode.HOLD_RELEASE, Set.of("CUSTOMER"));
         releaseStatusCodeSetMap.put(ReleaseStatusCode.RELEASE_COMPLETED,  Set.of("CUSTOMER"));
+        releaseStatusCodeSetMap.put(ReleaseStatusCode.COMBINED_PACKAGING_COMPLETED,  Set.of("CUSTOMER"));
         releaseStatusPermission = Collections.unmodifiableMap(releaseStatusCodeSetMap);
     }
 

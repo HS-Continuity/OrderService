@@ -3,7 +3,8 @@ package com.yeonieum.orderservice.global.enums;
 public enum ReleaseStatusCode {
     AWAITING_RELEASE("AWAITING_RELEASE"),
     HOLD_RELEASE("HOLD_RELEASE"),
-    RELEASE_COMPLETED("RELEASE_COMPLETED");
+    RELEASE_COMPLETED("RELEASE_COMPLETED"),
+    COMBINED_PACKAGING_COMPLETED("COMBINED_PACKAGING_COMPLETED");
 
     private final String code;
 
@@ -23,6 +24,8 @@ public enum ReleaseStatusCode {
                 return HOLD_RELEASE;
             case "RELEASE_COMPLETED":
                 return RELEASE_COMPLETED;
+            case "COMBINED_PACKAGING_COMPLETED":
+                return COMBINED_PACKAGING_COMPLETED;
             default:
                 throw new IllegalArgumentException("Invalid release status code: " + code);
         }

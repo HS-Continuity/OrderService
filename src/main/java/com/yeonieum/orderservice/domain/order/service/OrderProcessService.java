@@ -1,6 +1,5 @@
 package com.yeonieum.orderservice.domain.order.service;
 
-import com.yeonieum.orderservice.domain.delivery.entity.Delivery;
 import com.yeonieum.orderservice.domain.delivery.repository.DeliveryStatusRepository;
 import com.yeonieum.orderservice.domain.order.dto.request.OrderRequest;
 import com.yeonieum.orderservice.domain.order.entity.OrderDetail;

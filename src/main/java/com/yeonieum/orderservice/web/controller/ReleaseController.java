@@ -126,4 +126,23 @@ public class ReleaseController {
                 .successCode(SuccessCode.UPDATE_SUCCESS)
                 .build(), HttpStatus.OK);
     }
+
+    @Operation(summary = "합포장 요청", description = "고객이 상품의 합포장을 요청합니다.")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "합포장 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "합포장 실패")
+    })
+    @PatchMapping("/combined-packaging")
+    public ResponseEntity<ApiResponse> changeReleaseStatus(@RequestBody ReleaseRequest.OfBulkUpdateReleaseStatus updateStatus) {
+        String Role = "CUSTOMER";
+        if(!releaseStatusPolicy.getReleaseStatusPermission().get(updateStatus.getReleaseStatusCode()).contains(Role)) {
+            throw new RuntimeException("접근권한이 없습니다.");
+        }
+
+        releaseService.changeCombinedPackaging(updateStatus);
+        return new ResponseEntity<>(ApiResponse.builder()
+                .result(null)
+                .successCode(SuccessCode.UPDATE_SUCCESS)
+                .build(), HttpStatus.OK);
+    }
 }
