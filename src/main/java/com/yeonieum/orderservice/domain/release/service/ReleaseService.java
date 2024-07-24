@@ -250,7 +250,7 @@ public class ReleaseService {
      * @throws RuntimeException 주문 상태 트랜지션 룰 위반일 경우
      * @return
      */
-    public void updateOrderAndDeliveryStatus(OrderDetail orderDetail, ReleaseStatusCode requestedStatusCode) {
+    private void updateOrderAndDeliveryStatus(OrderDetail orderDetail, ReleaseStatusCode requestedStatusCode) {
         OrderStatus newOrderStatus;
 
         switch (requestedStatusCode) {
@@ -264,6 +264,7 @@ public class ReleaseService {
                             .orderDetail(orderDetail)
                             .deliveryStatus(deliveryStatusRepository.findByStatusName(DeliveryStatusCode.SHIPPED))
                             .build());
+
 
                     // 주문 상태를 배송 시작으로 변경
                     newOrderStatus = orderStatusRepository.findByStatusName(OrderStatusCode.SHIPPED);

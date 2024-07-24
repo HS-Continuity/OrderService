@@ -1,8 +1,12 @@
 package com.yeonieum.orderservice.domain.delivery.entity;
 
+import com.yeonieum.orderservice.domain.combinedpackaging.entity.CombinedPackaging;
 import com.yeonieum.orderservice.domain.order.entity.OrderDetail;
 import jakarta.persistence.*;
 import lombok.*;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Getter
@@ -27,5 +31,9 @@ public class Delivery {
 
     @Column(name = "shipment_number")
     private String shipmentNumber;
+
+    @OneToMany(mappedBy = "delivery", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<CombinedPackaging> combinedPackagingList = new ArrayList<>();
 }
 
