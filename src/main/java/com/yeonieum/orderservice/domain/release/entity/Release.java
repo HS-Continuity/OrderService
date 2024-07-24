@@ -11,7 +11,7 @@ import java.time.LocalDate;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
-@Table(name = "release")
+@Table(name = "release_table")
 public class Release {
 
     @Id

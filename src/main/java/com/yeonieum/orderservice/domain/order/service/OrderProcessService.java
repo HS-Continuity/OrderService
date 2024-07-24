@@ -1,6 +1,5 @@
 package com.yeonieum.orderservice.domain.order.service;
 
-import com.yeonieum.orderservice.domain.delivery.entity.Delivery;
 import com.yeonieum.orderservice.domain.delivery.repository.DeliveryStatusRepository;
 import com.yeonieum.orderservice.domain.order.dto.request.OrderRequest;
 import com.yeonieum.orderservice.domain.order.entity.OrderDetail;
@@ -16,7 +15,6 @@ import com.yeonieum.orderservice.domain.release.entity.Release;
 import com.yeonieum.orderservice.domain.release.entity.ReleaseStatus;
 import com.yeonieum.orderservice.domain.release.repository.ReleaseRepository;
 import com.yeonieum.orderservice.domain.release.repository.ReleaseStatusRepository;
-import com.yeonieum.orderservice.global.enums.DeliveryStatusCode;
 import com.yeonieum.orderservice.global.enums.OrderStatusCode;
 import com.yeonieum.orderservice.global.enums.ReleaseStatusCode;
 import com.yeonieum.orderservice.infrastructure.feignclient.ProductServiceFeignClient;

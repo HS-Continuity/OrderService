@@ -21,10 +21,6 @@ public class Delivery {
     @Column(name = "delivery_id")
     private Long deliveryId;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "order_detail_id", nullable = false)
-    private OrderDetail orderDetail;
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "delivery_status_id", nullable = false)
     private DeliveryStatus deliveryStatus;
