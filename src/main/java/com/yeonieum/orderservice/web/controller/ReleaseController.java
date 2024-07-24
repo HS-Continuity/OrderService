@@ -3,6 +3,7 @@ package com.yeonieum.orderservice.web.controller;
 import com.yeonieum.orderservice.domain.release.dto.ReleaseRequest;
 import com.yeonieum.orderservice.domain.release.policy.ReleaseStatusPolicy;
 import com.yeonieum.orderservice.domain.release.service.ReleaseService;
+import com.yeonieum.orderservice.global.auth.Role;
 import com.yeonieum.orderservice.global.enums.ReleaseStatusCode;
 import com.yeonieum.orderservice.global.responses.ApiResponse;
 import com.yeonieum.orderservice.global.responses.code.SuccessCode;
