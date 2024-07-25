@@ -1,10 +1,7 @@
 package com.yeonieum.orderservice.domain.order.entity;
 
 import com.yeonieum.orderservice.global.enums.OrderStatusCode;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 @Getter
 @Builder
