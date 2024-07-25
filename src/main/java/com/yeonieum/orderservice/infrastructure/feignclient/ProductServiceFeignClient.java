@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 
-
 @FeignClient(name = "productservice", url = "http://localhost:8020")
 public interface ProductServiceFeignClient {
     @PostMapping("/api/inventory/stock-usage")
@@ -22,5 +21,8 @@ public interface ProductServiceFeignClient {
 
     @GetMapping("/api/management/products")
     ResponseEntity<ApiResponse<Map<Long, RegularOrderResponse.ProductOrder>>> bulkRetrieveProductInformation(@RequestParam List<Long> productIdList);
+
+    @GetMapping("/api/customer/delivery-fee/{customerId}")
+    ResponseEntity<ApiResponse<Integer>> retrieveDeliveryFee(@PathVariable Long customerId);
 }
 
