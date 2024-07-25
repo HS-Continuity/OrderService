@@ -24,9 +24,11 @@ import com.yeonieum.orderservice.global.enums.OrderStatusCode;
 
 import com.yeonieum.orderservice.global.enums.ReleaseStatusCode;
 import com.yeonieum.orderservice.infrastructure.feignclient.MemberServiceFeignClient;
+import com.yeonieum.orderservice.infrastructure.feignclient.ProductServiceFeignClient;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -44,7 +46,8 @@ public class ReleaseService {
     private final DeliveryStatusRepository deliveryStatusRepository;
     private final ReleaseRepository releaseRepository;
     private final ReleaseStatusRepository releaseStatusRepository;
-    private final MemberServiceFeignClient feignClient;
+    private final MemberServiceFeignClient memberServiceFeignClient;
+    private final ProductServiceFeignClient productServiceFeignClient;
     private final OrderStatusPolicy orderStatusPolicy;
     private final DeliveryRepository deliveryRepository;
     private final PackagingRepository packagingRepository;
@@ -70,6 +73,9 @@ public class ReleaseService {
 
         // 현재 출고 상태
         ReleaseStatusCode releaseStatus = targetRelease.getReleaseStatus().getStatusName();
+
+        //업체의 배송비
+        Integer deliveryFee = productServiceFeignClient.retrieveDeliveryFee(targetOrderDetail.getCustomerId()).getBody().getResult();
 
         // 출고 상태 전환 규칙 검증
         if(!releaseStatusPolicy.getReleaseStatusTransitionRule().get(requestedStatusCode).getRequiredPreviosConditionSet().contains(releaseStatus)) {
@@ -103,6 +109,8 @@ public class ReleaseService {
                 //배송객체 '배송시작'상태로 생성
                 Delivery.builder()
                         .deliveryStatus(deliveryStatusRepository.findByStatusName(DeliveryStatusCode.SHIPPED))
+                        .shipmentNumber(makeShipNumber())
+                        .deliveryFee(deliveryFee)
                         .build();
 
                 //출고가 완료되면, 배송 시작 -> 주문 상태는 '배송 시작'으로 변경
@@ -144,7 +152,7 @@ public class ReleaseService {
         }
 
         return releasesPage.map(release -> {
-            OrderResponse.MemberInfo memberInfo = feignClient.getOrderMemberInfo(release.getOrderDetail().getMemberId()).getBody().getResult();
+            OrderResponse.MemberInfo memberInfo = memberServiceFeignClient.getOrderMemberInfo(release.getOrderDetail().getMemberId()).getBody().getResult();
             return ReleaseResponse.OfRetrieve.convertedBy(release.getOrderDetail(),release, memberInfo);
         });
     }
@@ -262,6 +270,9 @@ public class ReleaseService {
                                               Release targetRelease) {
         OrderStatus newOrderStatus;
 
+        //업체의 배송비
+        Integer deliveryFee = productServiceFeignClient.retrieveDeliveryFee(orderDetail.getCustomerId()).getBody().getResult();
+
         switch (requestedStatusCode) {
             case HOLD_RELEASE:
                 //출고 보류 상태로 변경될 시, 주문 상태는 그대로 출고 대기로 유지
@@ -273,6 +284,7 @@ public class ReleaseService {
                     Delivery delivery = deliveryRepository.save(Delivery.builder()
                             .deliveryStatus(deliveryStatusRepository.findByStatusName(DeliveryStatusCode.SHIPPED))
                             .shipmentNumber(makeShipNumber())
+                            .deliveryFee(deliveryFee)
                             .build());
 
                     //출고 완료 상태일 경우, 포장 객체 생성
@@ -321,6 +333,9 @@ public class ReleaseService {
         ReleaseStatus requestedStatus = releaseStatusRepository.findByStatusName(bulkUpdateStatus.getReleaseStatusCode());
         ReleaseStatusCode requestedStatusCode = requestedStatus.getStatusName();
 
+        //업체의 배송비
+        Integer deliveryFee = productServiceFeignClient.retrieveDeliveryFee(orderDetails.get(0).getCustomerId()).getBody().getResult();
+
         // 상품들의 회원, 배송지, 출고상태, 배송시작일이 같아야 함
         boolean isUniformOrder = orderDetails.stream().allMatch(od ->
                 od.getMemberId().equals(orderDetails.get(0).getMemberId()) &&
@@ -335,6 +350,7 @@ public class ReleaseService {
             sharedDelivery = deliveryRepository.save(Delivery.builder()
                     .deliveryStatus(deliveryStatusRepository.findByStatusName(DeliveryStatusCode.SHIPPED))
                     .shipmentNumber(makeShipNumber())
+                    .deliveryFee(deliveryFee)
                     .build());
         } else {
             throw new IllegalStateException("업데이트 할 출고 상태 코드가 합포장인지 확인해주세요.");

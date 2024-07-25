@@ -45,6 +45,9 @@ public class OrderDetail {
     @Column(name = "order_date_time", nullable = false)
     private LocalDateTime orderDateTime;
 
+    @Column(name = "main_product_id", nullable = false)
+    private Long mainProductId;
+
     @Column(name = "product_order_list", nullable = false, length = 40000)
     @Convert(converter = ProductOrderListConverter.class)
     private ProductOrderListEntity orderList;

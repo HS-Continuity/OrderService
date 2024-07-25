@@ -25,8 +25,11 @@ public class Delivery {
     @JoinColumn(name = "delivery_status_id", nullable = false)
     private DeliveryStatus deliveryStatus;
 
-    @Column(name = "shipment_number")
+    @Column(name = "shipment_number", nullable = false)
     private String shipmentNumber;
+
+    @Column(name = "delivery_fee", nullable = false)
+    private int deliveryFee;
 
     @OneToMany(mappedBy = "delivery", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
