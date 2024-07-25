@@ -1,5 +1,6 @@
 package com.yeonieum.orderservice.domain.regularorder.dto.response;
 
+import com.yeonieum.orderservice.domain.order.dto.request.OrderRequest;
 import com.yeonieum.orderservice.domain.regularorder.entity.RegularDeliveryApplication;
 import lombok.Builder;
 import lombok.Getter;
@@ -19,10 +20,13 @@ public class RegularOrderResponse {
         int orderProductAmount;
         LocalDate orderDate;
 
-        public static OfRetrieve convertedBy(RegularDeliveryApplication application, Map<Long, ProductOrder> productOrderMap) {
+        public static OfRetrieve convertedBy(RegularDeliveryApplication application,
+                                             Map<Long, ProductOrder> productOrderMap,
+                                             boolean isAvailableProductService) {
+            ProductOrder productOrder = isAvailableProductService ? productOrderMap.get(application.getMainProductId()) : null;
             return OfRetrieve.builder()
                     .regularOrderId(application.getRegularDeliveryApplicationId())
-                    .productOrder(productOrderMap.get(application.getMainProductId()))
+                    .productOrder(productOrder)
                     .orderProductAmount(application.getOrderedProductCount())
                     .orderDate(application.getCreatedAt())
                     .build();
@@ -37,18 +41,23 @@ public class RegularOrderResponse {
         Recipient recipient;
         DeliveryPeriod deliveryPeriod;
         LocalDate nextDeliveryDate;
+        boolean isAvailableProductService;
 
         public static OfRetrieveDetails convertedBy(RegularDeliveryApplication application,
-                                                    Map<Long, ProductOrder> productOrderMap) {
+                                                    Map<Long, ProductOrder> productOrderMap,
+                                                    boolean isAvailableProductService) {
+            ProductOrderList orderList =
+                    isAvailableProductService ? ProductOrderList.builder()
+                            .productOrderList(productOrderMap.values().stream().collect(Collectors.toList())
+                            ).build()  :  null;
+
             return OfRetrieveDetails.builder()
                     .regularOrderId(application.getRegularDeliveryApplicationId())
-                    .productOrderList(ProductOrderList.builder()
-                            .productOrderList(productOrderMap.values().stream().collect(Collectors.toList()))
-                            .build()
-                    )
+                    .productOrderList(orderList)
                     .recipient(Recipient.convertedBy(application))
                     .deliveryPeriod(DeliveryPeriod.convertedBy(application))
                     .nextDeliveryDate(application.getCreatedAt().plusDays(application.getCycle()))
+                    .isAvailableProductService(isAvailableProductService)
                     .build();
         }
     }
@@ -60,11 +69,13 @@ public class RegularOrderResponse {
         private Long productCount;
         private Long productId;
         private String productName;
-        public OfRetrieveDailyCount(Long orderApplicationId, LocalDate date, Long productCount, Long productId) {
+        private boolean isAvailableProductService;
+        public OfRetrieveDailyCount(Long orderApplicationId, LocalDate date, Long productCount, Long productId, boolean isAvailableProductService) {
             this.orderApplicationId = orderApplicationId;
             this.date = date;
             this.productCount = productCount;
             this.productId = productId;
+            this.isAvailableProductService = isAvailableProductService;
         }
         public void bindProductName(String productName) {
             this.productName = productName;
