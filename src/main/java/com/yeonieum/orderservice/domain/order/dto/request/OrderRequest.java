@@ -50,14 +50,15 @@ public class OrderRequest {
     @NoArgsConstructor
     public static class OfCreation {
         Long customerId;
-        String storeName; // 업체명
+        Long memberCouponId;
+        String storeName;
         ProductOrderList productOrderList;
         Recipient recipient;
-        int originProductAmount; // 할인전 상품 금액
-        int totalDiscountAmount; // 총 할인액
-        int paymentAmount; // 최종 결제금액
-        int deliveryFee; // 배송비
-        String orderMemo; // 주문전달사항
+        int originProductAmount;
+        int totalDiscountAmount;
+        int paymentAmount;
+        int deliveryFee;
+        String orderMemo;
         PaymentCard paymentCard;
 
         public OrderDetail toOrderDetailEntity(String memberId) {
@@ -113,10 +114,11 @@ public class OrderRequest {
     @NoArgsConstructor
     public static class ProductOrder {
         Long productId;
+        Long couponId;
         String name;
-        int originPrice; // 상품금액
-        int discountAmount; // 상품 할인액
-        int finalPrice; // 최종상품금액
+        int originPrice;
+        int discountAmount;
+        int finalPrice;
         int quantity;
         @Builder.Default
         OrderStatusCode status = OrderStatusCode.PENDING;

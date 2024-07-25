@@ -5,6 +5,7 @@ import com.yeonieum.orderservice.domain.order.dto.request.OrderRequest;
 import com.yeonieum.orderservice.domain.order.policy.OrderStatusPolicy;
 import com.yeonieum.orderservice.domain.order.service.OrderProcessService;
 import com.yeonieum.orderservice.domain.order.service.OrderTrackingService;
+import com.yeonieum.orderservice.global.auth.Role;
 import com.yeonieum.orderservice.global.enums.OrderStatusCode;
 import com.yeonieum.orderservice.global.responses.ApiResponse;
 import com.yeonieum.orderservice.global.responses.code.SuccessCode;
@@ -33,6 +34,7 @@ public class OrderDetailController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "주문조회 성공"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 오류 발생")
     })
+    @Role(role = {"ROLE_CUSTOMER"}, url = "/api/order/customer-service", method = "GET")
     @GetMapping("/customer-service")
     public ResponseEntity<ApiResponse> getCustomersOrder (@RequestParam Long customerId,
                                                           @RequestParam(required = false) OrderStatusCode orderStatus,
@@ -49,6 +51,7 @@ public class OrderDetailController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "주문조회 성공"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 오류 발생")
     })
+    @Role(role = {"ROLE_CUSTOMER"}, url = "/api/order/counts", method = "GET")
     @GetMapping("/counts")
     public ResponseEntity<ApiResponse> getCustomersOrderCounts (@RequestParam Long customerId,
                                                                 @RequestParam OrderStatusCode orderStatus){
@@ -63,6 +66,7 @@ public class OrderDetailController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "주문조회 성공"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 오류 발생")
     })
+    @Role(role = {"ROLE_MEMBER"}, url = "/api/order/member-service", method = "GET")
     @GetMapping("/member-service")
     public ResponseEntity<ApiResponse> getMembersOrder (@RequestParam String memberId,
                                                         @RequestParam LocalDate startDate,
@@ -81,6 +85,8 @@ public class OrderDetailController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "주문상태변경 성공"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 오류 발생")
     })
+    @Role(role = {"ROLE_CUSTOMER", "ROLE_MEMBER"}, url = "/api/order/product/status", method = "PATCH")
+    @PatchMapping("/product/status")
     public ResponseEntity<ApiResponse> changeProductOrder(@RequestBody OrderRequest.OfUpdateProductOrderStatus updateProductOrderStatus) {
         orderProcessService.changeOrderProductStatus(updateProductOrderStatus);
         return new ResponseEntity<>(ApiResponse.builder()
@@ -95,6 +101,7 @@ public class OrderDetailController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "주문상태변경 성공"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 오류 발생")
     })
+    @Role(role = {"ROLE_MEMBER", "ROLE_CUSTOMER"}, url = "/api/order/status", method = "PATCH")
     @PatchMapping("/status")
     public ResponseEntity<ApiResponse> changeOrderStatus(@RequestBody OrderRequest.OfUpdateOrderStatus updateStatus) {
         String Role = "컨텍스트에서 가져올 예정";
@@ -115,6 +122,7 @@ public class OrderDetailController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "주문 생성 성공"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "회원 쿠폰 조회 실패")
     })
+    @Role(role = {"ROLE_MEMBER", "ROLE_CUSTOMER"}, url = "/api/order", method = "POST")
     @PostMapping
     public ResponseEntity<ApiResponse> placeOrder (@RequestBody OrderRequest.OfCreation creationRequest) {
         String memberId = "컨텍스트에서 가져올 예정";

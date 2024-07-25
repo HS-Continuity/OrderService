@@ -17,6 +17,7 @@ import com.yeonieum.orderservice.domain.release.repository.ReleaseRepository;
 import com.yeonieum.orderservice.domain.release.repository.ReleaseStatusRepository;
 import com.yeonieum.orderservice.global.enums.OrderStatusCode;
 import com.yeonieum.orderservice.global.enums.ReleaseStatusCode;
+import com.yeonieum.orderservice.infrastructure.feignclient.MemberServiceFeignClient;
 import com.yeonieum.orderservice.infrastructure.feignclient.ProductServiceFeignClient;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -24,10 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -42,7 +40,12 @@ public class OrderProcessService {
     private final ReleaseStatusRepository releaseStatusRepository;
     private final DeliveryStatusRepository deliveryStatusRepository;
     private final ProductServiceFeignClient stockFeignClient;
+    private final MemberServiceFeignClient memberServiceFeignClient;
     private final OrderStatusPolicy orderStatusPolicy;
+    private static final String CANCELLED_PAYMENT_AMOUNT = "cancelledPaymentAmount";
+    private static final String CANCELLED_DISCOUNT_AMOUNT = "cancelledDiscountAmount";
+    private static final String CANCELLED_ORIGIN_PRODUCT_PRICE = "cancelledOriginProductPrice";
+
 
     /**
      * 전체 주문상태 수정 서비스[상품주문에 대한 주문상태 변경은 일어나지 않음]
@@ -130,30 +133,17 @@ public class OrderProcessService {
      */
     @Transactional(rollbackFor = {RuntimeException.class})
     public void placeOrder(OrderRequest.OfCreation orderCreation, String memberId) {
-        // 주문가능한 재고상태인지 상품서비스에 요청 & 주문불가 상품에 대해 주문취소 처리
+        if(orderCreation.getMemberCouponId() != null &&
+                !memberServiceFeignClient.useMemberCouponStatus(orderCreation.getMemberCouponId()).getBody().getResult()) {
+            throw new IllegalArgumentException("이미 사용한 쿠폰입니다.");
+        };
+
         String orderDetailId = makeOrderId();
-        StockUsageRequest.IncreaseStockUsageList increaseStockUsageList = makeRequestObject(orderCreation.getProductOrderList(), orderDetailId);
-        StockUsageResponse.AvailableResponseList response = stockFeignClient.checkAvailableOrderProduct(increaseStockUsageList);
-
-        int canceledPaymentAmount = 0;
-        int canceledDiscountAmount = 0;
-        int canceledOriginProductPrice = 0;
-        Map<Long, OrderRequest.ProductOrder> productOrderMap = orderCreation.getProductOrderList().getProductOrderList()
-                .stream().collect(Collectors.toMap(OrderRequest.ProductOrder::getProductId, Function.identity()));
-        ;
-        for (StockUsageResponse.AvailableStockDto result : response.getAvailableProductInventoryResponseList()) {
-            if (!result.getIsAvailableOrder()) {
-                OrderRequest.ProductOrder productOrder = productOrderMap.get(result.getProductId());
-
-                productOrder.changeStatus(OrderStatusCode.CANCELED);
-                canceledPaymentAmount += productOrder.getFinalPrice();
-                canceledDiscountAmount += productOrder.getDiscountAmount();
-                canceledOriginProductPrice += productOrder.getOriginPrice();
-            }
-        }
+        StockUsageResponse.AvailableResponseList results = checkAvailableProductOrder(orderCreation, orderDetailId);
+        Map<String, Integer> paymentAmountMap = updateProductOrder(orderCreation, results);
 
         // 주문서 생성
-        orderCreation.changePaymentAmount(orderCreation.getPaymentAmount() - canceledPaymentAmount);
+        orderCreation.changePaymentAmount(orderCreation.getPaymentAmount() - paymentAmountMap.get(CANCELLED_PAYMENT_AMOUNT));
         OrderDetail orderDetail = orderCreation.toOrderDetailEntity(memberId);
 
         // 주문서에 대한 결제 요청 & 결제 완료 됐으면 주문서 상태 변경
@@ -166,14 +156,53 @@ public class OrderProcessService {
                     .peek(productOrder -> productOrder.changeStatus(OrderStatusCode.PAYMENT_COMPLETED));
         }
 
-        // 주문서 및 결제 정보 저장
         orderDetailRepository.save(orderDetail);
         paymentInformationRepository.save(orderCreation.toPaymentInformationEntity(
                 orderDetail,
-                canceledDiscountAmount,
-                canceledPaymentAmount,
-                canceledOriginProductPrice));
+                paymentAmountMap.get(CANCELLED_DISCOUNT_AMOUNT),
+                paymentAmountMap.get(CANCELLED_PAYMENT_AMOUNT),
+                paymentAmountMap.get(CANCELLED_ORIGIN_PRODUCT_PRICE)));
         // 주문 생성 후 카카오톡 알림, sse 고객에게 푸시
+    }
+
+    /**
+     * 주문상품에 대한 재고 확인 서비스
+     * @param orderCreation
+     * @param orderDetailId
+     * @return
+     */
+    public StockUsageResponse.AvailableResponseList checkAvailableProductOrder(OrderRequest.OfCreation orderCreation, String orderDetailId) {
+        StockUsageRequest.IncreaseStockUsageList increaseStockUsageList = makeRequestObject(orderCreation.getProductOrderList(), orderDetailId);
+        return stockFeignClient.checkAvailableOrderProduct(increaseStockUsageList);
+    }
+
+
+    /**
+     * 주문상품에 대한 주문상태 변경 서비스
+     * @param orderCreation
+     * @param results
+     * @return
+     */
+    public Map<String, Integer> updateProductOrder(OrderRequest.OfCreation orderCreation, StockUsageResponse.AvailableResponseList results) {
+        Map<Long, OrderRequest.ProductOrder> productOrderMap = orderCreation.getProductOrderList().getProductOrderList()
+                .stream().collect(Collectors.toMap(OrderRequest.ProductOrder::getProductId, Function.identity()));
+
+        Map<String, Integer> paymentAmountMap = new HashMap<>();
+        paymentAmountMap.put(CANCELLED_PAYMENT_AMOUNT, 0);
+        paymentAmountMap.put(CANCELLED_DISCOUNT_AMOUNT, 0);
+        paymentAmountMap.put(CANCELLED_ORIGIN_PRODUCT_PRICE, 0);
+
+        for (StockUsageResponse.AvailableStockDto result : results.getAvailableProductInventoryResponseList()) {
+            if (!result.getIsAvailableOrder()) {
+                OrderRequest.ProductOrder productOrder = productOrderMap.get(result.getProductId());
+
+                productOrder.changeStatus(OrderStatusCode.CANCELED);
+                paymentAmountMap.put(CANCELLED_PAYMENT_AMOUNT, paymentAmountMap.get(CANCELLED_PAYMENT_AMOUNT) + productOrder.getFinalPrice());
+                paymentAmountMap.put(CANCELLED_DISCOUNT_AMOUNT, paymentAmountMap.get(CANCELLED_DISCOUNT_AMOUNT) + productOrder.getDiscountAmount());
+                paymentAmountMap.put(CANCELLED_ORIGIN_PRODUCT_PRICE, paymentAmountMap.get(CANCELLED_ORIGIN_PRODUCT_PRICE) + productOrder.getOriginPrice());
+            }
+        }
+        return paymentAmountMap;
     }
 
     /**
