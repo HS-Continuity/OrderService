@@ -17,9 +17,12 @@ import com.yeonieum.orderservice.domain.release.repository.ReleaseRepository;
 import com.yeonieum.orderservice.domain.release.repository.ReleaseStatusRepository;
 import com.yeonieum.orderservice.global.enums.OrderStatusCode;
 import com.yeonieum.orderservice.global.enums.ReleaseStatusCode;
+import com.yeonieum.orderservice.global.responses.ApiResponse;
 import com.yeonieum.orderservice.infrastructure.feignclient.MemberServiceFeignClient;
 import com.yeonieum.orderservice.infrastructure.feignclient.ProductServiceFeignClient;
+import feign.FeignException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -116,6 +119,7 @@ public class OrderProcessService {
                     productOrder.changeStatus(updateProductOrderStatus.getOrderStatusCode());
             default -> throw new RuntimeException("잘못된 접근입니다.");
         }
+        orderDetail.changeOrderList(orderDetail.getOrderList()); // deepcopy
         orderDetailRepository.save(orderDetail);
     }
 
@@ -133,35 +137,59 @@ public class OrderProcessService {
      */
     @Transactional(rollbackFor = {RuntimeException.class})
     public void placeOrder(OrderRequest.OfCreation orderCreation, String memberId) {
-        if(orderCreation.getMemberCouponId() != null &&
-                !memberServiceFeignClient.useMemberCouponStatus(orderCreation.getMemberCouponId()).getBody().getResult()) {
-            throw new IllegalArgumentException("이미 사용한 쿠폰입니다.");
-        };
+        if(orderCreation.getMemberCouponId() != null) {
+            try {
+                boolean result = memberServiceFeignClient.useMemberCouponStatus(orderCreation.getMemberCouponId()).getBody().getResult();
+                if (!result) {
+                    throw new IllegalArgumentException("이미 사용한 쿠폰입니다.");
+                }
+            } catch (FeignException e) {
+                throw new IllegalArgumentException("쿠폰 사용에 실패했습니다.");
+            }
+        }
 
         String orderDetailId = makeOrderId();
-        StockUsageResponse.AvailableResponseList results = checkAvailableProductOrder(orderCreation, orderDetailId);
-        Map<String, Integer> paymentAmountMap = updateProductOrder(orderCreation, results);
+        ResponseEntity<StockUsageResponse.AvailableResponseList> responses = null;
+        boolean isAvailableProductService = true;
+        try {
+            responses = checkAvailableProductOrder(orderCreation, orderDetailId);
+            isAvailableProductService = responses.getStatusCode().is2xxSuccessful() ? true : false;
+        } catch (FeignException e) {
+            isAvailableProductService = false;
+        }
+        OrderStatus orderStatus = null;
+        Map<String, Integer> paymentAmountMap = null;
+        if (isAvailableProductService) {
+            paymentAmountMap = updateProductOrder(orderCreation, responses.getBody());
+            orderCreation.changePaymentAmount(orderCreation.getPaymentAmount() - paymentAmountMap.get(CANCELLED_PAYMENT_AMOUNT));
+            orderStatus = orderStatusRepository.findByStatusName(OrderStatusCode.PENDING);
+        } else {
+            orderStatus = orderStatusRepository.findByStatusName(OrderStatusCode.CANCELED);
+        }
 
         // 주문서 생성
-        orderCreation.changePaymentAmount(orderCreation.getPaymentAmount() - paymentAmountMap.get(CANCELLED_PAYMENT_AMOUNT));
-        OrderDetail orderDetail = orderCreation.toOrderDetailEntity(memberId);
-
+        OrderDetail orderDetail = orderCreation.toOrderDetailEntity(memberId, orderStatus, orderDetailId);
         // 주문서에 대한 결제 요청 & 결제 완료 됐으면 주문서 상태 변경
-        boolean isPayment = checkPaymentValidation();
-        if (isPayment) {
-            // 결제성공시 각 상품 주문 상태 수정
-            orderDetail.changeOrderStatus(orderStatusRepository.findByStatusName(OrderStatusCode.PAYMENT_COMPLETED));
-            orderDetail.getOrderList().getProductOrderEntityList().stream()
-                    .filter(productOrder -> productOrder.getStatus().equals(OrderStatusCode.PENDING.getCode()))
-                    .peek(productOrder -> productOrder.changeStatus(OrderStatusCode.PAYMENT_COMPLETED));
-        }
+        final boolean isPayment = isAvailableProductService ? checkPaymentValidation() : false;
+        final OrderStatus pending = orderStatusRepository.findByStatusName(OrderStatusCode.PAYMENT_COMPLETED);
+        final OrderStatus paymentCompleted = orderStatusRepository.findByStatusName(OrderStatusCode.PAYMENT_COMPLETED);
+        final OrderStatus cancel = orderStatusRepository.findByStatusName(OrderStatusCode.CANCELED);
+
+        // 결제성공시 각 상품 주문 상태 수정
+        final boolean finalIsAvailableProductService = isAvailableProductService;
+
+        orderDetail.getOrderList().getProductOrderEntityList().stream()
+                .filter(productOrder -> productOrder.getStatus().equals(pending.getStatusName()))
+                .peek(productOrder -> productOrder.changeStatus(finalIsAvailableProductService && isPayment ? paymentCompleted.getStatusName() : cancel.getStatusName()));
+        orderDetail.changeOrderStatus(finalIsAvailableProductService && isPayment ? paymentCompleted : cancel);
+        orderDetail.changeOrderList(orderDetail.getOrderList()); // deepcopy
 
         orderDetailRepository.save(orderDetail);
         paymentInformationRepository.save(orderCreation.toPaymentInformationEntity(
                 orderDetail,
-                paymentAmountMap.get(CANCELLED_DISCOUNT_AMOUNT),
-                paymentAmountMap.get(CANCELLED_PAYMENT_AMOUNT),
-                paymentAmountMap.get(CANCELLED_ORIGIN_PRODUCT_PRICE)));
+                paymentAmountMap != null ? paymentAmountMap.get(CANCELLED_DISCOUNT_AMOUNT) : 0,
+                paymentAmountMap != null ? paymentAmountMap.get(CANCELLED_PAYMENT_AMOUNT) : 0,
+                paymentAmountMap != null ? paymentAmountMap.get(CANCELLED_ORIGIN_PRODUCT_PRICE) : 0));
         // 주문 생성 후 카카오톡 알림, sse 고객에게 푸시
     }
 
@@ -171,7 +199,7 @@ public class OrderProcessService {
      * @param orderDetailId
      * @return
      */
-    public StockUsageResponse.AvailableResponseList checkAvailableProductOrder(OrderRequest.OfCreation orderCreation, String orderDetailId) {
+    public ResponseEntity<StockUsageResponse.AvailableResponseList> checkAvailableProductOrder(OrderRequest.OfCreation orderCreation, String orderDetailId) {
         StockUsageRequest.IncreaseStockUsageList increaseStockUsageList = makeRequestObject(orderCreation.getProductOrderList(), orderDetailId);
         return stockFeignClient.checkAvailableOrderProduct(increaseStockUsageList);
     }
@@ -301,8 +329,8 @@ public class OrderProcessService {
                 default -> throw new RuntimeException("잘못된 접근입니다.");
             }
 
-            // 명시적 저장
-            orderDetailRepository.save(orderDetail);
+            orderDetail.changeOrderList(orderDetail.getOrderList()); // deepcopy
+            orderDetailRepository.save(orderDetail); // 명시적 저장
         }
     }
 }

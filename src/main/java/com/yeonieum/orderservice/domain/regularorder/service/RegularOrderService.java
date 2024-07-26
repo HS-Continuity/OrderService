@@ -13,6 +13,7 @@ import com.yeonieum.orderservice.global.enums.DayOfWeek;
 import com.yeonieum.orderservice.global.enums.RegularDeliveryStatusCode;
 import com.yeonieum.orderservice.global.responses.ApiResponse;
 import com.yeonieum.orderservice.infrastructure.feignclient.ProductServiceFeignClient;
+import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -49,15 +50,25 @@ public class RegularOrderService {
     public List<RegularOrderResponse.OfRetrieveDailyCount> retrieveRegularOrderCountsBetween(LocalDate startDate, LocalDate endDate, Long customerId) {
         List<RegularOrderResponse.OfRetrieveDailyCount> regularOrderCountsForMonth = regularDeliveryReservationRepository.findRegularOrderCountsBetween(startDate, endDate, customerId);
 
-        // 상품Id 리스트 추출 후 상품서비스의 상품정보 조회 API 호출
+        ResponseEntity<ApiResponse<Map<Long, RegularOrderResponse.ProductOrder>>> response = null;
+        Map<Long, RegularOrderResponse.ProductOrder> productOrderMap = null;
+
         List<Long> productIdList = regularOrderCountsForMonth.stream().map(dailyOrderCount -> dailyOrderCount.getProductId()).collect(Collectors.toList());
-        Map<Long, RegularOrderResponse.ProductOrder> productOrderMap =
-                (Map<Long, RegularOrderResponse.ProductOrder>) ((ApiResponse)feignClient.bulkRetrieveProductInformation(productIdList).getBody()).getResult();
+        boolean isAvailableProductService = true;
+        try {
+            response = feignClient.bulkRetrieveProductInformation(productIdList);
+            isAvailableProductService = response.getStatusCode().is2xxSuccessful() ? true : false;
+        } catch (FeignException e) {
+            e.printStackTrace();
+            isAvailableProductService = false;
+        }
 
         // 받아온 응답을 바탕으로 상품명 바인딩
         for(RegularOrderResponse.OfRetrieveDailyCount dailyOrderCount : regularOrderCountsForMonth) {
-            dailyOrderCount.bindProductName(productOrderMap.get(dailyOrderCount.getProductId()).getProductName());
+            String productName = isAvailableProductService ? productOrderMap.get(dailyOrderCount.getProductId()).getProductName() : null;
+            dailyOrderCount.bindProductName(productName);
         }
+
         return regularOrderCountsForMonth;
     }
 
@@ -86,13 +97,22 @@ public class RegularOrderService {
     @Transactional
     public Page<RegularOrderResponse.OfRetrieve> retrieveRegularDeliveryList(String memberId, Pageable pageable) {
         Page<RegularDeliveryApplication> applicationList = regularDeliveryApplicationRepository.findByMemberIdOrderByCreatedAtAsc(memberId, pageable);
+        ResponseEntity<ApiResponse<Map<Long, RegularOrderResponse.ProductOrder>>> response = null;
 
         // 상품Id 리스트 추출 후 상품서비스의 상품정보 조회 API 호출
         List<Long> productIdList = applicationList.map(application -> application.getMainProductId()).stream().collect(Collectors.toList());
-        Map<Long, RegularOrderResponse.ProductOrder> productOrderMap =
-                (Map<Long, RegularOrderResponse.ProductOrder>) ((ApiResponse)feignClient.bulkRetrieveProductInformation(productIdList).getBody()).getResult();
+        boolean isAvailableProductService = true;
+        try {
+            response = feignClient.bulkRetrieveProductInformation(productIdList);
+            isAvailableProductService = response.getStatusCode().is2xxSuccessful() ? true : false;
+        } catch (FeignException e) {
+            e.printStackTrace();
+            isAvailableProductService = false;
+        }
 
-        return applicationList.map(application -> RegularOrderResponse.OfRetrieve.convertedBy(application, productOrderMap));
+        final boolean finalIsAvailableProductService = isAvailableProductService;
+        final Map<Long, RegularOrderResponse.ProductOrder> productOrderMap = isAvailableProductService ? response.getBody().getResult() : null;
+        return applicationList.map(application -> RegularOrderResponse.OfRetrieve.convertedBy(application, productOrderMap, finalIsAvailableProductService));
     }
 
     /**
@@ -106,10 +126,19 @@ public class RegularOrderService {
 
         // 상품Id 리스트 추출 후 상품서비스의 상품정보 조회 API 호출
         List<Long> productIdList = application.getRegularDeliveryReservationList().stream().map(reservation -> reservation.getProductId()).collect(Collectors.toList());
-        Map<Long, RegularOrderResponse.ProductOrder> productOrderMap =
-                (Map<Long, RegularOrderResponse.ProductOrder>) ((ApiResponse)feignClient.bulkRetrieveProductInformation(productIdList).getBody()).getResult();
+        ResponseEntity<ApiResponse<Map<Long, RegularOrderResponse.ProductOrder>>> response = null;
+        Map<Long, RegularOrderResponse.ProductOrder> productOrderMap = null;
+        boolean isAvailableProductService = true;
+        try {
+            response = feignClient.bulkRetrieveProductInformation(productIdList);
+            isAvailableProductService = response.getStatusCode().is2xxSuccessful() ? true : false;
+        } catch (FeignException e) {
+            e.printStackTrace();
+            isAvailableProductService = false;
+        }
 
-        return RegularOrderResponse.OfRetrieveDetails.convertedBy(application, productOrderMap);
+        productOrderMap = isAvailableProductService ? response.getBody().getResult() : null;
+        return RegularOrderResponse.OfRetrieveDetails.convertedBy(application, productOrderMap, isAvailableProductService);
     }
 
 

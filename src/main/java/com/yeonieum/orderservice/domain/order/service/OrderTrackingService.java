@@ -2,27 +2,37 @@ package com.yeonieum.orderservice.domain.order.service;
 
 import com.yeonieum.orderservice.domain.order.dto.response.OrderResponse;
 import com.yeonieum.orderservice.domain.order.entity.OrderDetail;
+import com.yeonieum.orderservice.domain.order.entity.ProductOrderEntity;
 import com.yeonieum.orderservice.domain.order.repository.OrderDetailRepository;
 import com.yeonieum.orderservice.domain.order.repository.OrderStatusRepository;
 import com.yeonieum.orderservice.global.enums.OrderStatusCode;
+import com.yeonieum.orderservice.global.responses.ApiResponse;
 import com.yeonieum.orderservice.infrastructure.feignclient.MemberServiceFeignClient;
+import com.yeonieum.orderservice.infrastructure.feignclient.ProductServiceFeignClient;
+import com.yeonieum.orderservice.infrastructure.feignclient.dto.response.RetrieveOrderInformationResponse;
+import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class OrderTrackingService {
     private final OrderDetailRepository orderDetailRepository;
     private final OrderStatusRepository orderStatusRepository;
-    private final MemberServiceFeignClient feignClient;
+    private final MemberServiceFeignClient memberFeignClient;
+    private final ProductServiceFeignClient productServiceFeignClient;
 
     /**
      * 고객용 주문 조회 서비스
@@ -37,10 +47,48 @@ public class OrderTrackingService {
                 orderDetailRepository.findByCustomerIdAndOrderStatus(customerId, orderStatusRepository.findByStatusName(orderStatusCode), pageable);
 
         List<OrderResponse.OfRetrieveForCustomer> convertedOrders = new ArrayList<>();
+        List<Long> productIdList = orderDetailsPage.stream()
+                .flatMap(orderDetail -> orderDetail.getOrderList()
+                        .getProductOrderEntityList()
+                        .stream()
+                        .map(ProductOrderEntity::getProductId))
+                .collect(Collectors.toList());
 
+        boolean isAvailableProductService = true;
+        ResponseEntity<ApiResponse<List<RetrieveOrderInformationResponse>>> productResponse = null;
+
+        try{
+            productResponse = productServiceFeignClient.retrieveOrderProductInformation(productIdList);
+            isAvailableProductService = productResponse.getStatusCode().is2xxSuccessful();
+        } catch (FeignException e) {
+            isAvailableProductService = false;
+        }
+
+
+        ResponseEntity<ApiResponse<OrderResponse.MemberInfo>> memberResponse = null;
         for (OrderDetail orderDetail : orderDetailsPage) {
-            OrderResponse.MemberInfo targetMember = (OrderResponse.MemberInfo) feignClient.getOrderMemberInfo(orderDetail.getMemberId()).getBody().getResult();
-            convertedOrders.add(OrderResponse.OfRetrieveForCustomer.convertedBy(orderDetail, targetMember));
+            boolean isAvailableMemberService = true;
+            try{
+                memberResponse = memberFeignClient.getOrderMemberInfo(orderDetail.getMemberId());
+            } catch (FeignException e) {
+                isAvailableMemberService = false;
+            }
+            OrderResponse.MemberInfo memberInfo = memberResponse == null ? null : memberResponse.getBody().getResult();
+            OrderResponse.OfRetrieveForCustomer orderResponse =
+                    OrderResponse.OfRetrieveForCustomer.convertedBy(orderDetail, memberInfo, isAvailableProductService, isAvailableMemberService);
+
+            if(isAvailableProductService) {
+                List<RetrieveOrderInformationResponse> productInformation = productResponse.getBody().getResult();
+                final Map<Long, RetrieveOrderInformationResponse> productInformationMap =
+                        productInformation.stream().collect(Collectors.toMap(RetrieveOrderInformationResponse::getProductId, product -> product));
+
+                orderResponse.getProductOrderList().getProductOrderList().stream().map(
+                        productOrder -> {
+                            productOrder.changeName(productInformationMap.get(productOrder.getProductId()).getProductName());
+                            return productOrder;
+                        }).collect(Collectors.toList());
+            }
+            convertedOrders.add(orderResponse);
         }
 
         return new PageImpl<>(convertedOrders, pageable, orderDetailsPage.getTotalElements());
@@ -65,15 +113,33 @@ public class OrderTrackingService {
      * @param pageable
      * @return
      */
+    // 대표 상품에 대해서만 가져오기
     @Transactional(readOnly = true)
     public Page<OrderResponse.OfRetrieveForMember> retrieveOrderForMember(String memberId, LocalDate startDate, LocalDate endDate, Pageable pageable) {
         Page<OrderDetail> orderDetailsPage =
                 orderDetailRepository.findByMemberId(memberId, startDate.atStartOfDay(), endDate.atTime(23, 59, 59), pageable);
+        List<Long> productIdList = orderDetailsPage.getContent().stream().map(orderDetail -> orderDetail.getMainProductId()).collect(Collectors.toList());
 
-        return orderDetailsPage.map(orderDetail -> {
-            Long customerId = orderDetail.getCustomerId();
-            String storeName = "상품서비스 외부api 호출 대체 예정"; // TODO : 외부 api 호출
-            return OrderResponse.OfRetrieveForMember.convertedBy(orderDetail, storeName);
-        });
+        boolean isAvailableProductService = true;
+        ResponseEntity<ApiResponse<List<RetrieveOrderInformationResponse>>> productResponse = null;
+        try {
+            productResponse = productServiceFeignClient.retrieveOrderProductInformation(productIdList);
+            isAvailableProductService = productResponse.getStatusCode().is2xxSuccessful();
+        } catch (FeignException e) {
+            isAvailableProductService = false;
+        }
+
+        if(isAvailableProductService) {
+            List<RetrieveOrderInformationResponse> productInformationList = productResponse.getBody().getResult();
+            Map<Long, RetrieveOrderInformationResponse> productInformationMap =
+                    productInformationList.stream().collect(Collectors.toMap(RetrieveOrderInformationResponse::getProductId, product -> product));
+
+            return orderDetailsPage.map(orderDetail -> OrderResponse.OfRetrieveForMember
+                    .convertedBy(orderDetail, productInformationMap.get(orderDetail.getMainProductId()), true));
+        }
+
+
+        return orderDetailsPage.map(orderDetail -> OrderResponse.OfRetrieveForMember
+                    .convertedBy(orderDetail, null, false));
     }
 }

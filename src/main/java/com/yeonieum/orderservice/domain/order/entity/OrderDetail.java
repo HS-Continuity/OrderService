@@ -55,5 +55,8 @@ public class OrderDetail {
     public void changeOrderStatus(OrderStatus orderStatus) {
         this.orderStatus = orderStatus;
     }
+    public void changeOrderList(ProductOrderListEntity orderList) {
+        this.orderList = new ProductOrderListEntity(orderList.getProductOrderEntityList());
+    }
 }
 

@@ -4,6 +4,7 @@ import com.yeonieum.orderservice.domain.order.entity.OrderDetail;
 import com.yeonieum.orderservice.domain.order.entity.PaymentInformation;
 import com.yeonieum.orderservice.domain.order.entity.ProductOrderEntity;
 import com.yeonieum.orderservice.global.enums.OrderStatusCode;
+import com.yeonieum.orderservice.infrastructure.feignclient.dto.response.RetrieveOrderInformationResponse;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -22,8 +23,15 @@ public class OrderResponse {
         MemberInfo memberInfo;
         Recipient recipient;
         ProductOrderList productOrderList;
+        @Builder.Default
+        boolean isAvailableProductInformation = true;
+        @Builder.Default
+        boolean isAvailableMemberInformation = true;
 
-        public static OfRetrieveForCustomer convertedBy(OrderDetail orderDetail, MemberInfo memberInfo) {
+        public static OfRetrieveForCustomer convertedBy(OrderDetail orderDetail,
+                                                        MemberInfo memberInfo,
+                                                        boolean isAvailableProductInformation,
+                                                        boolean isAvailableMemberService) {
             return OfRetrieveForCustomer.builder()
                     .memberInfo(memberInfo)
                     .productOrderList(ProductOrderList.convertedBy(orderDetail))
@@ -32,6 +40,9 @@ public class OrderResponse {
                             orderDetail.getRecipientPhoneNumber(),
                             orderDetail.getDeliveryAddress()
                     )).build();
+        }
+        public void changeIsAvailableProductInformation(boolean isAvailableProductInformation){
+            this.isAvailableProductInformation = isAvailableProductInformation;
         }
     }
 
@@ -65,10 +76,18 @@ public class OrderResponse {
         @Builder.Default
         String storeName = null;
         String status;
+        String image;
         ProductOrderList productOrderList;
+        @Builder.Default
+        boolean isAvailableProductInformation = true;
 
 
-        public static OfRetrieveForMember convertedBy(OrderDetail orderDetail, String storeName) {
+        public static OfRetrieveForMember convertedBy(OrderDetail orderDetail,
+                                                      RetrieveOrderInformationResponse retrieveOrderInformationResponse,
+                                                      boolean isAvailableProductInformation) {
+
+            String image = isAvailableProductInformation ? retrieveOrderInformationResponse.getProductImage() : null;
+            String storeName = isAvailableProductInformation ? retrieveOrderInformationResponse.getStoreName() : null;
             return OfRetrieveForMember.builder()
                     .memberId(orderDetail.getMemberId())
                     .productOrderList(ProductOrderList.convertedBy(orderDetail))
@@ -77,9 +96,11 @@ public class OrderResponse {
                             orderDetail.getRecipientPhoneNumber(),
                             orderDetail.getDeliveryAddress()
                     ))
+                    .image(image)
                     .orderDate(orderDetail.getOrderDateTime())
                     .status(orderDetail.getOrderStatus().getStatusName().getCode())
                     .storeName(storeName)
+                    .isAvailableProductInformation(isAvailableProductInformation)
                     .build();
         }
 
@@ -102,11 +123,14 @@ public class OrderResponse {
         public void changeStatus(OrderStatusCode status) {
             this.status = status;
         }
+        public void changeName(String name){
+            this.name = name;
+        }
 
         public static ProductOrder convertedBy(ProductOrderEntity productOrderEntity) {
             return ProductOrder.builder()
                     .productId(productOrderEntity.getProductId())
-                    .name(productOrderEntity.getName())
+                    .name(null)
                     .originPrice(productOrderEntity.getOriginPrice())
                     .discountAmount(productOrderEntity.getDiscountAmount())
                     .finalPrice(productOrderEntity.getFinalPrice())
