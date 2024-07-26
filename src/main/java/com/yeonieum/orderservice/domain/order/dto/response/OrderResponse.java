@@ -17,22 +17,30 @@ import java.util.stream.Collectors;
 
 
 public class OrderResponse {
+
     @Getter
     @Builder
     public static class OfRetrieveForCustomer {
-        MemberInfo memberInfo;
-        Recipient recipient;
-        ProductOrderList productOrderList;
+        private MemberInfo memberInfo;
+        private Recipient recipient;
+        private ProductOrderList productOrderList;
+        private String orderDetailId;
+        private String orderStatusCode;
+        private LocalDateTime orderDateTime;
+
         @Builder.Default
-        boolean isAvailableProductInformation = true;
+        private boolean isAvailableProductInformation = true;
         @Builder.Default
-        boolean isAvailableMemberInformation = true;
+        private boolean isAvailableMemberInformation = true;
 
         public static OfRetrieveForCustomer convertedBy(OrderDetail orderDetail,
                                                         MemberInfo memberInfo,
                                                         boolean isAvailableProductInformation,
                                                         boolean isAvailableMemberService) {
             return OfRetrieveForCustomer.builder()
+                    .orderStatusCode(orderDetail.getOrderStatus().getStatusName().getCode())
+                    .orderDateTime(orderDetail.getOrderDateTime())
+                    .orderDetailId(orderDetail.getOrderDetailId())
                     .memberInfo(memberInfo)
                     .productOrderList(ProductOrderList.convertedBy(orderDetail))
                     .recipient(new Recipient(
