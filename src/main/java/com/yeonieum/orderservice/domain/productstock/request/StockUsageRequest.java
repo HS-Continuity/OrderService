@@ -9,7 +9,7 @@ public class StockUsageRequest {
     @Getter
     @Builder
     public static class OfIncreasing {
-        String orderId;
+        String orderDetailId;
         Long productId;
         int quantity;
     }
