@@ -12,16 +12,10 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
-public interface ReleaseRepository extends JpaRepository<Release, Long> {
+public interface ReleaseRepository extends JpaRepository<Release, Long>, ReleaseRepositoryCustom {
 
     @Query("SELECT r FROM Release r WHERE r.orderDetail.orderDetailId = :orderDetailId")
     Release findByOrderDetailId(String orderDetailId);
-
-    @Query("SELECT r FROM Release r WHERE r.orderDetail.customerId = :customerId AND r.releaseStatus.statusName = :statusCode")
-    Page<Release> findByCustomerIdAndStatus(@Param("customerId") Long customerId, @Param("statusCode") ReleaseStatusCode statusCode, Pageable pageable);
-
-    @Query("SELECT r FROM Release r WHERE r.orderDetail.customerId = :customerId")
-    Page<Release> findByCustomerId(@Param("customerId") Long customerId, Pageable pageable);
 
     @Query("SELECT new com.yeonieum.orderservice.domain.release.dto.ReleaseSummaryResponse(r.releaseStatus.statusName, COUNT(r)) " +
             "FROM Release r " +
