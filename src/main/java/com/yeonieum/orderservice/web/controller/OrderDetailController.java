@@ -13,11 +13,13 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @RestController
 @RequiredArgsConstructor
@@ -37,11 +39,20 @@ public class OrderDetailController {
     @Role(role = {"ROLE_CUSTOMER"}, url = "/api/order/customer-service", method = "GET")
     @GetMapping("/customer-service")
     public ResponseEntity<ApiResponse> getCustomersOrder (@RequestParam Long customerId,
-                                                          @RequestParam(required = false) OrderStatusCode orderStatus,
+                                                          @RequestParam(required = false) OrderStatusCode orderStatusCode,
+                                                          @RequestParam(required = false) String orderDetailId,
+                                                          @RequestParam(required = false) LocalDateTime orderDateTime,
+                                                          @RequestParam(required = false) String recipient,
+                                                          @RequestParam(required = false) String recipientPhoneNumber,
+                                                          @RequestParam(required = false) String recipientAddress,
+                                                          @RequestParam(required = false) String memberId,
+                                                          @RequestParam(required = false) String memberName,
+                                                          @RequestParam(required = false) String memberPhoneNumber,
                                                           @RequestParam(required = false, defaultValue = "0") int page,
                                                           @RequestParam(required = false, defaultValue = "10") int size){
+        Pageable pageable = PageRequest.of(page, size);
         return new ResponseEntity<>(ApiResponse.builder()
-                .result(orderTrackingService.retrieveOrdersForCustomer(customerId, orderStatus, PageRequest.of(page, size)))
+                .result(orderTrackingService.retrieveOrdersForCustomer(customerId, orderStatusCode, orderDetailId, orderDateTime, recipient, recipientPhoneNumber, recipientAddress, memberId, memberName, memberPhoneNumber, pageable))
                 .successCode(SuccessCode.SELECT_SUCCESS)
                 .build(), HttpStatus.OK);
     }

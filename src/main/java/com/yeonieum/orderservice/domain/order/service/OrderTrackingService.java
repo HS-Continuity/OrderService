@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -42,9 +43,9 @@ public class OrderTrackingService {
      * @return
      */
     @Transactional(readOnly = true)
-    public Page<OrderResponse.OfRetrieveForCustomer> retrieveOrdersForCustomer(Long customerId, OrderStatusCode orderStatusCode, Pageable pageable) {
+    public Page<OrderResponse.OfRetrieveForCustomer> retrieveOrdersForCustomer(Long customerId, OrderStatusCode orderStatusCode, String orderDetailId, LocalDateTime orderDateTime, String recipient, String recipientPhoneNumber, String recipientAddress, String memberId, String memberName, String memberPhoneNumber, Pageable pageable) {
         Page<OrderDetail> orderDetailsPage =
-                orderDetailRepository.findByCustomerIdAndOrderStatus(customerId, orderStatusRepository.findByStatusName(orderStatusCode), pageable);
+                orderDetailRepository.findOrders(customerId, orderStatusCode, orderDetailId, orderDateTime, recipient, recipientPhoneNumber, recipientAddress, memberId, null, null, pageable);
 
         List<OrderResponse.OfRetrieveForCustomer> convertedOrders = new ArrayList<>();
         List<Long> productIdList = orderDetailsPage.stream()
@@ -64,7 +65,6 @@ public class OrderTrackingService {
             isAvailableProductService = false;
         }
 
-
         ResponseEntity<ApiResponse<OrderResponse.MemberInfo>> memberResponse = null;
         for (OrderDetail orderDetail : orderDetailsPage) {
             boolean isAvailableMemberService = true;
@@ -74,21 +74,28 @@ public class OrderTrackingService {
                 isAvailableMemberService = false;
             }
             OrderResponse.MemberInfo memberInfo = memberResponse == null ? null : memberResponse.getBody().getResult();
-            OrderResponse.OfRetrieveForCustomer orderResponse =
-                    OrderResponse.OfRetrieveForCustomer.convertedBy(orderDetail, memberInfo, isAvailableProductService, isAvailableMemberService);
 
-            if(isAvailableProductService) {
-                List<RetrieveOrderInformationResponse> productInformation = productResponse.getBody().getResult();
-                final Map<Long, RetrieveOrderInformationResponse> productInformationMap =
-                        productInformation.stream().collect(Collectors.toMap(RetrieveOrderInformationResponse::getProductId, product -> product));
+            // 필터링 조건을 확인하여 필요한 경우 필터링
+            if (memberInfo != null &&
+                    (memberName == null || memberName.equals(memberInfo.getMemberName())) &&
+                    (memberPhoneNumber == null || memberPhoneNumber.equals(memberInfo.getMemberPhoneNumber()))) {
 
-                orderResponse.getProductOrderList().getProductOrderList().stream().map(
-                        productOrder -> {
-                            productOrder.changeName(productInformationMap.get(productOrder.getProductId()).getProductName());
-                            return productOrder;
-                        }).collect(Collectors.toList());
+                OrderResponse.OfRetrieveForCustomer orderResponse =
+                        OrderResponse.OfRetrieveForCustomer.convertedBy(orderDetail, memberInfo, isAvailableProductService, isAvailableMemberService);
+
+                if(isAvailableProductService) {
+                    List<RetrieveOrderInformationResponse> productInformation = productResponse.getBody().getResult();
+                    final Map<Long, RetrieveOrderInformationResponse> productInformationMap =
+                            productInformation.stream().collect(Collectors.toMap(RetrieveOrderInformationResponse::getProductId, product -> product));
+
+                    orderResponse.getProductOrderList().getProductOrderList().stream().map(
+                            productOrder -> {
+                                productOrder.changeName(productInformationMap.get(productOrder.getProductId()).getProductName());
+                                return productOrder;
+                            }).collect(Collectors.toList());
+                }
+                convertedOrders.add(orderResponse);
             }
-            convertedOrders.add(orderResponse);
         }
 
         return new PageImpl<>(convertedOrders, pageable, orderDetailsPage.getTotalElements());
