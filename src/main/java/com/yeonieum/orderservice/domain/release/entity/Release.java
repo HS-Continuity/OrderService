@@ -1,6 +1,7 @@
 package com.yeonieum.orderservice.domain.release.entity;
 
 import com.yeonieum.orderservice.domain.order.entity.OrderDetail;
+import com.yeonieum.orderservice.global.auditing.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -12,7 +13,7 @@ import java.time.LocalDate;
 @AllArgsConstructor
 @Builder
 @Table(name = "release_table")
-public class Release {
+public class Release extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
