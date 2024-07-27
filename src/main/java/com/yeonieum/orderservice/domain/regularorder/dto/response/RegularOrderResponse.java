@@ -70,15 +70,17 @@ public class RegularOrderResponse {
         private Long productId;
         private String productName;
         private boolean isAvailableProductService;
-        public OfRetrieveDailyCount(Long orderApplicationId, LocalDate date, Long productCount, Long productId, boolean isAvailableProductService) {
+        public OfRetrieveDailyCount(Long orderApplicationId, LocalDate date, Long productCount, Long productId) {
             this.orderApplicationId = orderApplicationId;
             this.date = date;
             this.productCount = productCount;
             this.productId = productId;
-            this.isAvailableProductService = isAvailableProductService;
         }
         public void bindProductName(String productName) {
             this.productName = productName;
+        }
+        public void setAvailableProductService (boolean isAvailableProductService) {
+            this.isAvailableProductService = isAvailableProductService;
         }
     }
 
