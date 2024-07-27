@@ -1,5 +1,6 @@
 package com.yeonieum.orderservice.domain.order.entity;
 
+import com.yeonieum.orderservice.global.auditing.BaseEntity;
 import com.yeonieum.orderservice.global.converter.ProductOrderListConverter;
 import jakarta.persistence.*;
 import lombok.*;
@@ -11,7 +12,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 @Table(name = "order_detail")
-public class OrderDetail {
+public class OrderDetail extends BaseEntity {
 
     @Id
     @Column(name = "order_detail_id")
