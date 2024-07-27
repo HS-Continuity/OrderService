@@ -145,4 +145,18 @@ public class ReleaseController {
                 .successCode(SuccessCode.UPDATE_SUCCESS)
                 .build(), HttpStatus.OK);
     }
+
+    @Operation(summary = "고객 출고 상태별 카운팅 조회", description = "고객(seller)에게 접수된 상품들의 출고 상태별 카운팅 수 조회 기능입니다.")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "출고 상태별 카운팅 수 조회 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "출고 상태별 카운팅 수 조회 실패")
+    })
+    @Role(role = {"ROLE_CUSTOMER"}, url = "/api/release/status/counts", method = "GET")
+    @GetMapping("/status/counts")
+    public ResponseEntity<ApiResponse> countReleaseStatus (@RequestParam Long customerId){
+        return new ResponseEntity<>(ApiResponse.builder()
+                .result(releaseService.countReleaseStatus(customerId))
+                .successCode(SuccessCode.SELECT_SUCCESS)
+                .build(), HttpStatus.OK);
+    }
 }

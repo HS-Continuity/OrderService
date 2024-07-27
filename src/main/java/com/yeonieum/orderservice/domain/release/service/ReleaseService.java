@@ -14,6 +14,7 @@ import com.yeonieum.orderservice.domain.order.repository.OrderDetailRepository;
 import com.yeonieum.orderservice.domain.order.repository.OrderStatusRepository;
 import com.yeonieum.orderservice.domain.release.dto.ReleaseRequest;
 import com.yeonieum.orderservice.domain.release.dto.ReleaseResponse;
+import com.yeonieum.orderservice.domain.release.dto.ReleaseSummaryResponse;
 import com.yeonieum.orderservice.domain.release.entity.Release;
 import com.yeonieum.orderservice.domain.release.entity.ReleaseStatus;
 import com.yeonieum.orderservice.domain.release.policy.ReleaseStatusPolicy;
@@ -391,6 +392,15 @@ public class ReleaseService {
         } else {
             throw new IllegalStateException("선택한 상품들의 회원, 배송지, 배송일, 출고 상태가 같은지 확인해주세요.");
         }
+    }
+
+    /**
+     * 상품들의 출고 상태별 카운팅
+     * @param customerId 고객 ID
+     * @return 상품의 출고 상태별 카운팅 수
+     */
+    public List<ReleaseSummaryResponse> countReleaseStatus(Long customerId) {
+        return releaseRepository.countByReleaseStatus(customerId);
     }
 
     /**
