@@ -1,5 +1,6 @@
 package com.yeonieum.orderservice.domain.order.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.yeonieum.orderservice.domain.delivery.repository.DeliveryStatusRepository;
 import com.yeonieum.orderservice.domain.order.dto.request.OrderRequest;
 import com.yeonieum.orderservice.domain.order.entity.OrderDetail;
@@ -17,9 +18,10 @@ import com.yeonieum.orderservice.domain.release.repository.ReleaseRepository;
 import com.yeonieum.orderservice.domain.release.repository.ReleaseStatusRepository;
 import com.yeonieum.orderservice.global.enums.OrderStatusCode;
 import com.yeonieum.orderservice.global.enums.ReleaseStatusCode;
-import com.yeonieum.orderservice.global.responses.ApiResponse;
 import com.yeonieum.orderservice.infrastructure.feignclient.MemberServiceFeignClient;
 import com.yeonieum.orderservice.infrastructure.feignclient.ProductServiceFeignClient;
+import com.yeonieum.orderservice.infrastructure.messaging.dto.OrderNotificationMessage;
+import com.yeonieum.orderservice.infrastructure.messaging.producer.OrderNotificationKafkaProducer;
 import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -45,6 +47,7 @@ public class OrderProcessService {
     private final ProductServiceFeignClient stockFeignClient;
     private final MemberServiceFeignClient memberServiceFeignClient;
     private final OrderStatusPolicy orderStatusPolicy;
+    private final OrderNotificationKafkaProducer orderNotificationKafkaProducer;
     private static final String CANCELLED_PAYMENT_AMOUNT = "cancelledPaymentAmount";
     private static final String CANCELLED_DISCOUNT_AMOUNT = "cancelledDiscountAmount";
     private static final String CANCELLED_ORIGIN_PRODUCT_PRICE = "cancelledOriginProductPrice";
@@ -136,7 +139,7 @@ public class OrderProcessService {
      * @param orderCreation
      */
     @Transactional(rollbackFor = {RuntimeException.class})
-    public void placeOrder(OrderRequest.OfCreation orderCreation, String memberId) {
+    public void placeOrder(OrderRequest.OfCreation orderCreation, String memberId) throws JsonProcessingException {
         if(orderCreation.getMemberCouponId() != null) {
             try {
                 boolean result = memberServiceFeignClient.useMemberCouponStatus(orderCreation.getMemberCouponId()).getBody().getResult();
@@ -191,6 +194,12 @@ public class OrderProcessService {
                 paymentAmountMap != null ? paymentAmountMap.get(CANCELLED_PAYMENT_AMOUNT) : 0,
                 paymentAmountMap != null ? paymentAmountMap.get(CANCELLED_ORIGIN_PRODUCT_PRICE) : 0));
         // 주문 생성 후 카카오톡 알림, sse 고객에게 푸시
+        if(finalIsAvailableProductService) {
+            orderNotificationKafkaProducer.sendMessage(OrderNotificationMessage.convertedBy(orderDetail
+                    , "01077639661"
+                    , orderDetail.getOrderList().getProductOrderEntityList().size()
+                    , "PAYMENT_COMPLETED"));
+        }
     }
 
     /**
@@ -245,7 +254,7 @@ public class OrderProcessService {
 
         for (OrderRequest.ProductOrder product : productOrderList.getProductOrderList()) {
             stockUsageDtoList.add(StockUsageRequest.OfIncreasing.builder()
-                    .orderId(orderDetailId)
+                    .orderDetailId(orderDetailId)
                     .productId(product.getProductId())
                     .quantity(product.getQuantity())
                     .build());
