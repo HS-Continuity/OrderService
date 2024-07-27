@@ -12,7 +12,7 @@ import org.springframework.data.repository.query.Param;
 import java.time.LocalDateTime;
 import java.util.List;
 
-public interface OrderDetailRepository extends JpaRepository<OrderDetail, String> {
+public interface OrderDetailRepository extends JpaRepository<OrderDetail, String>, OrderDetailRepositoryCustom {
     @Query(value = "SELECT o FROM OrderDetail o WHERE o.memberId =" +
             ":memberId AND o.orderDateTime BETWEEN :startDate AND" +
             ":endDate ORDER BY o.orderDateTime DESC")
