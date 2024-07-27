@@ -2,10 +2,13 @@ package com.yeonieum.orderservice.domain.combinedpackaging.repository;
 
 import com.yeonieum.orderservice.domain.combinedpackaging.entity.Packaging;
 import com.yeonieum.orderservice.domain.delivery.dto.DeliverySummaryResponse;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDate;
 import java.util.List;
 
 public interface PackagingRepository extends JpaRepository<Packaging, Long> {
@@ -16,8 +19,19 @@ public interface PackagingRepository extends JpaRepository<Packaging, Long> {
                 "JOIN release_table r ON p.release_id = r.release_id " +
                 "JOIN order_detail od ON r.order_detail_id = od.order_detail_id " +
                 "WHERE od.customer_id = :customerId " +
-                "GROUP BY d.delivery_id", nativeQuery = true)
-        List<Object[]> findAllDeliveryInfo(@Param("customerId") Long customerId);
+                "AND (:startDate IS NULL OR r.start_delivery_date >= :startDate) " +
+                "AND (:endDate IS NULL OR r.start_delivery_date <= :endDate) " +
+                "GROUP BY d.delivery_id",
+                countQuery = "SELECT COUNT(d.delivery_id) " +
+                        "FROM packaging p " +
+                        "JOIN delivery d ON p.delivery_id = d.delivery_id " +
+                        "JOIN release_table r ON p.release_id = r.release_id " +
+                        "JOIN order_detail od ON r.order_detail_id = od.order_detail_id " +
+                        "WHERE od.customer_id = :customerId " +
+                        "AND (:startDate IS NULL OR r.start_delivery_date >= :startDate) " +
+                        "AND (:endDate IS NULL OR r.start_delivery_date <= :endDate)",
+                nativeQuery = true)
+        Page<Object[]> findAllDeliveryInfo(@Param("customerId") Long customerId, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate, Pageable pageable);
 
         @Query("SELECT new com.yeonieum.orderservice.domain.delivery.dto.DeliverySummaryResponse(d.deliveryStatus.statusName, COUNT(p)) " +
                 "FROM Packaging p " +

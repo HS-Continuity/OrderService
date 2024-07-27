@@ -241,6 +241,8 @@ public class ReleaseService {
         ReleaseStatus requestedStatus = releaseStatusRepository.findByStatusName(bulkUpdateStatus.getReleaseStatusCode());
         ReleaseStatusCode requestedStatusCode = requestedStatus.getStatusName();
 
+
+
         // 모든 주문에 대해 상태 변경 수행
         for (OrderDetail orderDetail : orderDetails) {
             Release currentRelease = releaseRepository.findByOrderDetailId(orderDetail.getOrderDetailId());
@@ -250,6 +252,7 @@ public class ReleaseService {
             if (!releaseStatusPolicy.getReleaseStatusTransitionRule().get(requestedStatusCode).getRequiredPreviosConditionSet().contains(currentReleaseStatus)) {
                 throw new RuntimeException("출고 상태 전환 규칙 위반!");
             }
+
 
             // 출고 상태 업데이트
             currentRelease.changeReleaseStatus(requestedStatus);
@@ -283,6 +286,11 @@ public class ReleaseService {
                 break;
             case RELEASE_COMPLETED:
                 if (orderDetail.getOrderStatus().getStatusName() != OrderStatusCode.SHIPPED) {
+
+                    //배송시작일을 입력하지 않을 경우, 출고 완료로 변경 X
+                    if(targetRelease.getStartDeliveryDate() == null){
+                        throw new IllegalStateException("배송시작일을 입력하지 않으셨습니다!");
+                    }
 
                     // 출고 완료 상태일 경우, 배송 객체 생성
                     Delivery delivery = deliveryRepository.save(Delivery.builder()
