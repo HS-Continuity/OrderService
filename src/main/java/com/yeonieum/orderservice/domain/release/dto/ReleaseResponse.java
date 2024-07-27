@@ -3,6 +3,7 @@ package com.yeonieum.orderservice.domain.release.dto;
 import com.yeonieum.orderservice.domain.order.dto.response.OrderResponse;
 import com.yeonieum.orderservice.domain.order.entity.OrderDetail;
 import com.yeonieum.orderservice.domain.release.entity.Release;
+import com.yeonieum.orderservice.global.enums.ReleaseStatusCode;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -18,6 +19,7 @@ public class ReleaseResponse {
         LocalDate startDeliveryDate;
         OrderResponse.Recipient recipient;
         OrderResponse.ProductOrderList productOrderList;
+        ReleaseStatusCode statusName;
 
         public static OfRetrieve convertedBy(OrderDetail orderDetail, Release release, OrderResponse.MemberInfo memberInfo) {
             return OfRetrieve.builder()
@@ -30,7 +32,15 @@ public class ReleaseResponse {
                             orderDetail.getDeliveryAddress()
                     ))
                     .productOrderList(OrderResponse.ProductOrderList.convertedBy(orderDetail))
+                    .statusName(release.getReleaseStatus().getStatusName())
                     .build();
         }
+    }
+
+    @Getter
+    @Builder
+    public static class OfStatusCount{
+        ReleaseStatusCode statusName;
+        Long count;
     }
 }
