@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.yeonieum.orderservice.domain.combinedpackaging.repository.PackagingRepository;
 import com.yeonieum.orderservice.domain.delivery.dto.DeliveryGenuineResponse;
 import com.yeonieum.orderservice.domain.delivery.dto.DeliveryResponse;
+import com.yeonieum.orderservice.domain.delivery.dto.DeliverySummaryResponse;
 import com.yeonieum.orderservice.domain.delivery.repository.DeliveryStatusRepository;
 import com.yeonieum.orderservice.domain.order.entity.ProductOrderListEntityList;
 import lombok.RequiredArgsConstructor;
@@ -45,5 +46,14 @@ public class DeliveryService {
                 throw new RuntimeException(e);
             }
         }).collect(Collectors.toList());
+    }
+
+    /**
+     * 배송 상태별 카운팅
+     * @param customerId
+     * @return 배송 상태별 카운팅된 수
+     */
+    public List<DeliverySummaryResponse> countDeliveryStatus(Long customerId) {
+        return packagingRepository.countByDeliveryStatus(customerId);
     }
 }
