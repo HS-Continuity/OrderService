@@ -13,6 +13,7 @@ public class ReleaseResponse {
     @Getter
     @Builder
     public static class OfRetrieve {
+        String orderId;
         OrderResponse.MemberInfo memberInfo;
         LocalDate startDeliveryDate;
         OrderResponse.Recipient recipient;
@@ -20,6 +21,7 @@ public class ReleaseResponse {
 
         public static OfRetrieve convertedBy(OrderDetail orderDetail, Release release, OrderResponse.MemberInfo memberInfo) {
             return OfRetrieve.builder()
+                    .orderId(orderDetail.getOrderDetailId())
                     .memberInfo(memberInfo)
                     .startDeliveryDate(release.getStartDeliveryDate())
                     .recipient(new OrderResponse.Recipient(
