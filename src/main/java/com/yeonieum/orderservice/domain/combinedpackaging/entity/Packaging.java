@@ -3,6 +3,7 @@ package com.yeonieum.orderservice.domain.combinedpackaging.entity;
 import com.yeonieum.orderservice.domain.delivery.entity.Delivery;
 import com.yeonieum.orderservice.domain.order.entity.OrderDetail;
 import com.yeonieum.orderservice.domain.release.entity.Release;
+import com.yeonieum.orderservice.global.auditing.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -12,7 +13,7 @@ import lombok.*;
 @AllArgsConstructor
 @Builder
 @Table(name = "packaging")
-public class Packaging {
+public class Packaging extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

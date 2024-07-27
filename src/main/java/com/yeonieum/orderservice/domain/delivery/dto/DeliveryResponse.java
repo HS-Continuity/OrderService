@@ -1,5 +1,6 @@
 package com.yeonieum.orderservice.domain.delivery.dto;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -7,6 +8,7 @@ import java.sql.Date;
 
 @Getter
 @Builder
+@AllArgsConstructor
 public class DeliveryResponse {
     private Long deliveryId;
     private String shipmentNumber;
@@ -18,15 +20,16 @@ public class DeliveryResponse {
     private String memberId;
 
     public static DeliveryResponse convertedBy(Object[] result) {
-        return new DeliveryResponse(
-                (Long) result[0],
-                (String) result[1],
-                (Long) result[2],
-                (Date) result[3],
-                (String) result[4],
-                (Long) result[5],
-                (String) result[6],
-                (String) result[7]
-        );
+        return DeliveryResponse.builder()
+                .deliveryId((Long) result[0])
+                .shipmentNumber((String) result[1])
+                .deliveryStatusCode((Long) result[2])
+                .startDeliveryDate((Date) result[3])
+                .representativeOrderId((String) result[4])
+                .additionalOrderCount((Long) result[5])
+                .productOrderListEntityList((String) result[6])
+                .memberId((String) result[7])
+                .build();
     }
 }
+
