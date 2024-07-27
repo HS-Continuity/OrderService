@@ -1,7 +1,6 @@
 package com.yeonieum.orderservice.domain.delivery.entity;
 
 import com.yeonieum.orderservice.domain.combinedpackaging.entity.Packaging;
-import com.yeonieum.orderservice.domain.order.entity.OrderDetail;
 import jakarta.persistence.*;
 import lombok.*;
 

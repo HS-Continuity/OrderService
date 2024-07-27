@@ -1,6 +1,7 @@
 package com.yeonieum.orderservice.domain.combinedpackaging.repository;
 
 import com.yeonieum.orderservice.domain.combinedpackaging.entity.Packaging;
+import com.yeonieum.orderservice.domain.delivery.dto.DeliverySummaryResponse;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -17,6 +18,14 @@ public interface PackagingRepository extends JpaRepository<Packaging, Long> {
                 "WHERE od.customer_id = :customerId " +
                 "GROUP BY d.delivery_id", nativeQuery = true)
         List<Object[]> findAllDeliveryInfo(@Param("customerId") Long customerId);
+
+        @Query("SELECT new com.yeonieum.orderservice.domain.delivery.dto.DeliverySummaryResponse(d.deliveryStatus.statusName, COUNT(p)) " +
+                "FROM Packaging p " +
+                "JOIN p.delivery d " +
+                "JOIN p.orderDetail od " +
+                "WHERE od.customerId = :customerId " +
+                "GROUP BY d.deliveryStatus.statusName")
+        List<DeliverySummaryResponse> countByDeliveryStatus(@Param("customerId") Long customerId);
 }
 
 
