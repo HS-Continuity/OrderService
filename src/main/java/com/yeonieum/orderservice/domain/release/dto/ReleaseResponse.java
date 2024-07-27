@@ -36,11 +36,4 @@ public class ReleaseResponse {
                     .build();
         }
     }
-
-    @Getter
-    @Builder
-    public static class OfStatusCount{
-        ReleaseStatusCode statusName;
-        Long count;
-    }
 }
