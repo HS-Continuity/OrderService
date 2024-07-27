@@ -65,8 +65,10 @@ public class RegularOrderService {
 
         // 받아온 응답을 바탕으로 상품명 바인딩
         for(RegularOrderResponse.OfRetrieveDailyCount dailyOrderCount : regularOrderCountsForMonth) {
+            productOrderMap = response.getBody().getResult();
             String productName = isAvailableProductService ? productOrderMap.get(dailyOrderCount.getProductId()).getProductName() : null;
             dailyOrderCount.bindProductName(productName);
+            dailyOrderCount.setAvailableProductService(isAvailableProductService);
         }
 
         return regularOrderCountsForMonth;

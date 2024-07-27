@@ -28,7 +28,7 @@ public class RegularDeliveryReservationRepositoryCustomImpl implements RegularDe
                         application.regularDeliveryApplicationId,
                         reservation.startDate,
                         reservation.regularDeliveryReservationId.count(),
-                        application.regularDeliveryApplicationId))
+                        reservation.productId))
                 .from(reservation)
                 .join(reservation.regularDeliveryApplication, application)
                 .where(isBetweenMonth, isCustomerId)
