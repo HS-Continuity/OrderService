@@ -15,6 +15,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/release")
@@ -28,15 +30,23 @@ public class ReleaseController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "주문조회 성공"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 오류 발생")
     })
-    @Role(role = {"ROLE_CUSTOMER"}, url = "/api/release/list", method = "GET")
     @GetMapping("/list")
-    public ResponseEntity<ApiResponse> getCustomersRelease (@RequestParam Long customerId,
-                                                            @RequestParam(required = false) ReleaseStatusCode releaseStatus,
-                                                            @RequestParam(required = false, defaultValue = "0") int page,
-                                                            @RequestParam(required = false, defaultValue = "10") int size
-                                                            ){
+    public ResponseEntity<ApiResponse> getCustomerRelease(@RequestParam(required = false) Long customerId,
+                                                          @RequestParam(required = false) ReleaseStatusCode releaseStatus,
+                                                          @RequestParam(required = false) String orderId,
+                                                          @RequestParam(required = false) LocalDate startDeliveryDate,
+                                                          @RequestParam(required = false) String recipient,
+                                                          @RequestParam(required = false) String recipientPhoneNumber,
+                                                          @RequestParam(required = false) String recipientAddress,
+                                                          @RequestParam(required = false) String memberId,
+                                                          @RequestParam(required = false) String memberName,
+                                                          @RequestParam(required = false) String memberPhoneNumber,
+                                                          @RequestParam(required = false) LocalDate startDate,
+                                                          @RequestParam(required = false) LocalDate endDate,
+                                                          @RequestParam(required = false, defaultValue = "0") int page,
+                                                          @RequestParam(required = false, defaultValue = "10") int size) {
         return new ResponseEntity<>(ApiResponse.builder()
-                .result(releaseService.getReleaseDetailsByCustomerAndStatus(customerId, releaseStatus, PageRequest.of(page, size)))
+                .result(releaseService.getReleaseDetailsByCustomerAndStatus(customerId, releaseStatus, orderId, startDeliveryDate, recipient, recipientPhoneNumber, recipientAddress, memberId, memberName, memberPhoneNumber, startDate, endDate, PageRequest.of(page, size)))
                 .successCode(SuccessCode.SELECT_SUCCESS)
                 .build(), HttpStatus.OK);
     }

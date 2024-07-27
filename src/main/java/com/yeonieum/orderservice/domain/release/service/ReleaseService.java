@@ -28,15 +28,17 @@ import com.yeonieum.orderservice.infrastructure.feignclient.MemberServiceFeignCl
 import com.yeonieum.orderservice.infrastructure.feignclient.ProductServiceFeignClient;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
 import java.util.Date;
 import java.util.List;
 import java.util.Random;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -144,18 +146,19 @@ public class ReleaseService {
      * @return 페이지 처리된 출고 상품 응답 객체
      */
     @Transactional
-    public Page<ReleaseResponse.OfRetrieve> getReleaseDetailsByCustomerAndStatus(Long customerId, ReleaseStatusCode statusCode, Pageable pageable) {
-        Page<Release> releasesPage;
-        if (statusCode == null) {
-            releasesPage = releaseRepository.findByCustomerId(customerId, pageable);
-        } else {
-            releasesPage = releaseRepository.findByCustomerIdAndStatus(customerId, statusCode, pageable);
-        }
+    public Page<ReleaseResponse.OfRetrieve> getReleaseDetailsByCustomerAndStatus(Long customerId, ReleaseStatusCode statusCode, String orderId, LocalDate startDeliveryDate, String recipient, String recipientPhoneNumber, String recipientAddress, String memberId, String memberName, String memberPhoneNumber, LocalDate startDate, LocalDate endDate, Pageable pageable) {
+        Page<Release> releasesPage = releaseRepository.findReleases(customerId, statusCode, orderId, startDeliveryDate, recipient, recipientPhoneNumber, recipientAddress, memberId, startDate, endDate, pageable);
 
-        return releasesPage.map(release -> {
-            OrderResponse.MemberInfo memberInfo = memberServiceFeignClient.getOrderMemberInfo(release.getOrderDetail().getMemberId()).getBody().getResult();
-            return ReleaseResponse.OfRetrieve.convertedBy(release.getOrderDetail(),release, memberInfo);
-        });
+        List<ReleaseResponse.OfRetrieve> filteredReleases = releasesPage.stream()
+                .map(release -> {
+                    OrderResponse.MemberInfo memberInfo = memberServiceFeignClient.getOrderMemberInfo(release.getOrderDetail().getMemberId()).getBody().getResult();
+                    return ReleaseResponse.OfRetrieve.convertedBy(release.getOrderDetail(), release, memberInfo);
+                })
+                .filter(response -> (memberName == null || response.getMemberInfo().getMemberName().equals(memberName)) &&
+                        (memberPhoneNumber == null || response.getMemberInfo().getMemberPhoneNumber().equals(memberPhoneNumber)))
+                .collect(Collectors.toList());
+
+        return new PageImpl<>(filteredReleases, pageable, releasesPage.getTotalElements());
     }
 
     /**
