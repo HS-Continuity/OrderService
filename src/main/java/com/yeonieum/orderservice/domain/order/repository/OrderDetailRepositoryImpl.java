@@ -11,6 +11,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -21,7 +22,7 @@ public class OrderDetailRepositoryImpl implements OrderDetailRepositoryCustom {
     private final JPAQueryFactory queryFactory;
 
     @Override
-    public Page<OrderDetail> findOrders(Long customerId, OrderStatusCode orderStatusCode, String orderDetailId, LocalDateTime orderDateTime, String recipient, String recipientPhoneNumber, String recipientAddress, String memberId, String memberName, String memberPhoneNumber, Pageable pageable) {
+    public Page<OrderDetail> findOrders(Long customerId, OrderStatusCode orderStatusCode, String orderDetailId, LocalDateTime orderDateTime, String recipient, String recipientPhoneNumber, String recipientAddress, String memberId, LocalDate startDate, LocalDate endDate, Pageable pageable) {
         QOrderDetail orderDetail = QOrderDetail.orderDetail;
         BooleanBuilder builder = new BooleanBuilder();
 
@@ -48,6 +49,12 @@ public class OrderDetailRepositoryImpl implements OrderDetailRepositoryCustom {
         }
         if (memberId != null) {
             builder.and(orderDetail.memberId.eq(memberId));
+        }
+        if (startDate != null) {
+            builder.and(orderDetail.createdDate.goe(startDate));
+        }
+        if (endDate != null) {
+            builder.and(orderDetail.createdDate.loe(endDate));
         }
 
         List<OrderDetail> orderDetails = queryFactory

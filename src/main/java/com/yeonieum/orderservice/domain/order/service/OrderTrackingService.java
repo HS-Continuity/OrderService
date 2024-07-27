@@ -43,9 +43,9 @@ public class OrderTrackingService {
      * @return
      */
     @Transactional(readOnly = true)
-    public Page<OrderResponse.OfRetrieveForCustomer> retrieveOrdersForCustomer(Long customerId, OrderStatusCode orderStatusCode, String orderDetailId, LocalDateTime orderDateTime, String recipient, String recipientPhoneNumber, String recipientAddress, String memberId, String memberName, String memberPhoneNumber, Pageable pageable) {
+    public Page<OrderResponse.OfRetrieveForCustomer> retrieveOrdersForCustomer(Long customerId, OrderStatusCode orderStatusCode, String orderDetailId, LocalDateTime orderDateTime, String recipient, String recipientPhoneNumber, String recipientAddress, String memberId, String memberName, String memberPhoneNumber, LocalDate startDate, LocalDate endDate, Pageable pageable) {
         Page<OrderDetail> orderDetailsPage =
-                orderDetailRepository.findOrders(customerId, orderStatusCode, orderDetailId, orderDateTime, recipient, recipientPhoneNumber, recipientAddress, memberId, null, null, pageable);
+                orderDetailRepository.findOrders(customerId, orderStatusCode, orderDetailId, orderDateTime, recipient, recipientPhoneNumber, recipientAddress, memberId, startDate, endDate, pageable);
 
         List<OrderResponse.OfRetrieveForCustomer> convertedOrders = new ArrayList<>();
         List<Long> productIdList = orderDetailsPage.stream()

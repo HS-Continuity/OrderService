@@ -48,11 +48,13 @@ public class OrderDetailController {
                                                           @RequestParam(required = false) String memberId,
                                                           @RequestParam(required = false) String memberName,
                                                           @RequestParam(required = false) String memberPhoneNumber,
+                                                          @RequestParam(required = false) LocalDate startDate,
+                                                          @RequestParam(required = false) LocalDate endDate,
                                                           @RequestParam(required = false, defaultValue = "0") int page,
                                                           @RequestParam(required = false, defaultValue = "10") int size){
         Pageable pageable = PageRequest.of(page, size);
         return new ResponseEntity<>(ApiResponse.builder()
-                .result(orderTrackingService.retrieveOrdersForCustomer(customerId, orderStatusCode, orderDetailId, orderDateTime, recipient, recipientPhoneNumber, recipientAddress, memberId, memberName, memberPhoneNumber, pageable))
+                .result(orderTrackingService.retrieveOrdersForCustomer(customerId, orderStatusCode, orderDetailId, orderDateTime, recipient, recipientPhoneNumber, recipientAddress, memberId, memberName, memberPhoneNumber, startDate, endDate, pageable))
                 .successCode(SuccessCode.SELECT_SUCCESS)
                 .build(), HttpStatus.OK);
     }
