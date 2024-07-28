@@ -1,10 +1,12 @@
 package com.yeonieum.orderservice.web.controller;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.yeonieum.orderservice.domain.regularorder.dto.request.RegularOrderRequest;
 import com.yeonieum.orderservice.domain.regularorder.service.RegularOrderService;
 import com.yeonieum.orderservice.global.auth.Role;
 import com.yeonieum.orderservice.global.responses.ApiResponse;
 import com.yeonieum.orderservice.global.responses.code.SuccessCode;
+import com.yeonieum.orderservice.infrastructure.messaging.service.OrderEventProduceService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +17,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+
+import static com.yeonieum.orderservice.infrastructure.messaging.producer.OrderNotificationKafkaProducer.REGULAR_TOPIC;
 
 /**
  * 1. 정기주문 생성
@@ -28,6 +32,7 @@ import java.time.LocalDate;
 public class RegularOrderController {
 
     private final RegularOrderService regularOrderService;
+    private final OrderEventProduceService orderEventProduceService;
 
     @Operation(summary = "정기주문 구독", description = "회원이 요청한 정기주문을 생성합니다.")
     @ApiResponses({
@@ -36,8 +41,10 @@ public class RegularOrderController {
     })
     @Role(role = {"ROLE_CUSTOMER", "ROLE_MEMBER"}, url = "/api/regular-order", method = "POST")
     @PostMapping
-    public ResponseEntity<ApiResponse> subscriptionRegularDelivery(@RequestBody  RegularOrderRequest.OfCreation creationRequest) {
-        regularOrderService.subscriptionDelivery(creationRequest);
+    public ResponseEntity<ApiResponse> subscriptionRegularDelivery(@RequestBody  RegularOrderRequest.OfCreation creationRequest) throws JsonProcessingException {
+        String memberId = "qwe123";
+        Long regularDeliveryId = regularOrderService.subscriptionDelivery(creationRequest);
+        orderEventProduceService.produceRegularOrderEvent(memberId, regularDeliveryId, REGULAR_TOPIC, "APPLY");
         return new ResponseEntity<>(ApiResponse.builder()
                 .result(null)
                 .successCode(SuccessCode.INSERT_SUCCESS)
@@ -69,8 +76,11 @@ public class RegularOrderController {
     })
     @Role(role = {"ROLE_MEMBER"}, url = "/api/regular-order/cancel", method = "PUT")
     @PutMapping("/cancel")
-    public ResponseEntity<ApiResponse> cancelRegularOrder(@RequestParam(name = "regularOrderId") Long regularDeliveryApplicationId) {
+    public ResponseEntity<ApiResponse> cancelRegularOrder(@RequestParam(name = "regularOrderId") Long regularDeliveryApplicationId) throws JsonProcessingException {
+        String memberId = "qwe123";
         regularOrderService.cancelRegularDelivery(regularDeliveryApplicationId);
+        orderEventProduceService.produceRegularOrderEvent(memberId, regularDeliveryApplicationId, REGULAR_TOPIC, "CANCEL");
+
         return new ResponseEntity<>(ApiResponse.builder()
                 .result(null)
                 .successCode(SuccessCode.UPDATE_SUCCESS)
@@ -85,8 +95,12 @@ public class RegularOrderController {
     @Role(role = {"ROLE_MEMBER"}, url = "/api/regular-order/{regularOrderId}/postpone", method = "PUT")
     @PutMapping("/{regularOrderId}/postpone")
     public ResponseEntity<ApiResponse> postponeRegularOrder(@RequestParam(name = "regularOrderId") Long regularDeliveryApplicationId,
-                                                            @RequestBody RegularOrderRequest.OfPostPone postPoneRequest) {
+                                                            @RequestBody RegularOrderRequest.OfPostPone postPoneRequest) throws JsonProcessingException {
+        String memberId = "qwe123";
         regularOrderService.skipRegularDeliveryReservation(regularDeliveryApplicationId, postPoneRequest);
+        orderEventProduceService.produceRegularOrderEvent(memberId, regularDeliveryApplicationId, REGULAR_TOPIC, "POSTPONE");
+
+
         return new ResponseEntity<>(ApiResponse.builder()
                 .result(null)
                 .successCode(SuccessCode.UPDATE_SUCCESS)
