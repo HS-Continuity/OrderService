@@ -183,7 +183,7 @@ public class OrderProcessService {
         final boolean finalIsAvailableProductService = isAvailableProductService;
         orderDetail.getOrderList().getProductOrderEntityList().stream()
                 .filter(productOrder -> productOrder.getStatus().equals(pending.getStatusName()))
-                .peek(productOrder -> productOrder.changeStatus(finalIsAvailableProductService && isPayment ? paymentCompleted.getStatusName() : cancel.getStatusName()));
+                .forEach(productOrder -> productOrder.changeStatus(finalIsAvailableProductService && isPayment ? paymentCompleted.getStatusName() : cancel.getStatusName()));
         orderDetail.changeOrderStatus(finalIsAvailableProductService && isPayment ? paymentCompleted : cancel);
         orderDetail.changeOrderList(orderDetail.getOrderList()); // deepcopy
 
