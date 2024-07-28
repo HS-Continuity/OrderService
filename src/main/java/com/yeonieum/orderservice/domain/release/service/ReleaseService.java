@@ -24,12 +24,15 @@ import com.yeonieum.orderservice.global.enums.DeliveryStatusCode;
 import com.yeonieum.orderservice.global.enums.OrderStatusCode;
 
 import com.yeonieum.orderservice.global.enums.ReleaseStatusCode;
+import com.yeonieum.orderservice.global.responses.ApiResponse;
 import com.yeonieum.orderservice.infrastructure.feignclient.MemberServiceFeignClient;
 import com.yeonieum.orderservice.infrastructure.feignclient.ProductServiceFeignClient;
+import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -82,7 +85,16 @@ public class ReleaseService {
         ReleaseStatusCode releaseStatus = targetRelease.getReleaseStatus().getStatusName();
 
         //업체의 배송비
-        Integer deliveryFee = productServiceFeignClient.retrieveDeliveryFee(targetOrderDetail.getCustomerId()).getBody().getResult();
+        ResponseEntity<ApiResponse<Integer>> response = null;
+        Integer deliveryFee = null;
+        try {
+            response = productServiceFeignClient.retrieveDeliveryFee(targetOrderDetail.getCustomerId());
+        } catch (FeignException e) {
+            e.printStackTrace();
+        }
+        if(response != null || response.getStatusCode().is2xxSuccessful()){
+            deliveryFee = response.getBody().getResult();
+        }
 
         // 출고 상태 전환 규칙 검증
         if(!releaseStatusPolicy.getReleaseStatusTransitionRule().get(requestedStatusCode).getRequiredPreviosConditionSet().contains(releaseStatus)) {
@@ -155,7 +167,17 @@ public class ReleaseService {
 
         List<ReleaseResponse.OfRetrieve> filteredReleases = releasesPage.stream()
                 .map(release -> {
-                    OrderResponse.MemberInfo memberInfo = memberServiceFeignClient.getOrderMemberInfo(release.getOrderDetail().getMemberId()).getBody().getResult();
+                    OrderResponse.MemberInfo memberInfo = null;
+                    ResponseEntity<ApiResponse<OrderResponse.MemberInfo>> response = null;
+                    try {
+                        response = memberServiceFeignClient.getOrderMemberInfo(release.getOrderDetail().getMemberId());
+                    } catch (FeignException e) {
+                        e.printStackTrace();
+                    }
+                    if(response != null && response.getStatusCode().is2xxSuccessful()){
+                        memberInfo = response.getBody().getResult();
+                    }
+
                     return ReleaseResponse.OfRetrieve.convertedBy(release.getOrderDetail(), release, memberInfo);
                 })
                 .filter(response -> (memberName == null || response.getMemberInfo().getMemberName().equals(memberName)) &&
@@ -281,7 +303,16 @@ public class ReleaseService {
         OrderStatus newOrderStatus;
 
         //업체의 배송비
-        Integer deliveryFee = productServiceFeignClient.retrieveDeliveryFee(orderDetail.getCustomerId()).getBody().getResult();
+        ResponseEntity<ApiResponse<Integer>> response = null;
+        Integer deliveryFee = null;
+        try {
+            response = productServiceFeignClient.retrieveDeliveryFee(orderDetail.getCustomerId());
+        } catch (FeignException e) {
+            e.printStackTrace();
+        }
+        if(response != null || response.getStatusCode().is2xxSuccessful()){
+            deliveryFee = response.getBody().getResult();
+        }
 
         switch (requestedStatusCode) {
             case HOLD_RELEASE:
@@ -349,7 +380,16 @@ public class ReleaseService {
         ReleaseStatusCode requestedStatusCode = requestedStatus.getStatusName();
 
         //업체의 배송비
-        Integer deliveryFee = productServiceFeignClient.retrieveDeliveryFee(orderDetails.get(0).getCustomerId()).getBody().getResult();
+        ResponseEntity<ApiResponse<Integer>> response = null;
+        Integer deliveryFee = null;
+        try {
+            response = productServiceFeignClient.retrieveDeliveryFee(orderDetails.get(0).getCustomerId());
+        } catch (FeignException e) {
+            e.printStackTrace();
+        }
+        if(response != null || response.getStatusCode().is2xxSuccessful()){
+            deliveryFee = response.getBody().getResult();
+        }
 
         // 상품들의 회원, 배송지, 출고상태, 배송시작일이 같아야 함
         boolean isUniformOrder = orderDetails.stream().allMatch(od ->

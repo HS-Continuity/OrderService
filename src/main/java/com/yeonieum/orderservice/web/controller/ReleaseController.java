@@ -47,9 +47,9 @@ public class ReleaseController {
                                                           @RequestParam(required = false, defaultValue = "0") int page,
                                                           @RequestParam(required = false, defaultValue = "10") int size) {
 
-        Long customer = Long.valueOf(UserContextHolder.getContext().getUniqueId());
+        //Long customer = Long.valueOf(UserContextHolder.getContext().getUniqueId());
         return new ResponseEntity<>(ApiResponse.builder()
-                .result(releaseService.getReleaseDetailsByCustomerAndStatus(customer, releaseStatus, orderId, startDeliveryDate, recipient, recipientPhoneNumber, recipientAddress, memberId, memberName, memberPhoneNumber, startDate, endDate, PageRequest.of(page, size)))
+                .result(releaseService.getReleaseDetailsByCustomerAndStatus(1L, releaseStatus, orderId, startDeliveryDate, recipient, recipientPhoneNumber, recipientAddress, memberId, memberName, memberPhoneNumber, startDate, endDate, PageRequest.of(page, size)))
                 .successCode(SuccessCode.SELECT_SUCCESS)
                 .build(), HttpStatus.OK);
     }
