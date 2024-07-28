@@ -20,7 +20,6 @@ import com.yeonieum.orderservice.global.enums.OrderStatusCode;
 import com.yeonieum.orderservice.global.enums.ReleaseStatusCode;
 import com.yeonieum.orderservice.infrastructure.feignclient.MemberServiceFeignClient;
 import com.yeonieum.orderservice.infrastructure.feignclient.ProductServiceFeignClient;
-import com.yeonieum.orderservice.infrastructure.messaging.dto.OrderNotificationMessage;
 import com.yeonieum.orderservice.infrastructure.messaging.producer.OrderNotificationKafkaProducer;
 import feign.FeignException;
 import lombok.RequiredArgsConstructor;
@@ -101,7 +100,7 @@ public class OrderProcessService {
         OrderDetail orderDetail = orderDetailRepository.findById(updateProductOrderStatus.getOrderId())
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 주문입니다."));
 
-        // TODO : 상품 json 변경감지 할 수 있는지 테스트 예정 -> 명시적 save
+        // TODO : 상품 json 변경감지 할 수 있는지 테스트 예정 -> deepcopy 활용
 
         List<ProductOrderEntity> productOrderEntityList = orderDetail.getOrderList().getProductOrderEntityList();
         ProductOrderEntity productOrder = productOrderEntityList.stream().filter(productOrderEntity ->
@@ -139,7 +138,7 @@ public class OrderProcessService {
      * @param orderCreation
      */
     @Transactional(rollbackFor = {RuntimeException.class})
-    public void placeOrder(OrderRequest.OfCreation orderCreation, String memberId) throws JsonProcessingException {
+    public String placeOrder(OrderRequest.OfCreation orderCreation, String memberId) throws JsonProcessingException {
         if(orderCreation.getMemberCouponId() != null) {
             try {
                 boolean result = memberServiceFeignClient.useMemberCouponStatus(orderCreation.getMemberCouponId()).getBody().getResult();
@@ -193,14 +192,13 @@ public class OrderProcessService {
                 paymentAmountMap != null ? paymentAmountMap.get(CANCELLED_DISCOUNT_AMOUNT) : 0,
                 paymentAmountMap != null ? paymentAmountMap.get(CANCELLED_PAYMENT_AMOUNT) : 0,
                 paymentAmountMap != null ? paymentAmountMap.get(CANCELLED_ORIGIN_PRODUCT_PRICE) : 0));
-        // 주문 생성 후 카카오톡 알림, sse 고객에게 푸시
-        if(finalIsAvailableProductService) {
-            orderNotificationKafkaProducer.sendMessage(OrderNotificationMessage.convertedBy(orderDetail
-                    , "01077639661"
-                    , orderDetail.getOrderList().getProductOrderEntityList().size()
-                    , "PAYMENT_COMPLETED"));
-        }
+
+        return isPayment ? orderDetailId : null;
     }
+
+    // memberfeignclient로 회원의 정보조회를 불러오기
+    // 응답 상태 코드에 따라 예외 처리
+
 
     /**
      * 주문상품에 대한 재고 확인 서비스

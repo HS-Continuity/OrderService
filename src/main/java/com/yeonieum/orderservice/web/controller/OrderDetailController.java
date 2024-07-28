@@ -10,6 +10,7 @@ import com.yeonieum.orderservice.global.auth.Role;
 import com.yeonieum.orderservice.global.enums.OrderStatusCode;
 import com.yeonieum.orderservice.global.responses.ApiResponse;
 import com.yeonieum.orderservice.global.responses.code.SuccessCode;
+import com.yeonieum.orderservice.infrastructure.messaging.service.OrderEventProduceService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +23,8 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+import static com.yeonieum.orderservice.infrastructure.messaging.producer.OrderNotificationKafkaProducer.ORDER_TOPIC;
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/order")
@@ -31,6 +34,7 @@ public class OrderDetailController {
     private final OrderProcessService orderProcessService;
     private final OrderNotificationServiceForCustomer notificationService;
     private final OrderStatusPolicy orderStatusPolicy;
+    private final OrderEventProduceService orderEventProduceService;
 
     @Operation(summary = "고객용 주문 조회", description = "고객(seller)에게 접수된 주문리스트를 조회합니다. 주문상태에 따라 필터링이 가능합니다.")
     @ApiResponses({
@@ -103,6 +107,7 @@ public class OrderDetailController {
     @PatchMapping("/product/status")
     public ResponseEntity<ApiResponse> changeProductOrder(@RequestBody OrderRequest.OfUpdateProductOrderStatus updateProductOrderStatus) {
         orderProcessService.changeOrderProductStatus(updateProductOrderStatus);
+
         return new ResponseEntity<>(ApiResponse.builder()
                 .result(null)
                 .successCode(SuccessCode.SELECT_SUCCESS)
@@ -117,13 +122,17 @@ public class OrderDetailController {
     })
     @Role(role = {"ROLE_MEMBER", "ROLE_CUSTOMER"}, url = "/api/order/status", method = "PATCH")
     @PatchMapping("/status")
-    public ResponseEntity<ApiResponse> changeOrderStatus(@RequestBody OrderRequest.OfUpdateOrderStatus updateStatus) {
+    public ResponseEntity<ApiResponse> changeOrderStatus(@RequestBody OrderRequest.OfUpdateOrderStatus updateStatus) throws JsonProcessingException {
         String Role = "컨텍스트에서 가져올 예정";
+        String memberId = "qwe123";
         if(!orderStatusPolicy.getOrderStatusPermission().get(updateStatus.getOrderStatusCode().getCode()).equals(Role)) {
             throw new RuntimeException("접근권한이 없습니다.");
         }
 
         orderProcessService.changeOrderStatus(updateStatus);
+        if(updateStatus.getOrderStatusCode().equals(OrderStatusCode.CANCELED)) {
+            orderEventProduceService.produceOrderEvent(memberId, updateStatus.getOrderId(), ORDER_TOPIC ,"CANCELED");
+        }
         return new ResponseEntity<>(ApiResponse.builder()
                 .result(null)
                 .successCode(SuccessCode.UPDATE_SUCCESS)
@@ -140,8 +149,13 @@ public class OrderDetailController {
     @PostMapping
     public ResponseEntity<ApiResponse> placeOrder (@RequestBody OrderRequest.OfCreation creationRequest) throws JsonProcessingException {
         String memberId = "컨텍스트에서 가져올 예정";
-        orderProcessService.placeOrder(creationRequest, memberId);
-        notificationService.sendEventMessage(creationRequest.getCustomerId());
+        String orderDetailId = orderProcessService.placeOrder(creationRequest, memberId);
+
+        // 주문 성공 시 SSE 알림 및 이벤트 발행
+        if(orderDetailId != null) {
+            notificationService.sendEventMessage(creationRequest.getCustomerId());
+            orderEventProduceService.produceOrderEvent(memberId, orderDetailId,ORDER_TOPIC ,"PAYMENT_COMPLETED");
+        }
 
         return new ResponseEntity<>(ApiResponse.builder()
                 .result(null)

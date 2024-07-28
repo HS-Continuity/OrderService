@@ -42,7 +42,7 @@ public class MessageBuilder {
                 "안녕하세요. " + orderNotificationMessage.getMemberName() + "님!\n" +
                 createContentMessage(orderNotificationMessage.getEventType()) +
                 "\n" +
-                "▶ 상품명 : " + orderNotificationMessage.getProductName() + "외 " + orderNotificationMessage.getProductName() + "건\n" +
+                "▶ 상품명 : " + orderNotificationMessage.getProductName() + "외 " + orderNotificationMessage.getProductCount() + "건\n" +
                 "▶ 주문번호 : " + orderNotificationMessage.getOrderNumber();
     }
 

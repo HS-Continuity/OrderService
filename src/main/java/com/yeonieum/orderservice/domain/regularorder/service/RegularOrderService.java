@@ -22,11 +22,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAdjusters;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.*;
 import java.util.stream.Collectors;
 
 
@@ -80,14 +79,15 @@ public class RegularOrderService {
      * @param creationRequest
      */
     @Transactional
-    public void subscriptionDelivery(RegularOrderRequest.OfCreation creationRequest) {
+    public Long subscriptionDelivery(RegularOrderRequest.OfCreation creationRequest) {
         RegularDeliveryApplication regularDeliveryApplication = creationRequest.toApplicationEntity();
-        regularDeliveryApplicationRepository.save(regularDeliveryApplication);
+        RegularDeliveryApplication savedEntity = regularDeliveryApplicationRepository.save(regularDeliveryApplication);
         regularDeliveryApplicationDayRepository.saveAll(creationRequest.toApplicationDayEnityList(regularDeliveryApplication));
 
         Set<LocalDate> deliveryDateSet = calculateDeliveryDates(creationRequest.getDeliveryPeriod());
         RegularDeliveryStatus status = regularDeliveryStatusRepository.findByStatusName(RegularDeliveryStatusCode.PENDING.getCode());
         regularDeliveryReservationRepository.saveAll(creationRequest.toReservationEntityList(deliveryDateSet, regularDeliveryApplication, status));
+        return savedEntity.getRegularDeliveryApplicationId();
     }
 
     /**
@@ -198,5 +198,17 @@ public class RegularOrderService {
         }
 
         return deliveryDateSet;
+    }
+
+    /**
+     * 현재 날짜 및 시간과 UUID 4자리 조합으로 정기배송번호 생성
+     *
+     * @return
+     */
+    private String makeRegularDeliveryNumber() {
+        LocalDateTime now = LocalDateTime.now();
+        String timestamp = now.format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
+        String uniqueId = UUID.randomUUID().toString().replace("-", "").substring(0, 4);
+        return timestamp + "-" + uniqueId;
     }
 }
