@@ -3,6 +3,7 @@ package com.yeonieum.orderservice.web.controller;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.yeonieum.orderservice.domain.notification.service.OrderNotificationServiceForCustomer;
 import com.yeonieum.orderservice.domain.order.dto.request.OrderRequest;
+import com.yeonieum.orderservice.domain.order.dto.response.OrderResponse;
 import com.yeonieum.orderservice.domain.order.policy.OrderStatusPolicy;
 import com.yeonieum.orderservice.domain.order.service.OrderProcessService;
 import com.yeonieum.orderservice.domain.order.service.OrderTrackingService;
@@ -148,17 +149,20 @@ public class OrderDetailController {
     @Role(role = {"ROLE_MEMBER", "ROLE_CUSTOMER"}, url = "/api/order", method = "POST")
     @PostMapping
     public ResponseEntity<ApiResponse> placeOrder (@RequestBody OrderRequest.OfCreation creationRequest) throws JsonProcessingException {
-        String memberId = "컨텍스트에서 가져올 예정";
-        String orderDetailId = orderProcessService.placeOrder(creationRequest, memberId);
+        String memberId = "qwe123";
+        OrderResponse.OfResultPlaceOrder resultPlaceOrder = orderProcessService.placeOrder(creationRequest, memberId);
+        String orderDetailId = resultPlaceOrder.getOrderDetailId();
 
         // 주문 성공 시 SSE 알림 및 이벤트 발행
-        if(orderDetailId != null) {
+        if(resultPlaceOrder.isPayment()) {
             notificationService.sendEventMessage(creationRequest.getCustomerId());
             orderEventProduceService.produceOrderEvent(memberId, orderDetailId,ORDER_TOPIC ,"PAYMENT_COMPLETED");
+        } else {
+            throw new RuntimeException("주문 생성 실패");
         }
 
         return new ResponseEntity<>(ApiResponse.builder()
-                .result(null)
+                .result(resultPlaceOrder.getPaymentAmount())
                 .successCode(SuccessCode.UPDATE_SUCCESS)
                 .build(), HttpStatus.OK);
     }

@@ -19,6 +19,6 @@ public interface MemberServiceFeignClient {
     @PutMapping("/api/member-coupon/use-status")
     ResponseEntity<ApiResponse<Boolean>> useMemberCouponStatus(@RequestParam Long memberCouponId);
 
-    @GetMapping("/summary")
+    @GetMapping("api/member/summary")
     ResponseEntity<ApiResponse<RetrieveMemberSummary>> getMemberSummary(@RequestParam String memberId);
 }

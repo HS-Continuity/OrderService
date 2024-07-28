@@ -3,6 +3,7 @@ package com.yeonieum.orderservice.domain.order.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.yeonieum.orderservice.domain.delivery.repository.DeliveryStatusRepository;
 import com.yeonieum.orderservice.domain.order.dto.request.OrderRequest;
+import com.yeonieum.orderservice.domain.order.dto.response.OrderResponse;
 import com.yeonieum.orderservice.domain.order.entity.OrderDetail;
 import com.yeonieum.orderservice.domain.order.entity.OrderStatus;
 import com.yeonieum.orderservice.domain.order.entity.ProductOrderEntity;
@@ -138,7 +139,7 @@ public class OrderProcessService {
      * @param orderCreation
      */
     @Transactional(rollbackFor = {RuntimeException.class})
-    public String placeOrder(OrderRequest.OfCreation orderCreation, String memberId) throws JsonProcessingException {
+    public OrderResponse.OfResultPlaceOrder placeOrder(OrderRequest.OfCreation orderCreation, String memberId) throws JsonProcessingException {
         if(orderCreation.getMemberCouponId() != null) {
             try {
                 boolean result = memberServiceFeignClient.useMemberCouponStatus(orderCreation.getMemberCouponId()).getBody().getResult();
@@ -157,6 +158,7 @@ public class OrderProcessService {
             responses = checkAvailableProductOrder(orderCreation, orderDetailId);
             isAvailableProductService = responses.getStatusCode().is2xxSuccessful() ? true : false;
         } catch (FeignException e) {
+            e.printStackTrace();
             isAvailableProductService = false;
         }
         OrderStatus orderStatus = null;
@@ -173,13 +175,12 @@ public class OrderProcessService {
         OrderDetail orderDetail = orderCreation.toOrderDetailEntity(memberId, orderStatus, orderDetailId);
         // 주문서에 대한 결제 요청 & 결제 완료 됐으면 주문서 상태 변경
         final boolean isPayment = isAvailableProductService ? checkPaymentValidation() : false;
-        final OrderStatus pending = orderStatusRepository.findByStatusName(OrderStatusCode.PAYMENT_COMPLETED);
+        final OrderStatus pending = orderStatusRepository.findByStatusName(OrderStatusCode.PENDING);
         final OrderStatus paymentCompleted = orderStatusRepository.findByStatusName(OrderStatusCode.PAYMENT_COMPLETED);
         final OrderStatus cancel = orderStatusRepository.findByStatusName(OrderStatusCode.CANCELED);
 
         // 결제성공시 각 상품 주문 상태 수정
         final boolean finalIsAvailableProductService = isAvailableProductService;
-
         orderDetail.getOrderList().getProductOrderEntityList().stream()
                 .filter(productOrder -> productOrder.getStatus().equals(pending.getStatusName()))
                 .peek(productOrder -> productOrder.changeStatus(finalIsAvailableProductService && isPayment ? paymentCompleted.getStatusName() : cancel.getStatusName()));
@@ -194,11 +195,12 @@ public class OrderProcessService {
                 paymentAmountMap != null ? paymentAmountMap.get(CANCELLED_PAYMENT_AMOUNT) : 0,
                 paymentAmountMap != null ? paymentAmountMap.get(CANCELLED_ORIGIN_PRODUCT_PRICE) : 0));
 
-        return isPayment ? orderDetailId : null;
+        return OrderResponse.OfResultPlaceOrder.builder()
+                .isPayment(isPayment)
+                .paymentAmount(isPayment ? orderCreation.getPaymentAmount() : 0)
+                .orderDetailId(orderDetailId)
+                .build();
     }
-
-    // memberfeignclient로 회원의 정보조회를 불러오기
-    // 응답 상태 코드에 따라 예외 처리
 
 
     /**
