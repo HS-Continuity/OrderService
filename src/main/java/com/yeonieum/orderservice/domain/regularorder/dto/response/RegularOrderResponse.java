@@ -28,7 +28,7 @@ public class RegularOrderResponse {
                     .regularOrderId(application.getRegularDeliveryApplicationId())
                     .productOrder(productOrder)
                     .orderProductAmount(application.getOrderedProductCount())
-                    .orderDate(application.getCreatedAt())
+                    .orderDate(application.getNextDeliveryDate())
                     .build();
         }
     }
@@ -56,7 +56,7 @@ public class RegularOrderResponse {
                     .productOrderList(orderList)
                     .recipient(Recipient.convertedBy(application))
                     .deliveryPeriod(DeliveryPeriod.convertedBy(application))
-                    .nextDeliveryDate(application.getCreatedAt().plusDays(application.getCycle()))
+                    .nextDeliveryDate(application.getNextDeliveryDate())
                     .isAvailableProductService(isAvailableProductService)
                     .build();
         }
