@@ -80,13 +80,13 @@ public class RegularOrderService {
      */
     @Transactional
     public Long subscriptionDelivery(RegularOrderRequest.OfCreation creationRequest) {
-        RegularDeliveryApplication regularDeliveryApplication = creationRequest.toApplicationEntity();
+        RegularDeliveryStatus pending = regularDeliveryStatusRepository.findByStatusName(RegularDeliveryStatusCode.PENDING.getCode());
+        RegularDeliveryApplication regularDeliveryApplication = creationRequest.toApplicationEntity(pending);
         RegularDeliveryApplication savedEntity = regularDeliveryApplicationRepository.save(regularDeliveryApplication);
         regularDeliveryApplicationDayRepository.saveAll(creationRequest.toApplicationDayEnityList(regularDeliveryApplication));
 
         Set<LocalDate> deliveryDateSet = calculateDeliveryDates(creationRequest.getDeliveryPeriod());
-        RegularDeliveryStatus status = regularDeliveryStatusRepository.findByStatusName(RegularDeliveryStatusCode.PENDING.getCode());
-        regularDeliveryReservationRepository.saveAll(creationRequest.toReservationEntityList(deliveryDateSet, regularDeliveryApplication, status));
+        regularDeliveryReservationRepository.saveAll(creationRequest.toReservationEntityList(deliveryDateSet, regularDeliveryApplication, pending));
         return savedEntity.getRegularDeliveryApplicationId();
     }
 

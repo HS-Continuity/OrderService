@@ -37,7 +37,7 @@ public class RegularOrderRequest {
         private DeliveryPeriod deliveryPeriod;
         private Recipient recipient;
 
-        public RegularDeliveryApplication toApplicationEntity() {
+        public RegularDeliveryApplication toApplicationEntity(RegularDeliveryStatus regularDeliveryStatus) {
             return RegularDeliveryApplication.builder()
                     .orderMemo(this.orderMemo)
                     .startDate(this.deliveryPeriod.startDate)
@@ -48,6 +48,11 @@ public class RegularOrderRequest {
                     .memberId(this.memberId)
                     .memberPaymentCardId(this.paymentCardId)
                     .address(this.recipient.getRecipientAddress())
+                    .customerId(this.customerId)
+                    .mainProductId(this.productOrderList.getProductOrderList().get(0).getProductId())
+                    .nextDeliveryDate(this.deliveryPeriod.startDate)
+                    .completedRounds(0)
+                    .regularDeliveryStatus(regularDeliveryStatus)
                     .build();
         }
 
@@ -108,7 +113,7 @@ public class RegularOrderRequest {
     @Getter
     @Builder
     public static class ProductOrder {
-        private Long ProductId;
+        private Long productId;
         private int quantity;
     }
 

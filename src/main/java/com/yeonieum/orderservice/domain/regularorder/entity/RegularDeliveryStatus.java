@@ -17,8 +17,7 @@ public class RegularDeliveryStatus {
     @Column(name = "regular_delivery_status_id")
     private Long regularDeliveryStatusId;
 
-    @Convert(converter = RegularDeliveryStatusCodeConverter.class)
     @Column(name = "status_name", nullable = false)
-    private RegularDeliveryStatus statusName;
+    private String statusName;
 }
 
