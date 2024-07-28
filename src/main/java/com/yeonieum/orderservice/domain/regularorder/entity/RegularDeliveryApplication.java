@@ -30,7 +30,7 @@ public class RegularDeliveryApplication {
     private String memberId;
 
     @Column(name = "member_payment_card_id", nullable = false)
-    private String memberPaymentCardId;
+    private Long memberPaymentCardId;
 
     @Column(nullable = false)
     private int cycle;

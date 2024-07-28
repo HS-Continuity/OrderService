@@ -30,8 +30,9 @@ public class RegularOrderRequest {
     public static class OfCreation {
         private Long customerId;
         private String memberId;
+        private Long memberCouponId;
         private String orderMemo;
-        private String paymentCardId;
+        private Long paymentCardId;
         private ProductOrderList productOrderList;
         private DeliveryPeriod deliveryPeriod;
         private Recipient recipient;
@@ -61,7 +62,6 @@ public class RegularOrderRequest {
                             .startDate(deliveryDay)
                             .quantity(productOrder.getQuantity())
                             .productId(productOrder.getProductId())
-                            .quantity(productOrder.getQuantity())
                             .memberId(this.memberId)
                             .build())
                     .collect(Collectors.toList());
@@ -108,13 +108,13 @@ public class RegularOrderRequest {
     @Getter
     @Builder
     public static class ProductOrder {
-        private Long id;
+        private Long ProductId;
         private int quantity;
     }
 
     @Getter
     @NoArgsConstructor
     public static class ProductOrderList {
-        List<OrderRequest.ProductOrder> productOrderList;
+        List<ProductOrder> productOrderList;
     }
 }

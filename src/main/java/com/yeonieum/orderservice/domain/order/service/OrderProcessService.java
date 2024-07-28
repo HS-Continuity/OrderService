@@ -189,6 +189,7 @@ public class OrderProcessService {
         orderDetailRepository.save(orderDetail);
         paymentInformationRepository.save(orderCreation.toPaymentInformationEntity(
                 orderDetail,
+                "1234-5678-1234-5678",
                 paymentAmountMap != null ? paymentAmountMap.get(CANCELLED_DISCOUNT_AMOUNT) : 0,
                 paymentAmountMap != null ? paymentAmountMap.get(CANCELLED_PAYMENT_AMOUNT) : 0,
                 paymentAmountMap != null ? paymentAmountMap.get(CANCELLED_ORIGIN_PRODUCT_PRICE) : 0));
