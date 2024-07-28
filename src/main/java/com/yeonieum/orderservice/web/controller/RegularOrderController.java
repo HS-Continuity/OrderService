@@ -42,7 +42,7 @@ public class RegularOrderController {
     @Role(role = {"ROLE_CUSTOMER", "ROLE_MEMBER"}, url = "/api/regular-order", method = "POST")
     @PostMapping
     public ResponseEntity<ApiResponse> subscriptionRegularDelivery(@RequestBody  RegularOrderRequest.OfCreation creationRequest) throws JsonProcessingException {
-        String memberId = "user123";
+        String memberId = "qwe123";
         Long regularDeliveryId = regularOrderService.subscriptionDelivery(creationRequest);
         orderEventProduceService.produceRegularOrderEvent(memberId, regularDeliveryId, REGULAR_TOPIC, "APPLY");
         return new ResponseEntity<>(ApiResponse.builder()

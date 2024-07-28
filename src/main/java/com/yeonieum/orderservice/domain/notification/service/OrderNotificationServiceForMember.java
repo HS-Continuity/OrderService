@@ -35,7 +35,7 @@ public class OrderNotificationServiceForMember {
     public void sendOrderMessage(OrderNotificationMessage orderNotificationMessage) throws NurigoMessageNotReceivedException, NurigoEmptyResponseException, NurigoUnknownException {
         Message message = new Message();
         message.setFrom("01089387607");
-        message.setTo(orderNotificationMessage.getPhoneNumber());
+        message.setTo(orderNotificationMessage.getPhoneNumber().replaceAll("-", ""));
         String text = MessageBuilder.createOrderMessage(orderNotificationMessage);
         message.setText(text);
 
