@@ -124,9 +124,9 @@ public class OrderDetailController {
     @Role(role = {"ROLE_MEMBER", "ROLE_CUSTOMER"}, url = "/api/order/status", method = "PATCH")
     @PatchMapping("/status")
     public ResponseEntity<ApiResponse> changeOrderStatus(@RequestBody OrderRequest.OfUpdateOrderStatus updateStatus) throws JsonProcessingException {
-        String Role = "컨텍스트에서 가져올 예정";
+        String Role = "MEMBER";
         String memberId = "qwe123";
-        if(!orderStatusPolicy.getOrderStatusPermission().get(updateStatus.getOrderStatusCode().getCode()).equals(Role)) {
+        if(!orderStatusPolicy.getOrderStatusPermission().get(updateStatus.getOrderStatusCode()).contains(Role)) {
             throw new RuntimeException("접근권한이 없습니다.");
         }
 
