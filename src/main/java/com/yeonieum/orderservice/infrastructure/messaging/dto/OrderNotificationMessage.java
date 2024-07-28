@@ -3,6 +3,7 @@ package com.yeonieum.orderservice.infrastructure.messaging.dto;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.yeonieum.orderservice.domain.order.entity.OrderDetail;
+import com.yeonieum.orderservice.infrastructure.feignclient.dto.response.RetrieveOrderInformationResponse;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -39,11 +40,15 @@ public class OrderNotificationMessage {
     }
 
 
-    public static OrderNotificationMessage convertedBy(OrderDetail orderDetail,String phoneNumber, int productCount  ,String eventType) {
+    public static OrderNotificationMessage convertedBy(OrderDetail orderDetail,
+                                                       RetrieveOrderInformationResponse productInformation,
+                                                       String phoneNumber,
+                                                       String memberName,
+                                                       String eventType) {
         return OrderNotificationMessage.builder()
                 .orderNumber(orderDetail.getOrderDetailId())
-                .memberName(orderDetail.getMemberId())
-                .productName(orderDetail.getOrderList().getProductOrderEntityList().get(0).getName())
+                .memberName(memberName)
+                .productName(productInformation.getProductName())
                 .eventType(eventType)
                 .productCount(orderDetail.getOrderList().getProductOrderEntityList().size())
                 .phoneNumber(phoneNumber)
