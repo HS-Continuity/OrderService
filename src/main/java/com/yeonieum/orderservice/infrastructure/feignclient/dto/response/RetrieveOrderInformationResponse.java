@@ -2,9 +2,10 @@ package com.yeonieum.orderservice.infrastructure.feignclient.dto.response;
 
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 @Getter
-@Builder
+@NoArgsConstructor
 public class RetrieveOrderInformationResponse {
     Long productId;
     String productName;

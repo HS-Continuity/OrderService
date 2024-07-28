@@ -2,9 +2,7 @@ package com.yeonieum.orderservice.domain.regularorder.dto.response;
 
 import com.yeonieum.orderservice.domain.order.dto.request.OrderRequest;
 import com.yeonieum.orderservice.domain.regularorder.entity.RegularDeliveryApplication;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.ToString;
+import lombok.*;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -132,6 +130,8 @@ public class RegularOrderResponse {
 
     @Getter
     @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
     public static class ProductOrder {
         Long productId;
         String productName;

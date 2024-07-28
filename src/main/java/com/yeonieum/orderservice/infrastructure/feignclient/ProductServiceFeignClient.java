@@ -28,7 +28,7 @@ public interface ProductServiceFeignClient {
     @GetMapping("/api/shopping/product/order/{productId}")
     public ResponseEntity<ApiResponse<RetrieveOrderInformationResponse>> retrieveOrderProductInformation(@PathVariable Long productIdList);
     
-    @GetMapping("/api/shopping/product/order/{productIdList}")
+    @GetMapping("/api/shopping/product/orders/{productIdList}")
     public ResponseEntity<ApiResponse<List<RetrieveOrderInformationResponse>>> retrieveOrderProductInformation(@PathVariable List<Long> productIdList);
 
     @GetMapping("/api/customer/delivery-fee/{customerId}")
