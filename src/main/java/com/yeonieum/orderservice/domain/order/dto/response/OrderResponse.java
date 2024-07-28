@@ -140,7 +140,7 @@ public class OrderResponse {
         public static ProductOrder convertedBy(ProductOrderEntity productOrderEntity) {
             return ProductOrder.builder()
                     .productId(productOrderEntity.getProductId())
-                    .name(null)
+                    .name(productOrderEntity.getName())
                     .originPrice(productOrderEntity.getOriginPrice())
                     .discountAmount(productOrderEntity.getDiscountAmount())
                     .finalPrice(productOrderEntity.getFinalPrice())
