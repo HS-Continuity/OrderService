@@ -79,6 +79,7 @@ public class OrderResponse {
     @Builder
     public static class OfRetrieveForMember {
         String memberId;
+        String orderDetailId;
         Recipient recipient;
         LocalDateTime orderDate;
         @Builder.Default
@@ -105,6 +106,7 @@ public class OrderResponse {
                             orderDetail.getDeliveryAddress()
                     ))
                     .image(image)
+                    .orderDetailId(orderDetail.getOrderDetailId())
                     .orderDate(orderDetail.getOrderDateTime())
                     .status(orderDetail.getOrderStatus().getStatusName().getCode())
                     .storeName(storeName)
@@ -195,5 +197,14 @@ public class OrderResponse {
         String memberId;
         String memberName;
         String memberPhoneNumber;
+    }
+
+
+    @Getter
+    @Builder
+    public static class OfResultPlaceOrder {
+        boolean isPayment;
+        int paymentAmount;
+        String orderDetailId;
     }
 }
