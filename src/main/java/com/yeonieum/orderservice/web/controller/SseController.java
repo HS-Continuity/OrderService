@@ -2,6 +2,7 @@ package com.yeonieum.orderservice.web.controller;
 
 import com.yeonieum.orderservice.domain.notification.service.OrderNotificationServiceForCustomer;
 import com.yeonieum.orderservice.global.auth.Role;
+import com.yeonieum.orderservice.global.usercontext.UserContextHolder;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -22,6 +23,7 @@ public class SseController {
     @Role(role = {"ROLE_CUSTOMER"}, url = "/api/order-notification/{customerId}/subscription", method = "GET")
     @GetMapping(value = "/{customerId}/subscription", produces = MediaType.ALL_VALUE)
     public ResponseEntity<SseEmitter> connect(@PathVariable Long customerId) throws IOException {
-        return ResponseEntity.ok(notificationService.subscribe(customerId));
+        Long customer = Long.valueOf(UserContextHolder.getContext().getUniqueId());
+        return ResponseEntity.ok(notificationService.subscribe(customer));
     }
 }

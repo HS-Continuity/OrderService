@@ -97,12 +97,21 @@ public class OrderProcessService {
      * @param updateProductOrderStatus
      */
     @Transactional
-    public void changeOrderProductStatus(OrderRequest.OfUpdateProductOrderStatus updateProductOrderStatus) {
+    public void changeOrderProductStatus(String roleType, String loginId, OrderRequest.OfUpdateProductOrderStatus updateProductOrderStatus) {
         OrderDetail orderDetail = orderDetailRepository.findById(updateProductOrderStatus.getOrderId())
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 주문입니다."));
 
-        // TODO : 상품 json 변경감지 할 수 있는지 테스트 예정 -> deepcopy 활용
+        if(roleType.equals("ROLE_MEMBER")) {
+            if(!orderDetail.getMemberId().equals(loginId)) {
+                throw new IllegalArgumentException("접근 권한이 없습니다.");
+            }
+        } else {
+            if(!loginId.equals(orderDetail.getCustomerId())) {
+                throw new IllegalArgumentException("접근 권한이 없습니다.");
+            }
+        }
 
+        // 상품 json 변경감지 -> deepcopy 활용
         List<ProductOrderEntity> productOrderEntityList = orderDetail.getOrderList().getProductOrderEntityList();
         ProductOrderEntity productOrder = productOrderEntityList.stream().filter(productOrderEntity ->
                 productOrderEntity.getProductId() == updateProductOrderStatus.getProductId()).findFirst().orElseThrow(

@@ -6,6 +6,7 @@ import com.yeonieum.orderservice.domain.regularorder.service.RegularOrderService
 import com.yeonieum.orderservice.global.auth.Role;
 import com.yeonieum.orderservice.global.responses.ApiResponse;
 import com.yeonieum.orderservice.global.responses.code.SuccessCode;
+import com.yeonieum.orderservice.global.usercontext.UserContextHolder;
 import com.yeonieum.orderservice.infrastructure.messaging.service.OrderEventProduceService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -43,6 +44,8 @@ public class RegularOrderController {
     @PostMapping
     public ResponseEntity<ApiResponse> subscriptionRegularDelivery(@RequestBody  RegularOrderRequest.OfCreation creationRequest) throws JsonProcessingException {
         String memberId = "qwe123";
+        String member = UserContextHolder.getContext().getUserId();
+
         Long regularDeliveryId = regularOrderService.subscriptionDelivery(creationRequest);
         orderEventProduceService.produceRegularOrderEvent(memberId, regularDeliveryId, REGULAR_TOPIC, "APPLY");
         return new ResponseEntity<>(ApiResponse.builder()
@@ -61,6 +64,7 @@ public class RegularOrderController {
     public ResponseEntity<ApiResponse> retrieveRegularOrderList(@RequestParam(defaultValue = "0") int page,
                                                                 @RequestParam(defaultValue = "10") int size) {
         String memberId = "memberId"; // TODO: 로그인한 사용자의 ID를 컨텍스트에서 가져와야 함
+        String member = UserContextHolder.getContext().getUserId();
         Pageable pageable = PageRequest.of(page, size);
 
         return new ResponseEntity<>(ApiResponse.builder()
@@ -78,6 +82,8 @@ public class RegularOrderController {
     @PutMapping("/cancel")
     public ResponseEntity<ApiResponse> cancelRegularOrder(@RequestParam(name = "regularOrderId") Long regularDeliveryApplicationId) throws JsonProcessingException {
         String memberId = "qwe123";
+        String member = UserContextHolder.getContext().getUserId();
+
         regularOrderService.cancelRegularDelivery(regularDeliveryApplicationId);
         orderEventProduceService.produceRegularOrderEvent(memberId, regularDeliveryApplicationId, REGULAR_TOPIC, "CANCEL");
 
@@ -97,6 +103,8 @@ public class RegularOrderController {
     public ResponseEntity<ApiResponse> postponeRegularOrder(@RequestParam(name = "regularOrderId") Long regularDeliveryApplicationId,
                                                             @RequestBody RegularOrderRequest.OfPostPone postPoneRequest) throws JsonProcessingException {
         String memberId = "qwe123";
+        String member = UserContextHolder.getContext().getUserId();
+
         regularOrderService.skipRegularDeliveryReservation(regularDeliveryApplicationId, postPoneRequest);
         orderEventProduceService.produceRegularOrderEvent(memberId, regularDeliveryApplicationId, REGULAR_TOPIC, "POSTPONE");
 
@@ -114,8 +122,10 @@ public class RegularOrderController {
     })
     @GetMapping("/{regularOrderId}/detail")
     public ResponseEntity<ApiResponse> retrieveRegularOrderDetail(@PathVariable(name = "regularOrderId") Long regularDeliveryApplicationId) {
+
+        String member = UserContextHolder.getContext().getUserId();
         return new ResponseEntity<>(ApiResponse.builder()
-                .result(regularOrderService.retrieveRegularDeliveryDetails(regularDeliveryApplicationId))
+                .result(regularOrderService.retrieveRegularDeliveryDetails("qwe123", regularDeliveryApplicationId))
                 .successCode(SuccessCode.SELECT_SUCCESS)
                 .build(), HttpStatus.OK);
     }
@@ -130,6 +140,8 @@ public class RegularOrderController {
                                                                               @RequestParam LocalDate endDate) {
 
         Long customerId = 1L; // TODO: 로그인한 사용자의 ID를 컨텍스트에서 가져와야 함
+        Long customer = Long.valueOf(UserContextHolder.getContext().getUniqueId());
+
         return new ResponseEntity<>(ApiResponse.builder()
                 .result(regularOrderService.retrieveRegularOrderCountsBetween(startDate, endDate, customerId))
                 .successCode(SuccessCode.SELECT_SUCCESS)

@@ -7,6 +7,7 @@ import com.yeonieum.orderservice.global.auth.Role;
 import com.yeonieum.orderservice.global.enums.ReleaseStatusCode;
 import com.yeonieum.orderservice.global.responses.ApiResponse;
 import com.yeonieum.orderservice.global.responses.code.SuccessCode;
+import com.yeonieum.orderservice.global.usercontext.UserContextHolder;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
@@ -45,8 +46,10 @@ public class ReleaseController {
                                                           @RequestParam(required = false) LocalDate endDate,
                                                           @RequestParam(required = false, defaultValue = "0") int page,
                                                           @RequestParam(required = false, defaultValue = "10") int size) {
+
+        Long customer = Long.valueOf(UserContextHolder.getContext().getUniqueId());
         return new ResponseEntity<>(ApiResponse.builder()
-                .result(releaseService.getReleaseDetailsByCustomerAndStatus(customerId, releaseStatus, orderId, startDeliveryDate, recipient, recipientPhoneNumber, recipientAddress, memberId, memberName, memberPhoneNumber, startDate, endDate, PageRequest.of(page, size)))
+                .result(releaseService.getReleaseDetailsByCustomerAndStatus(customer, releaseStatus, orderId, startDeliveryDate, recipient, recipientPhoneNumber, recipientAddress, memberId, memberName, memberPhoneNumber, startDate, endDate, PageRequest.of(page, size)))
                 .successCode(SuccessCode.SELECT_SUCCESS)
                 .build(), HttpStatus.OK);
     }
@@ -60,7 +63,8 @@ public class ReleaseController {
     @PatchMapping("/deliveryDate")
     public ResponseEntity<ApiResponse> changeDeliveryDate(@RequestBody ReleaseRequest.OfUpdateDeliveryDate updateDeliveryDate) {
 
-        releaseService.changeDeliveryDate(updateDeliveryDate);
+        Long customer = Long.valueOf(UserContextHolder.getContext().getUniqueId());
+        releaseService.changeDeliveryDate(customer, updateDeliveryDate);
         return new ResponseEntity<>(ApiResponse.builder()
                 .result(null)
                 .successCode(SuccessCode.UPDATE_SUCCESS)
@@ -76,12 +80,13 @@ public class ReleaseController {
     @Role(role = {"ROLE_CUSTOMER"}, url = "/api/release/status", method = "PATCH")
     @PatchMapping("/status")
     public ResponseEntity<ApiResponse> changeReleaseStatus(@RequestBody ReleaseRequest.OfUpdateReleaseStatus updateStatus) {
-        String Role = "CUSTOMER";
-        if(!releaseStatusPolicy.getReleaseStatusPermission().get(updateStatus.getReleaseStatusCode()).contains(Role)) {
+        String roleType = UserContextHolder.getContext().getRoleType();
+        if(!releaseStatusPolicy.getReleaseStatusPermission().get(updateStatus.getReleaseStatusCode()).contains(roleType)) {
             throw new RuntimeException("접근권한이 없습니다.");
         }
 
-        releaseService.changReleaseStatus(updateStatus);
+        Long customer = Long.valueOf(UserContextHolder.getContext().getUniqueId());
+        releaseService.changReleaseStatus(customer, updateStatus);
         return new ResponseEntity<>(ApiResponse.builder()
                 .result(null)
                 .successCode(SuccessCode.UPDATE_SUCCESS)
@@ -95,8 +100,8 @@ public class ReleaseController {
     })
     @PatchMapping("/memo")
     public ResponseEntity<ApiResponse> changeReleaseMemo(@RequestBody ReleaseRequest.OfRegisterMemo updateRegisterMemo) {
-
-        releaseService.changeReleaseMemo(updateRegisterMemo);
+        Long customer = Long.valueOf(UserContextHolder.getContext().getUniqueId());
+        releaseService.changeReleaseMemo(customer, updateRegisterMemo);
         return new ResponseEntity<>(ApiResponse.builder()
                 .result(null)
                 .successCode(SuccessCode.UPDATE_SUCCESS)
@@ -110,8 +115,8 @@ public class ReleaseController {
     })
     @PatchMapping("/hold-memo")
     public ResponseEntity<ApiResponse> changeReleaseHoldMemo(@RequestBody ReleaseRequest.OfHoldMemo updateHoldMemo) {
-
-        releaseService.changeReleaseHoldMemo(updateHoldMemo);
+        Long customer = Long.valueOf(UserContextHolder.getContext().getUniqueId());
+        releaseService.changeReleaseHoldMemo(updateHoldMemo, customer);
         return new ResponseEntity<>(ApiResponse.builder()
                 .result(null)
                 .successCode(SuccessCode.UPDATE_SUCCESS)
@@ -125,12 +130,13 @@ public class ReleaseController {
     })
     @PatchMapping("/bulk-status")
     public ResponseEntity<ApiResponse> changeBulkReleaseStatus(@RequestBody ReleaseRequest.OfBulkUpdateReleaseStatus updateStatus) {
-        String Role = "CUSTOMER";
-        if(!releaseStatusPolicy.getReleaseStatusPermission().get(updateStatus.getReleaseStatusCode()).contains(Role)) {
+        String roleType = UserContextHolder.getContext().getRoleType();
+        Long customer = Long.valueOf(UserContextHolder.getContext().getUniqueId());
+        if(!releaseStatusPolicy.getReleaseStatusPermission().get(updateStatus.getReleaseStatusCode()).contains(roleType)) {
             throw new RuntimeException("접근권한이 없습니다.");
         }
 
-        releaseService.changeBulkReleaseStatus(updateStatus);
+        releaseService.changeBulkReleaseStatus(updateStatus, customer);
         return new ResponseEntity<>(ApiResponse.builder()
                 .result(null)
                 .successCode(SuccessCode.UPDATE_SUCCESS)
@@ -144,12 +150,14 @@ public class ReleaseController {
     })
     @PatchMapping("/combined-packaging")
     public ResponseEntity<ApiResponse> changeReleaseStatus(@RequestBody ReleaseRequest.OfBulkUpdateReleaseStatus updateStatus) {
-        String Role = "CUSTOMER";
-        if(!releaseStatusPolicy.getReleaseStatusPermission().get(updateStatus.getReleaseStatusCode()).contains(Role)) {
+        String Role = "ROLE_CUSTOMER";
+        String roleType = UserContextHolder.getContext().getRoleType();
+        Long customer = Long.valueOf(UserContextHolder.getContext().getUniqueId());
+        if(!releaseStatusPolicy.getReleaseStatusPermission().get(updateStatus.getReleaseStatusCode()).contains(roleType)) {
             throw new RuntimeException("접근권한이 없습니다.");
         }
 
-        releaseService.changeCombinedPackaging(updateStatus);
+        releaseService.changeCombinedPackaging(updateStatus, customer);
         return new ResponseEntity<>(ApiResponse.builder()
                 .result(null)
                 .successCode(SuccessCode.UPDATE_SUCCESS)
@@ -164,8 +172,9 @@ public class ReleaseController {
     @Role(role = {"ROLE_CUSTOMER"}, url = "/api/release/status/counts", method = "GET")
     @GetMapping("/status/counts")
     public ResponseEntity<ApiResponse> countReleaseStatus (@RequestParam Long customerId){
+        Long customer = Long.valueOf(UserContextHolder.getContext().getUniqueId());
         return new ResponseEntity<>(ApiResponse.builder()
-                .result(releaseService.countReleaseStatus(customerId))
+                .result(releaseService.countReleaseStatus(customer))
                 .successCode(SuccessCode.SELECT_SUCCESS)
                 .build(), HttpStatus.OK);
     }

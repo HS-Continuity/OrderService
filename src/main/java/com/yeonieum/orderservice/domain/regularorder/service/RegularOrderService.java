@@ -123,9 +123,11 @@ public class RegularOrderService {
      * @return
      */
     @Transactional
-    public RegularOrderResponse.OfRetrieveDetails retrieveRegularDeliveryDetails(Long regularDeliveryApplicationId) {
+    public RegularOrderResponse.OfRetrieveDetails retrieveRegularDeliveryDetails(String memberId, Long regularDeliveryApplicationId) {
         RegularDeliveryApplication application = regularDeliveryApplicationRepository.findWithReservationsAndApplicationDaysById(regularDeliveryApplicationId);
-
+        if(!application.getMemberId().equals(memberId)) {
+            throw new IllegalArgumentException("해당 회원의 주문정보가 아닙니다.");
+        }
         // 상품Id 리스트 추출 후 상품서비스의 상품정보 조회 API 호출
         List<Long> productIdList = application.getRegularDeliveryReservationList().stream().map(reservation -> reservation.getProductId()).collect(Collectors.toList());
         ResponseEntity<ApiResponse<Map<Long, RegularOrderResponse.ProductOrder>>> response = null;
