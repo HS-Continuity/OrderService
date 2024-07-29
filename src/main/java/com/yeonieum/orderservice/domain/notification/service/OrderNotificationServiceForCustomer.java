@@ -16,7 +16,7 @@ import java.io.IOException;
 
 @Service
 @RequiredArgsConstructor
-public class OrderNotificationService {
+public class OrderNotificationServiceForCustomer {
     private static final Long DEFAULT_TIMEOUT = 60L * 1000 * 60;
 
     private final SseEmitterRepository emitterRepository;

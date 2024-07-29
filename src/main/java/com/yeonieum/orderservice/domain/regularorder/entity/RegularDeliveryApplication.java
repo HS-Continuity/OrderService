@@ -1,5 +1,6 @@
 package com.yeonieum.orderservice.domain.regularorder.entity;
 
+import com.yeonieum.orderservice.global.auditing.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -13,7 +14,7 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 @Table(name = "regular_delivery_application")
-public class RegularDeliveryApplication {
+public class RegularDeliveryApplication extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -30,7 +31,7 @@ public class RegularDeliveryApplication {
     private String memberId;
 
     @Column(name = "member_payment_card_id", nullable = false)
-    private String memberPaymentCardId;
+    private Long memberPaymentCardId;
 
     @Column(nullable = false)
     private int cycle;
@@ -53,8 +54,6 @@ public class RegularDeliveryApplication {
     @Column(name = "order_memo", length = 900)
     private String orderMemo;
 
-    @Column(name = "created_at", nullable = false)
-    private LocalDate createdAt;
     //총배송회차
     @Column(name = "total_delivery_rounds", nullable = false)
     private int totalDeliveryRounds;

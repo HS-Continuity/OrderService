@@ -79,6 +79,7 @@ public class OrderResponse {
     @Builder
     public static class OfRetrieveForMember {
         String memberId;
+        String orderDetailId;
         Recipient recipient;
         LocalDateTime orderDate;
         @Builder.Default
@@ -105,6 +106,7 @@ public class OrderResponse {
                             orderDetail.getDeliveryAddress()
                     ))
                     .image(image)
+                    .orderDetailId(orderDetail.getOrderDetailId())
                     .orderDate(orderDetail.getOrderDateTime())
                     .status(orderDetail.getOrderStatus().getStatusName().getCode())
                     .storeName(storeName)
@@ -138,7 +140,7 @@ public class OrderResponse {
         public static ProductOrder convertedBy(ProductOrderEntity productOrderEntity) {
             return ProductOrder.builder()
                     .productId(productOrderEntity.getProductId())
-                    .name(null)
+                    .name(productOrderEntity.getName())
                     .originPrice(productOrderEntity.getOriginPrice())
                     .discountAmount(productOrderEntity.getDiscountAmount())
                     .finalPrice(productOrderEntity.getFinalPrice())
@@ -195,5 +197,14 @@ public class OrderResponse {
         String memberId;
         String memberName;
         String memberPhoneNumber;
+    }
+
+
+    @Getter
+    @Builder
+    public static class OfResultPlaceOrder {
+        boolean isPayment;
+        int paymentAmount;
+        String orderDetailId;
     }
 }
