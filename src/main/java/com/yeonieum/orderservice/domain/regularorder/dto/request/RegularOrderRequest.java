@@ -51,7 +51,9 @@ public class RegularOrderRequest {
                     .address(this.recipient.getRecipientAddress())
                     .customerId(this.customerId)
                     .mainProductId(this.productOrderList.getProductOrderList().get(0).getProductId())
-                    .nextDeliveryDate(this.deliveryPeriod.startDate)
+                    .orderedProductCount(this.productOrderList.getProductOrderList().size())
+                    .totalDeliveryRounds(0)
+                    .nextDeliveryDate(this.deliveryPeriod.getStartDate())
                     .completedRounds(0)
                     .regularDeliveryStatus(regularDeliveryStatus)
                     .build();
