@@ -86,6 +86,16 @@ public class RegularDeliveryApplication extends BaseEntity {
     public void changeDeliveryStatus(RegularDeliveryStatus status) {
         this.regularDeliveryStatus = status;
     }
+    public void changeNextDeliveryDate(LocalDate nextDeliveryDate) {
+        this.nextDeliveryDate = nextDeliveryDate;
+    }
+    public void changeTotalDeliveryRounds(int totalDeliveryRounds) {
+        this.totalDeliveryRounds = totalDeliveryRounds;
+    }
+
+    public void changeStartDate(LocalDate startDate) {
+        this.startDate = startDate;
+    }
 }
 
 

@@ -11,7 +11,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -20,7 +22,6 @@ public class RegularOrderRequest {
     @Getter
     @NoArgsConstructor
     public static class OfPostPone {
-        int rounds;
         Long productId;
     }
 
@@ -50,7 +51,9 @@ public class RegularOrderRequest {
                     .address(this.recipient.getRecipientAddress())
                     .customerId(this.customerId)
                     .mainProductId(this.productOrderList.getProductOrderList().get(0).getProductId())
-                    .nextDeliveryDate(this.deliveryPeriod.startDate)
+                    .orderedProductCount(this.productOrderList.getProductOrderList().size())
+                    .totalDeliveryRounds(0)
+                    .nextDeliveryDate(this.deliveryPeriod.getStartDate())
                     .completedRounds(0)
                     .regularDeliveryStatus(regularDeliveryStatus)
                     .build();
@@ -76,9 +79,29 @@ public class RegularOrderRequest {
         public List<RegularDeliveryReservation> toReservationEntityList(Set<LocalDate> deliveryDates,
                                                                         RegularDeliveryApplication application,
                                                                         RegularDeliveryStatus status) {
-            return deliveryDates.stream()
+
+            List<RegularDeliveryReservation> reservationList =
+                    deliveryDates.stream()
                     .flatMap(deliveryDay -> toReservationEntity(deliveryDay, application, status).stream())
                     .collect(Collectors.toList());
+
+            Map<LocalDate, List<RegularDeliveryReservation>> groupedByStartDate = reservationList.stream()
+                    .collect(Collectors.groupingBy(RegularDeliveryReservation::getStartDate));
+
+            // 각 그룹에 대해 회차 번호를 부여
+            int roundNumber = 1;
+            List<RegularDeliveryReservation> processedReservations = new ArrayList<>();
+
+            for (Map.Entry<LocalDate, List<RegularDeliveryReservation>> entry : groupedByStartDate.entrySet()) {
+                List<RegularDeliveryReservation> reservations = entry.getValue();
+                for (RegularDeliveryReservation reservation : reservations) {
+                    reservation.setDeliveryRounds(roundNumber);
+                    processedReservations.add(reservation);
+                }
+                roundNumber++;  // 다음 날짜 그룹의 회차 번호를 증가시킵니다.
+            }
+
+            return processedReservations;
         }
 
         public List<RegularDeliveryApplicationDay> toApplicationDayEnityList(RegularDeliveryApplication application) {

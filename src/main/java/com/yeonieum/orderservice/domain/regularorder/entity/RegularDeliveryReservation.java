@@ -44,5 +44,8 @@ public class RegularDeliveryReservation {
     public void changeStatus(RegularDeliveryStatus status) {
         this.regularDeliveryStatus = status;
     }
+    public void setDeliveryRounds(int deliveryRounds) {
+        this.deliveryRounds = deliveryRounds;
+    }
 }
 

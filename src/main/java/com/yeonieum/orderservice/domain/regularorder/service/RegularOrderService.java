@@ -85,8 +85,15 @@ public class RegularOrderService {
         RegularDeliveryApplication regularDeliveryApplication = creationRequest.toApplicationEntity(pending);
         RegularDeliveryApplication savedEntity = regularDeliveryApplicationRepository.save(regularDeliveryApplication);
         regularDeliveryApplicationDayRepository.saveAll(creationRequest.toApplicationDayEnityList(regularDeliveryApplication));
-
+        // 총 배송 회차
         Set<LocalDate> deliveryDateSet = calculateDeliveryDates(creationRequest.getDeliveryPeriod());
+        regularDeliveryApplication.changeTotalDeliveryRounds(deliveryDateSet.size());
+
+        LocalDate firstDeliveryDate = deliveryDateSet.iterator().next();
+        regularDeliveryApplication.changeNextDeliveryDate(firstDeliveryDate);
+        regularDeliveryApplication.changeStartDate(firstDeliveryDate);
+        regularDeliveryApplicationRepository.save(regularDeliveryApplication);
+
         regularDeliveryReservationRepository.saveAll(creationRequest.toReservationEntityList(deliveryDateSet, regularDeliveryApplication, pending));
         return savedEntity.getRegularDeliveryApplicationId();
     }
@@ -175,11 +182,29 @@ public class RegularOrderService {
      */
     @Transactional
     public void skipRegularDeliveryReservation (Long regularOrderApplicationId, RegularOrderRequest.OfPostPone postPoneRequest) {
-        RegularDeliveryReservation regularDeliveryReservation =
-                regularDeliveryReservationRepository.findByDeliveryApplicationAndProductId(regularOrderApplicationId, postPoneRequest.getProductId());
+        RegularDeliveryApplication application = regularDeliveryApplicationRepository.findById(regularOrderApplicationId).orElseThrow(
+                () -> new IllegalArgumentException("해당 정기주문신청이 존재하지 않습니다.")
+        );
 
-        regularDeliveryReservation.changeStatus(regularDeliveryStatusRepository.findByStatusName(RegularDeliveryStatusCode.POSTPONED.getCode()));
-        regularDeliveryReservation.getRegularDeliveryApplication().changeCompletedRounds(regularDeliveryReservation.getDeliveryRounds());
+        if(application.getCompletedRounds() == application.getTotalDeliveryRounds()) {
+            throw new IllegalArgumentException("미룰 수 있는 정기배송예약이 존재하지 않습니다.");
+
+        }
+
+        List<RegularDeliveryReservation> regularDeliveryReservationList =
+                regularDeliveryReservationRepository.findByDeliveryApplicationAndProductId(regularOrderApplicationId, postPoneRequest.getProductId(), application.getCompletedRounds()+1);
+
+
+        // 다음 배송일 변경
+        application.changeCompletedRounds(application.getCompletedRounds()+1);
+        if(!(application.getCompletedRounds() == application.getTotalDeliveryRounds())) {
+            List<RegularDeliveryReservation> nextRegularDeliveryReservationList =
+                    regularDeliveryReservationRepository.findByDeliveryApplicationAndProductId(regularOrderApplicationId, postPoneRequest.getProductId(), application.getCompletedRounds()+1);
+            application.changeNextDeliveryDate(nextRegularDeliveryReservationList.get(0).getStartDate());
+        }
+
+
+        regularDeliveryReservationList.forEach(reservation -> reservation.changeStatus(regularDeliveryStatusRepository.findByStatusName(RegularDeliveryStatusCode.POSTPONE.getCode())));
     }
 
     /**
@@ -194,7 +219,7 @@ public class RegularOrderService {
         int cycleWeeks = deliveryPeriod.getDeliveryCycle();
 
 
-        LocalDate nextDeliveryDate = startDate;
+        LocalDate nextDeliveryDate = startDate.with(TemporalAdjusters.next(java.time.DayOfWeek.valueOf(dayOfWeeks.get(0).getStoredDayValue()))).plusDays(7);
         Set<LocalDate> deliveryDateSet = new TreeSet<>();
         while(!nextDeliveryDate.isAfter(endDate)) {
             for (DayOfWeek deliveryDay : dayOfWeeks) {

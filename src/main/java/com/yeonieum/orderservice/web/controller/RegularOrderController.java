@@ -95,8 +95,8 @@ public class RegularOrderController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 오류 발생")
     })
     @Role(role = {"ROLE_MEMBER"}, url = "/api/regular-order/{regularOrderId}/postpone", method = "PUT")
-    @PutMapping("/{regularOrderId}/postpone")
-    public ResponseEntity<ApiResponse> postponeRegularOrder(@RequestParam(name = "regularOrderId") Long regularDeliveryApplicationId,
+    @PutMapping("/{regularDeliveryApplicationId}/postpone")
+    public ResponseEntity<ApiResponse> postponeRegularOrder(@PathVariable Long regularDeliveryApplicationId,
                                                             @RequestBody RegularOrderRequest.OfPostPone postPoneRequest) throws JsonProcessingException {
         String memberId = "qwe123";
         regularOrderService.skipRegularDeliveryReservation(regularDeliveryApplicationId, postPoneRequest);
