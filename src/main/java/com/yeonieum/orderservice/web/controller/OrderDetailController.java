@@ -111,7 +111,7 @@ public class OrderDetailController {
 
         return new ResponseEntity<>(ApiResponse.builder()
                 .result(null)
-                .successCode(SuccessCode.SELECT_SUCCESS)
+                .successCode(SuccessCode.UPDATE_SUCCESS)
                 .build(), HttpStatus.OK);
     }
 
