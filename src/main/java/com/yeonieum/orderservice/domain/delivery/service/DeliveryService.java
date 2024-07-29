@@ -5,18 +5,23 @@ import com.yeonieum.orderservice.domain.combinedpackaging.repository.PackagingRe
 import com.yeonieum.orderservice.domain.delivery.dto.DeliveryGenuineResponse;
 import com.yeonieum.orderservice.domain.delivery.dto.DeliveryResponse;
 import com.yeonieum.orderservice.domain.delivery.dto.DeliverySummaryResponse;
+import com.yeonieum.orderservice.domain.delivery.exception.DeliveryException;
+import com.yeonieum.orderservice.domain.delivery.exception.DeliveryExceptionCode;
 import com.yeonieum.orderservice.domain.delivery.repository.DeliveryStatusRepository;
 import com.yeonieum.orderservice.global.enums.DeliveryStatusCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import static com.yeonieum.orderservice.domain.delivery.exception.DeliveryExceptionCode.DELIVERY_STATUS_NOT_FOUND;
 
 @Service
 @RequiredArgsConstructor
@@ -48,13 +53,14 @@ public class DeliveryService {
     /**
      * 배송 정보를 객체로 변환하는 메서드
      * @param result 쿼리 결과 배열
+     * @throws DeliveryException 존재하지 않는 배송 상태인 경우
      * @return 변환된 배송 응답 객체
      */
     private DeliveryGenuineResponse convertToDeliveryGenuineResponse(Object[] result) {
         DeliveryResponse deliveryResponse = DeliveryResponse.convertedBy(result);
         DeliveryStatusCode deliveryStatusCode = deliveryStatusRepository.findById(deliveryResponse.getDeliveryStatusCode())
                 .map(status -> status.getStatusName())
-                .orElseThrow(() -> new RuntimeException("존재하지 않는 배송상태 코드 입니다."));
+                .orElseThrow(() -> new DeliveryException(DELIVERY_STATUS_NOT_FOUND, HttpStatus.NOT_FOUND));
 
         return DeliveryGenuineResponse.convertedBy(deliveryResponse, deliveryStatusCode, objectMapper);
     }
