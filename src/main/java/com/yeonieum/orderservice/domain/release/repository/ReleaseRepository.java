@@ -1,11 +1,7 @@
 package com.yeonieum.orderservice.domain.release.repository;
 
-import com.yeonieum.orderservice.domain.release.dto.ReleaseResponse;
 import com.yeonieum.orderservice.domain.release.dto.ReleaseSummaryResponse;
 import com.yeonieum.orderservice.domain.release.entity.Release;
-import com.yeonieum.orderservice.global.enums.ReleaseStatusCode;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
