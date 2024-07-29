@@ -127,13 +127,30 @@ public class RegularOrderController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "정기주문월별 조회 성공"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 오류 발생")
     })
-    @GetMapping("/count")
+    @GetMapping("/monthly")
     public ResponseEntity<ApiResponse> retrieveRegularOrderCountsBetweenMonth(@RequestParam LocalDate startDate,
                                                                               @RequestParam LocalDate endDate) {
 
         Long customerId = 1L; // TODO: 로그인한 사용자의 ID를 컨텍스트에서 가져와야 함
         return new ResponseEntity<>(ApiResponse.builder()
-                .result(regularOrderService.retrieveRegularOrderCountsBetween(startDate, endDate, customerId))
+                .result(regularOrderService.retrieveRegularOrderSummaries(startDate, endDate, customerId))
+                .successCode(SuccessCode.SELECT_SUCCESS)
+                .build(), HttpStatus.OK);
+    }
+
+    @Operation(summary = "고객에게 접수된 정기주문 일별 조회", description = "고객에게 접수된 정기주문을 일별로 조회합니다.")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "정기주문일별 조회 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 오류 발생")
+    })
+    @GetMapping("/daily")
+    public ResponseEntity<ApiResponse> retrieveRegularOrderCountsBetweenDay(@RequestParam LocalDate date,
+                                                                            @RequestParam(defaultValue = "10") int size,
+                                                                            @RequestParam(defaultValue = "0") int page) {
+
+        Long customerId = 1L; // TODO: 로그인한 사용자의 ID를 컨텍스트에서 가져와야 함
+        return new ResponseEntity<>(ApiResponse.builder()
+                .result(regularOrderService.retrieveRegularOrderList(date, customerId, page, size))
                 .successCode(SuccessCode.SELECT_SUCCESS)
                 .build(), HttpStatus.OK);
     }

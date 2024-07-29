@@ -1,6 +1,5 @@
 package com.yeonieum.orderservice.domain.regularorder.dto.response;
 
-import com.yeonieum.orderservice.domain.order.dto.request.OrderRequest;
 import com.yeonieum.orderservice.domain.regularorder.entity.RegularDeliveryApplication;
 import lombok.*;
 
@@ -63,17 +62,43 @@ public class RegularOrderResponse {
     }
 
     @Getter
-    public static class OfRetrieveDailyCount {
-        private Long orderApplicationId;
-        private LocalDate date;
+    @NoArgsConstructor
+    public static class OfRetrieveDailySummary {
         private Long productCount;
+        private Long mainProductId;
+        private Long regularDelivaryApplicationId;
+        private LocalDate days;
+        private String productName;
+        private boolean isAvailableProductService;
+
+        public OfRetrieveDailySummary(Long productCount, Long mainProductId, Long regularDelivaryApplicationId,LocalDate days) {
+            this.productCount = productCount;
+            this.mainProductId = mainProductId;
+            this.regularDelivaryApplicationId = regularDelivaryApplicationId;
+            this.days = days;
+        }
+
+        public void bindProductName(String productName) {
+            this.productName = productName;
+        }
+        public void setAvailableProductService (boolean isAvailableProductService) {
+            this.isAvailableProductService = isAvailableProductService;
+        }
+    }
+
+
+    @Getter
+    public static class OfRetrieveDailyDetail {
+        private Long regularDelivaryApplicationId;
+        private LocalDate today;
+        private Long reservationCount;
         private Long productId;
         private String productName;
         private boolean isAvailableProductService;
-        public OfRetrieveDailyCount(Long orderApplicationId, LocalDate date, Long productCount, Long productId) {
-            this.orderApplicationId = orderApplicationId;
-            this.date = date;
-            this.productCount = productCount;
+        public OfRetrieveDailyDetail(Long regularDelivaryApplicationId, LocalDate today, Long reservationCount, Long productId) {
+            this.regularDelivaryApplicationId = regularDelivaryApplicationId;
+            this.today = today;
+            this.reservationCount = reservationCount;
             this.productId = productId;
         }
         public void bindProductName(String productName) {

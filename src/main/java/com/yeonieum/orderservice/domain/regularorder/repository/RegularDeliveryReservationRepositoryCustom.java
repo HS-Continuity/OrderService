@@ -6,7 +6,12 @@ import java.time.LocalDate;
 import java.util.List;
 
 public interface RegularDeliveryReservationRepositoryCustom {
-    List<RegularOrderResponse.OfRetrieveDailyCount> findRegularOrderCountsBetween(LocalDate startDate,
-                                                                                  LocalDate endDate,
-                                                                                  Long customerId);
+    List<RegularOrderResponse.OfRetrieveDailySummary> findRegularOrderCountsBetween(LocalDate startDate,
+                                                                                   LocalDate endDate,
+                                                                                   Long customerId);
+
+    List<RegularOrderResponse.OfRetrieveDailyDetail> findRegularOrderList(LocalDate date,
+                                                                          Long customerId,
+                                                                          int startPage,
+                                                                          int pageSize);
 }
