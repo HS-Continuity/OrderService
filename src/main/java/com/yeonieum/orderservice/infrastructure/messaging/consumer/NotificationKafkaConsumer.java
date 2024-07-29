@@ -14,6 +14,7 @@ import com.yeonieum.orderservice.infrastructure.feignclient.dto.response.Retriev
 import com.yeonieum.orderservice.infrastructure.feignclient.dto.response.RetrieveOrderInformationResponse;
 import com.yeonieum.orderservice.infrastructure.messaging.dto.OrderEventMessage;
 import com.yeonieum.orderservice.infrastructure.messaging.dto.OrderNotificationMessage;
+import com.yeonieum.orderservice.infrastructure.messaging.dto.RegularDeliveryEventMessage;
 import com.yeonieum.orderservice.infrastructure.messaging.dto.RegularOrderNotificationMessage;
 import feign.FeignException;
 import lombok.RequiredArgsConstructor;
@@ -47,7 +48,10 @@ public class NotificationKafkaConsumer {
                     orderEventMessage.getOrderDetailId(),
                     orderEventMessage.getEventType()
             );
-            orderNotificationServiceForMember.sendOrderMessage(orderNotificationMessage);
+            if(orderNotificationMessage.getPhoneNumber() != null && orderNotificationMessage.getOrderNumber() != null
+            && orderNotificationMessage.getProductName() != null && orderNotificationMessage.getMemberName() != null) {
+                orderNotificationServiceForMember.sendOrderMessage(orderNotificationMessage);
+            }
         } catch (JsonProcessingException e) {
             // 무시
         } catch (NurigoMessageNotReceivedException | NurigoEmptyResponseException |  NurigoUnknownException e) {
@@ -55,14 +59,15 @@ public class NotificationKafkaConsumer {
         }
     }
 
-    @KafkaListener(id = "regular-order-notification-consumer", topics = "regular-order-notification-topic", groupId = "order-notification-group", autoStartup = "true")
+    @KafkaListener(id = "regular-order-notification-consumer", topics = "regular-notification-topic", groupId = "order-notification-group", autoStartup = "true")
     public void listenRegularOrderEventTopic(@Payload String message) {
         try {
-            OrderEventMessage orderEventMessage = objectMapper.readValue(message, OrderEventMessage.class);
+
+            RegularDeliveryEventMessage regularDeliveryEventMessage = objectMapper.readValue(message, RegularDeliveryEventMessage.class);
             RegularOrderNotificationMessage regularOrderNotificationMessage = regularOrderNotificationMessageBuilder(
-                    orderEventMessage.getMemberId(),
-                    Long.parseLong(orderEventMessage.getOrderDetailId()),
-                    orderEventMessage.getEventType()
+                    regularDeliveryEventMessage.getMemberId(),
+                    regularDeliveryEventMessage.getRegularDeliveryId(),
+                    regularDeliveryEventMessage.getEventType()
             );
 
             orderNotificationServiceForMember.sendRegularOrderMessage(regularOrderNotificationMessage);
@@ -78,15 +83,17 @@ public class NotificationKafkaConsumer {
         Optional<OrderDetail> orderDetailOptional = orderDetailRepository.findById(orderDetailId);
 
         if(orderDetailOptional.isEmpty()) {
+            System.out.println("나 여기");
             return null;
         }
-
+        System.out.println("나여기");
         ResponseEntity<ApiResponse<RetrieveMemberSummary>> memberResponse = null;
         ResponseEntity<ApiResponse<RetrieveOrderInformationResponse>> productResponse = null;
         try {
             memberResponse = memberServiceFeignClient.getMemberSummary(memberId);
             productResponse = productServiceFeignClient.retrieveOrderProductInformation(orderDetailOptional.get().getMainProductId());
         } catch (FeignException e) {
+            e.printStackTrace();
             return null;
         }
 
@@ -120,6 +127,7 @@ public class NotificationKafkaConsumer {
             memberResponse = memberServiceFeignClient.getMemberSummary(memberId);
             productResponse = productServiceFeignClient.retrieveOrderProductInformation(regularDeliveryApplication.getMainProductId());
         } catch (FeignException e) {
+            e.printStackTrace();
             return null;
         }
 

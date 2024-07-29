@@ -20,19 +20,19 @@ public interface ProductServiceFeignClient {
     ResponseEntity<StockUsageResponse.AvailableResponseList> checkAvailableOrderProduct(@RequestBody StockUsageRequest.IncreaseStockUsageList increaseStockUsageDtoList);
 
     @GetMapping("/api/management/{productId}")
-    ResponseEntity<ApiResponse<RegularOrderResponse.ProductOrder>> retrieveProductInformation(@PathVariable Long productId);
+    ResponseEntity<ApiResponse<RegularOrderResponse.ProductOrder>> retrieveProductInformation(@PathVariable("productId") Long productId);
 
     @GetMapping("/api/management/products")
     ResponseEntity<ApiResponse<Map<Long, RegularOrderResponse.ProductOrder>>> bulkRetrieveProductInformation(@RequestParam List<Long> productIdList);
 
-    @GetMapping("/api/shopping/product/order/{productId}")
-    public ResponseEntity<ApiResponse<RetrieveOrderInformationResponse>> retrieveOrderProductInformation(@PathVariable Long productIdList);
+    @GetMapping("/api/shopping/product/order/{productIdList}")
+    public ResponseEntity<ApiResponse<RetrieveOrderInformationResponse>> retrieveOrderProductInformation(@PathVariable("productIdList") Long productIdList);
     
     @GetMapping("/api/shopping/product/orders/{productIdList}")
-    public ResponseEntity<ApiResponse<List<RetrieveOrderInformationResponse>>> retrieveOrderProductInformation(@PathVariable List<Long> productIdList);
+    public ResponseEntity<ApiResponse<List<RetrieveOrderInformationResponse>>> retrieveOrderProductInformation(@PathVariable("productIdList") List<Long> productIdList);
 
     @GetMapping("/api/customer/delivery-fee/{customerId}")
-    ResponseEntity<ApiResponse<Integer>> retrieveDeliveryFee(@PathVariable Long customerId);
+    ResponseEntity<ApiResponse<Integer>> retrieveDeliveryFee(@PathVariable("customerId") Long customerId);
 
 }
 
