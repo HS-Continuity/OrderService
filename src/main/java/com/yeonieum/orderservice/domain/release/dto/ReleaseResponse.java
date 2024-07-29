@@ -20,6 +20,8 @@ public class ReleaseResponse {
         OrderResponse.Recipient recipient;
         OrderResponse.ProductOrderList productOrderList;
         ReleaseStatusCode statusName;
+        String memo;
+        String holdReason;
 
         public static OfRetrieve convertedBy(OrderDetail orderDetail, Release release, OrderResponse.MemberInfo memberInfo) {
             return OfRetrieve.builder()
@@ -33,6 +35,8 @@ public class ReleaseResponse {
                     ))
                     .productOrderList(OrderResponse.ProductOrderList.convertedBy(orderDetail))
                     .statusName(release.getReleaseStatus().getStatusName())
+                    .memo(release.getMemo())
+                    .holdReason(release.getHoldReason())
                     .build();
         }
     }
