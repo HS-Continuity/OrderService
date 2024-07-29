@@ -59,12 +59,14 @@ public class RegularOrderController {
     @Role(role = {"ROLE_CUSTOMER", "ROLE_MEMBER"}, url = "/api/regular-order/list", method = "GET")
     @GetMapping("/list")
     public ResponseEntity<ApiResponse> retrieveRegularOrderList(@RequestParam(defaultValue = "0") int page,
-                                                                @RequestParam(defaultValue = "10") int size) {
-        String memberId = "memberId"; // TODO: 로그인한 사용자의 ID를 컨텍스트에서 가져와야 함
+                                                                @RequestParam(defaultValue = "10") int size,
+                                                                @RequestParam(required = false)LocalDate startDate,
+                                                                @RequestParam(required = false)LocalDate endDate) {
+        String memberId = "qwe123"; // TODO: 로그인한 사용자의 ID를 컨텍스트에서 가져와야 함
         Pageable pageable = PageRequest.of(page, size);
 
         return new ResponseEntity<>(ApiResponse.builder()
-                .result(regularOrderService.retrieveRegularDeliveryList(memberId, pageable))
+                .result(regularOrderService.retrieveRegularDeliveryList(memberId, startDate, endDate, pageable))
                 .successCode(SuccessCode.SELECT_SUCCESS)
                 .build(), HttpStatus.OK);
     }

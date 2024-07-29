@@ -44,6 +44,8 @@ public class RegularOrderResponse {
         public static OfRetrieveDetails convertedBy(RegularDeliveryApplication application,
                                                     Map<Long, ProductOrder> productOrderMap,
                                                     boolean isAvailableProductService) {
+
+            // application.getReservation에서 productAmount를 가져와서 productOrderList의 요소에 넣어야할거같음.
             ProductOrderList orderList =
                     isAvailableProductService ? ProductOrderList.builder()
                             .productOrderList(productOrderMap.values().stream().collect(Collectors.toList())
@@ -136,7 +138,12 @@ public class RegularOrderResponse {
         Long productId;
         String productName;
         String productImage;
-        int productPrice;
+        int originPrice;
+        int finalPrice;
         int productAmount;
+
+        public void changeProductAmount(int productAmount) {
+            this.productAmount = productAmount;
+        }
     }
 }
