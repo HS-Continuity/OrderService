@@ -4,7 +4,7 @@ import com.yeonieum.orderservice.global.exceptions.code.CustomExceptionCode;
 
 public enum OrderExceptionCode implements CustomExceptionCode {
 
-    ORDER_NOT_FOUND(11000, "존재하지 않는 주문입니다."),
+    ORDER_NOT_FOUND(11000, "존재하지 않는 주문 ID 입니다."),
     ORDER_STATUS_TRANSITION_RULE_VIOLATION(11001, "주문상태 트랜지션 룰 위반."),
     INVALID_ACCESS(11002, "잘못된 접근입니다."),
     PRODUCT_NOT_FOUND(11003, "존재하지 않는 상품입니다."),
