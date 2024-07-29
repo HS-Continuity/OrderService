@@ -118,11 +118,17 @@ public class OrderProcessService {
             throw new OrderException(ORDER_STATUS_TRANSITION_RULE_VIOLATION, HttpStatus.BAD_REQUEST);
         }
 
-
-        switch (updateProductOrderStatus.getOrderStatusCode()) {
-            case CANCELED, REFUND_REQUEST, REFUNDED ->
-                    productOrder.changeStatus(updateProductOrderStatus.getOrderStatusCode());
+        OrderStatusCode requestedCode = updateProductOrderStatus.getOrderStatusCode();
+        switch (requestedCode) {
+            case CANCELED, REFUND_REQUEST, REFUNDED -> {
+                productOrder.changeStatus(requestedCode);
+            }
             default -> throw new OrderException(INVALID_ACCESS, HttpStatus.BAD_REQUEST);
+        }
+
+
+        if (productOrderEntityList.stream().allMatch(productOrderEntity -> productOrderEntity.getStatus().equals(requestedCode))) {
+            orderDetail.changeOrderStatus(orderStatusRepository.findByStatusName(requestedCode));
         }
         orderDetail.changeOrderList(orderDetail.getOrderList()); // deepcopy
         orderDetailRepository.save(orderDetail);
