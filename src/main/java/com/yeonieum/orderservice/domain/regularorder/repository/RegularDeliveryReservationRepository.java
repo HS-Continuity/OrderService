@@ -11,8 +11,9 @@ public interface RegularDeliveryReservationRepository extends JpaRepository<Regu
             "JOIN r.regularDeliveryApplication a " +
             "WHERE a.regularDeliveryApplicationId = :applicationId " +
             "AND r.productId = :productId " +
-            "AND r.deliveryRounds = a.completedRounds + 1")
+            "AND r.deliveryRounds = :deliveryRounds")
     List<RegularDeliveryReservation> findByDeliveryApplicationAndProductId(@Param("applicationId") Long applicationId,
-                                                                           @Param("productId") Long productId);
+                                                                           @Param("productId") Long productId,
+                                                                           @Param("deliveryRounds") int deliveryRounds);
 
 }

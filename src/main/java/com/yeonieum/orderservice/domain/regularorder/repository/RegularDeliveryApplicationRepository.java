@@ -32,4 +32,6 @@ public interface RegularDeliveryApplicationRepository extends JpaRepository<Regu
             nativeQuery = true)
     RegularDeliveryApplication findWithReservationsAndApplicationDaysById(@Param("regularDeliveryApplicationId") Long regularDeliveryApplicationId);
 
+
+    //
 }
