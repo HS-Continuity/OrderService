@@ -1,10 +1,10 @@
 package com.yeonieum.orderservice.domain.order.service;
 
-import com.yeonieum.orderservice.domain.delivery.repository.DeliveryStatusRepository;
 import com.yeonieum.orderservice.domain.order.dto.request.OrderRequest;
 import com.yeonieum.orderservice.domain.order.entity.OrderDetail;
 import com.yeonieum.orderservice.domain.order.entity.OrderStatus;
 import com.yeonieum.orderservice.domain.order.entity.ProductOrderEntity;
+import com.yeonieum.orderservice.domain.order.exception.OrderException;
 import com.yeonieum.orderservice.domain.order.policy.OrderStatusPolicy;
 import com.yeonieum.orderservice.domain.order.repository.OrderDetailRepository;
 import com.yeonieum.orderservice.domain.order.repository.OrderStatusRepository;
@@ -17,11 +17,11 @@ import com.yeonieum.orderservice.domain.release.repository.ReleaseRepository;
 import com.yeonieum.orderservice.domain.release.repository.ReleaseStatusRepository;
 import com.yeonieum.orderservice.global.enums.OrderStatusCode;
 import com.yeonieum.orderservice.global.enums.ReleaseStatusCode;
-import com.yeonieum.orderservice.global.responses.ApiResponse;
 import com.yeonieum.orderservice.infrastructure.feignclient.MemberServiceFeignClient;
 import com.yeonieum.orderservice.infrastructure.feignclient.ProductServiceFeignClient;
 import feign.FeignException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,6 +32,8 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static com.yeonieum.orderservice.domain.order.exception.OrderExceptionCode.*;
+
 
 @Service
 @RequiredArgsConstructor
@@ -41,7 +43,6 @@ public class OrderProcessService {
     private final OrderStatusRepository orderStatusRepository;
     private final ReleaseRepository releaseRepository;
     private final ReleaseStatusRepository releaseStatusRepository;
-    private final DeliveryStatusRepository deliveryStatusRepository;
     private final ProductServiceFeignClient stockFeignClient;
     private final MemberServiceFeignClient memberServiceFeignClient;
     private final OrderStatusPolicy orderStatusPolicy;
@@ -60,13 +61,13 @@ public class OrderProcessService {
     @Transactional
     public void changeOrderStatus(OrderRequest.OfUpdateOrderStatus updateStatus) {
         OrderDetail orderDetail = orderDetailRepository.findById(updateStatus.getOrderId()).orElseThrow(
-                () -> new IllegalArgumentException("존재하지 않는 주문입니다."));
+                () ->  new OrderException(ORDER_NOT_FOUND, HttpStatus.NOT_FOUND));
 
         OrderStatus requestedStatus = orderStatusRepository.findByStatusName(updateStatus.getOrderStatusCode());
         OrderStatusCode requestedStatusCode = requestedStatus.getStatusName();
         OrderStatusCode orderStatus = orderDetail.getOrderStatus().getStatusName();
         if (!orderStatusPolicy.getOrderStatusTransitionRule().get(requestedStatusCode).getRequiredPreviosConditionSet().contains(orderStatus)) {
-            throw new RuntimeException("주문상태 트랜지션 룰 위반.");
+            throw new OrderException(ORDER_STATUS_TRANSITION_RULE_VIOLATION, HttpStatus.BAD_REQUEST);
         }
 
         switch (updateStatus.getOrderStatusCode()) {
@@ -78,7 +79,7 @@ public class OrderProcessService {
                         .build());
             }
             case PREPARING_PRODUCT, CANCELED, REFUND_REQUEST, REFUNDED -> orderDetail.changeOrderStatus(requestedStatus);
-            default -> throw new RuntimeException("잘못된 접근입니다.");
+            default -> throw new OrderException(INVALID_ACCESS, HttpStatus.BAD_REQUEST);
         }
         // 주문 상태 변경
         orderDetail.changeOrderStatus(requestedStatus);
@@ -96,28 +97,27 @@ public class OrderProcessService {
     @Transactional
     public void changeOrderProductStatus(OrderRequest.OfUpdateProductOrderStatus updateProductOrderStatus) {
         OrderDetail orderDetail = orderDetailRepository.findById(updateProductOrderStatus.getOrderId())
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 주문입니다."));
+                .orElseThrow(() -> new OrderException(ORDER_NOT_FOUND, HttpStatus.NOT_FOUND));
 
         // TODO : 상품 json 변경감지 할 수 있는지 테스트 예정 -> 명시적 save
 
         List<ProductOrderEntity> productOrderEntityList = orderDetail.getOrderList().getProductOrderEntityList();
         ProductOrderEntity productOrder = productOrderEntityList.stream().filter(productOrderEntity ->
                 productOrderEntity.getProductId() == updateProductOrderStatus.getProductId()).findFirst().orElseThrow(
-                () -> new IllegalArgumentException("존재하지 않는 상품입니다.")
-        );
+                () -> new OrderException(PRODUCT_NOT_FOUND, HttpStatus.NOT_FOUND));
 
         OrderStatus requestedStatus = orderStatusRepository.findByStatusName(updateProductOrderStatus.getOrderStatusCode());
         OrderStatusCode requestedStatusCode = requestedStatus.getStatusName();
         OrderStatusCode productOrderStatus = productOrder.getStatus();
         if (!orderStatusPolicy.getOrderStatusTransitionRule().get(requestedStatusCode).getRequiredPreviosConditionSet().contains(productOrderStatus)) {
-            throw new RuntimeException("주문상태 트랜지션 룰 위반.");
+            throw new OrderException(ORDER_STATUS_TRANSITION_RULE_VIOLATION, HttpStatus.BAD_REQUEST);
         }
 
 
         switch (updateProductOrderStatus.getOrderStatusCode()) {
             case CANCELED, REFUND_REQUEST, REFUNDED ->
                     productOrder.changeStatus(updateProductOrderStatus.getOrderStatusCode());
-            default -> throw new RuntimeException("잘못된 접근입니다.");
+            default -> throw new OrderException(INVALID_ACCESS, HttpStatus.BAD_REQUEST);
         }
         orderDetail.changeOrderList(orderDetail.getOrderList()); // deepcopy
         orderDetailRepository.save(orderDetail);
@@ -141,10 +141,10 @@ public class OrderProcessService {
             try {
                 boolean result = memberServiceFeignClient.useMemberCouponStatus(orderCreation.getMemberCouponId()).getBody().getResult();
                 if (!result) {
-                    throw new IllegalArgumentException("이미 사용한 쿠폰입니다.");
+                    throw new OrderException(COUPON_ALREADY_USED, HttpStatus.CONFLICT);
                 }
             } catch (FeignException e) {
-                throw new IllegalArgumentException("쿠폰 사용에 실패했습니다.");
+                throw new OrderException(COUPON_USE_FAILED, HttpStatus.CONFLICT);
             }
         }
 
@@ -292,7 +292,7 @@ public class OrderProcessService {
 
         // 요청된 ID 수와 조회된 결과 수가 다르면 존재하지 않는 ID가 있다는 의미
         if (orderDetails.size() != bulkUpdateStatus.getOrderIds().size()) {
-            throw new IllegalArgumentException("하나 이상의 주문 ID가 존재하지 않습니다.");
+            throw new OrderException(ORDER_NOT_FOUND, HttpStatus.BAD_REQUEST);
         }
 
         OrderStatus requestedStatus = orderStatusRepository.findByStatusName(bulkUpdateStatus.getOrderStatusCode());
@@ -303,7 +303,7 @@ public class OrderProcessService {
             OrderStatusCode currentOrderStatus = orderDetail.getOrderStatus().getStatusName();
 
             if (!orderStatusPolicy.getOrderStatusTransitionRule().get(requestedStatusCode).getRequiredPreviosConditionSet().contains(currentOrderStatus)) {
-                throw new RuntimeException("주문상태 트랜지션 룰 위반.");
+                throw new OrderException(ORDER_STATUS_TRANSITION_RULE_VIOLATION, HttpStatus.BAD_REQUEST);
             }
 
             // 주문 상태 변경
@@ -326,9 +326,8 @@ public class OrderProcessService {
                     orderDetail.getOrderList().getProductOrderEntityList().forEach(productOrderEntity ->
                             productOrderEntity.changeStatus(requestedStatusCode));
                 }
-                default -> throw new RuntimeException("잘못된 접근입니다.");
+                default -> throw new OrderException(INVALID_ACCESS, HttpStatus.BAD_REQUEST);
             }
-
             orderDetail.changeOrderList(orderDetail.getOrderList()); // deepcopy
             orderDetailRepository.save(orderDetail); // 명시적 저장
         }
