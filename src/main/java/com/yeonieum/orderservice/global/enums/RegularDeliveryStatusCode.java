@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public enum RegularDeliveryStatusCode {
     PENDING("PENDING"),
-    POSTPONED("POSTPONED"),
+    POSTPONE("POSTPONE"),
     COMPLETED("COMPLETED"),
     CANCELED("CANCELED");
 
@@ -25,8 +25,8 @@ public enum RegularDeliveryStatusCode {
         switch (code) {
             case "PENDING":
                 return PENDING;
-            case "POSTPONED":
-                return POSTPONED;
+            case "POSTPONE":
+                return POSTPONE;
             case "COMPLETED":
                 return COMPLETED;
             case "CANCELED":
