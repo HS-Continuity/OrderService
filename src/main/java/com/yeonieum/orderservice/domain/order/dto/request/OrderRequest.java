@@ -56,7 +56,8 @@ public class OrderRequest {
         int paymentAmount;
         int deliveryFee;
         String orderMemo;
-        PaymentCard paymentCard;
+        private int paymentCardId;
+        //PaymentCard paymentCard;
 
         public OrderDetail toOrderDetailEntity(String memberId,OrderStatus orderStatus, String orderDetailId) {
             return OrderDetail.builder()
@@ -76,6 +77,7 @@ public class OrderRequest {
         }
 
         public PaymentInformation toPaymentInformationEntity(OrderDetail orderDetail,
+                                                             String cardNumber,
                                                              int canceledDiscountAmount,
                                                              int canceledPaymentAmount,
                                                              int canceledOriginProductPrice) {
@@ -83,7 +85,7 @@ public class OrderRequest {
                     .orderDetail(orderDetail)
                     .deliveryFee(this.getDeliveryFee())
                     .discountAmount(this.getTotalDiscountAmount() - canceledDiscountAmount)
-                    .cardNumber(this.getPaymentCard().getCardNumber())
+                    .cardNumber(cardNumber)
                     .paymentAmount(this.getPaymentAmount() - canceledPaymentAmount)
                     .originProductPrice(this.getOriginProductAmount() - canceledOriginProductPrice)
                     .build();
@@ -118,7 +120,6 @@ public class OrderRequest {
     @NoArgsConstructor
     public static class ProductOrder {
         Long productId;
-        Long couponId;
         String name;
         int originPrice;
         int discountAmount;
