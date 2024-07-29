@@ -17,23 +17,46 @@ import java.util.List;
 public class RegularDeliveryReservationRepositoryCustomImpl implements RegularDeliveryReservationRepositoryCustom{
     private final JPAQueryFactory queryFactory;
 
-    public List<RegularOrderResponse.OfRetrieveDailyCount> findRegularOrderCountsBetween(LocalDate startDate, LocalDate endDate, Long customerId) {
+    public List<RegularOrderResponse.OfRetrieveDailySummary> findRegularOrderCountsBetween(LocalDate startDate, LocalDate endDate, Long customerId) {
         QRegularDeliveryReservation reservation = QRegularDeliveryReservation.regularDeliveryReservation;
         QRegularDeliveryApplication application = QRegularDeliveryApplication.regularDeliveryApplication;
         BooleanExpression isBetweenMonth = reservation.startDate.between(startDate, endDate);
         BooleanExpression isCustomerId = application.customerId.eq(customerId);
 
         return queryFactory
-                .select(Projections.constructor(RegularOrderResponse.OfRetrieveDailyCount.class,
+                .select(Projections.constructor(RegularOrderResponse.OfRetrieveDailySummary.class,
+                        reservation.regularDeliveryReservationId.count(),
+                        application.mainProductId,
+                        application.regularDeliveryApplicationId,
+                        reservation.startDate))
+                .from(reservation)
+                .join(reservation.regularDeliveryApplication, application)
+                .where(isBetweenMonth, isCustomerId)
+                .groupBy(application.regularDeliveryApplicationId, reservation.startDate)
+                .orderBy(reservation.startDate.asc())
+                .fetch();
+    }
+
+
+    public List<RegularOrderResponse.OfRetrieveDailyDetail> findRegularOrderList(LocalDate date, Long customerId, int startPage, int pageSize) {
+        QRegularDeliveryReservation reservation = QRegularDeliveryReservation.regularDeliveryReservation;
+        QRegularDeliveryApplication application = QRegularDeliveryApplication.regularDeliveryApplication;
+        BooleanExpression isDate = reservation.startDate.eq(date);
+        BooleanExpression isCustomerId = application.customerId.eq(customerId);
+
+        int offset = (startPage) * pageSize;
+        return queryFactory
+                .select(Projections.constructor(RegularOrderResponse.OfRetrieveDailyDetail.class,
                         application.regularDeliveryApplicationId,
                         reservation.startDate,
                         reservation.regularDeliveryReservationId.count(),
                         reservation.productId))
                 .from(reservation)
                 .join(reservation.regularDeliveryApplication, application)
-                .where(isBetweenMonth, isCustomerId)
-                .groupBy(application.regularDeliveryApplicationId, reservation.startDate)
-                .orderBy(reservation.startDate.asc())
+                .where(isDate, isCustomerId)
+                .orderBy(reservation.regularDeliveryReservationId.asc())
+                .offset(offset)
+                .limit(pageSize)
                 .fetch();
     }
 }

@@ -61,6 +61,7 @@ public class OrderTrackingService {
             productResponse = productServiceFeignClient.retrieveOrderProductInformation(productIdList);
             isAvailableProductService = productResponse.getStatusCode().is2xxSuccessful();
         } catch (FeignException e) {
+            e.printStackTrace();
             isAvailableProductService = false;
         }
 
@@ -75,9 +76,9 @@ public class OrderTrackingService {
             OrderResponse.MemberInfo memberInfo = memberResponse == null ? null : memberResponse.getBody().getResult();
 
             // 필터링 조건을 확인하여 필요한 경우 필터링
-            if (memberInfo != null &&
-                    (memberName == null || memberName.equals(memberInfo.getMemberName())) &&
-                    (memberPhoneNumber == null || memberPhoneNumber.equals(memberInfo.getMemberPhoneNumber()))) {
+//            if (memberInfo != null &&
+//                    (memberName == null || memberName.equals(memberInfo.getMemberName())) &&
+//                    (memberPhoneNumber == null || memberPhoneNumber.equals(memberInfo.getMemberPhoneNumber()))) {
 
                 OrderResponse.OfRetrieveForCustomer orderResponse =
                         OrderResponse.OfRetrieveForCustomer.convertedBy(orderDetail, memberInfo, isAvailableProductService, isAvailableMemberService);
@@ -95,7 +96,7 @@ public class OrderTrackingService {
                 }
                 convertedOrders.add(orderResponse);
             }
-        }
+        //}
 
         return new PageImpl<>(convertedOrders, pageable, orderDetailsPage.getTotalElements());
     }

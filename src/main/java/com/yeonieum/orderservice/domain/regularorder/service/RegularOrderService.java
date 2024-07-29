@@ -15,7 +15,6 @@ import com.yeonieum.orderservice.global.responses.ApiResponse;
 import com.yeonieum.orderservice.infrastructure.feignclient.ProductServiceFeignClient;
 import feign.FeignException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.cglib.core.Local;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
@@ -47,9 +46,11 @@ public class RegularOrderService {
     private final ProductServiceFeignClient feignClient;
 
     @Transactional
-    public List<RegularOrderResponse.OfRetrieveDailyCount> retrieveRegularOrderCountsBetween(LocalDate startDate, LocalDate endDate, Long customerId) {
-        List<RegularOrderResponse.OfRetrieveDailyCount> regularOrderCountsForMonth = regularDeliveryReservationRepository.findRegularOrderCountsBetween(startDate, endDate, customerId);
-
+    public List<RegularOrderResponse.OfRetrieveDailyDetail> retrieveRegularOrderList(LocalDate date, Long customerId, int startPage, int pageSize) {
+        List<RegularOrderResponse.OfRetrieveDailyDetail> regularOrderCountsForMonth = regularDeliveryReservationRepository.findRegularOrderList(date, customerId, startPage, pageSize);
+        if(regularOrderCountsForMonth.size() == 0) {
+            return null;
+        }
         ResponseEntity<ApiResponse<Map<Long, RegularOrderResponse.ProductOrder>>> response = null;
         Map<Long, RegularOrderResponse.ProductOrder> productOrderMap = null;
 
@@ -64,9 +65,41 @@ public class RegularOrderService {
         }
 
         // 받아온 응답을 바탕으로 상품명 바인딩
-        for(RegularOrderResponse.OfRetrieveDailyCount dailyOrderCount : regularOrderCountsForMonth) {
-            productOrderMap = response.getBody().getResult();
+        for(RegularOrderResponse.OfRetrieveDailyDetail dailyOrderCount : regularOrderCountsForMonth) {
+            if(isAvailableProductService) {
+                productOrderMap = response.getBody().getResult();
+            }
             String productName = isAvailableProductService ? productOrderMap.get(dailyOrderCount.getProductId()).getProductName() : null;
+            dailyOrderCount.bindProductName(productName);
+            dailyOrderCount.setAvailableProductService(isAvailableProductService);
+        }
+
+        return regularOrderCountsForMonth;
+    }
+
+
+    @Transactional
+    public List<RegularOrderResponse.OfRetrieveDailySummary> retrieveRegularOrderSummaries(LocalDate startDate,LocalDate endDate ,Long customerId) {
+        List<RegularOrderResponse.OfRetrieveDailySummary> regularOrderCountsForMonth = regularDeliveryReservationRepository.findRegularOrderCountsBetween(startDate, endDate,customerId);
+
+        ResponseEntity<ApiResponse<Map<Long, RegularOrderResponse.ProductOrder>>> response = null;
+        Map<Long, RegularOrderResponse.ProductOrder> productOrderMap = null;
+
+        List<Long> productIdList = regularOrderCountsForMonth.stream().map(dailyOrderCount -> dailyOrderCount.getMainProductId()).collect(Collectors.toList());
+        boolean isAvailableProductService = true;
+        try {
+            response = feignClient.bulkRetrieveProductInformation(productIdList);
+            isAvailableProductService = response.getStatusCode().is2xxSuccessful() ? true : false;
+        } catch (FeignException e) {
+            e.printStackTrace();
+            isAvailableProductService = false;
+        }
+
+        // 받아온 응답을 바탕으로 상품명 바인딩
+        for(RegularOrderResponse.OfRetrieveDailySummary dailyOrderCount : regularOrderCountsForMonth) {
+            productOrderMap = response.getBody().getResult();
+            System.out.println(productOrderMap.size());
+            String productName = isAvailableProductService ? productOrderMap.get(dailyOrderCount.getMainProductId()).getProductName() : null;
             dailyOrderCount.bindProductName(productName);
             dailyOrderCount.setAvailableProductService(isAvailableProductService);
         }
