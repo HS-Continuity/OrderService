@@ -30,13 +30,14 @@ public class RegularOrderRequest {
     public static class OfCreation {
         private Long customerId;
         private String memberId;
+        private Long memberCouponId;
         private String orderMemo;
-        private String paymentCardId;
+        private Long paymentCardId;
         private ProductOrderList productOrderList;
         private DeliveryPeriod deliveryPeriod;
         private Recipient recipient;
 
-        public RegularDeliveryApplication toApplicationEntity() {
+        public RegularDeliveryApplication toApplicationEntity(RegularDeliveryStatus regularDeliveryStatus) {
             return RegularDeliveryApplication.builder()
                     .orderMemo(this.orderMemo)
                     .startDate(this.deliveryPeriod.startDate)
@@ -47,6 +48,11 @@ public class RegularOrderRequest {
                     .memberId(this.memberId)
                     .memberPaymentCardId(this.paymentCardId)
                     .address(this.recipient.getRecipientAddress())
+                    .customerId(this.customerId)
+                    .mainProductId(this.productOrderList.getProductOrderList().get(0).getProductId())
+                    .nextDeliveryDate(this.deliveryPeriod.startDate)
+                    .completedRounds(0)
+                    .regularDeliveryStatus(regularDeliveryStatus)
                     .build();
         }
 
@@ -61,7 +67,6 @@ public class RegularOrderRequest {
                             .startDate(deliveryDay)
                             .quantity(productOrder.getQuantity())
                             .productId(productOrder.getProductId())
-                            .quantity(productOrder.getQuantity())
                             .memberId(this.memberId)
                             .build())
                     .collect(Collectors.toList());
@@ -108,13 +113,13 @@ public class RegularOrderRequest {
     @Getter
     @Builder
     public static class ProductOrder {
-        private Long id;
+        private Long productId;
         private int quantity;
     }
 
     @Getter
     @NoArgsConstructor
     public static class ProductOrderList {
-        List<OrderRequest.ProductOrder> productOrderList;
+        List<ProductOrder> productOrderList;
     }
 }

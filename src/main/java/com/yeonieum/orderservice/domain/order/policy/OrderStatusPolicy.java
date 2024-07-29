@@ -30,14 +30,14 @@ public class OrderStatusPolicy {
 
         Map<OrderStatusCode, Set<String>> orderStatusPermissionMap = new EnumMap(OrderStatusCode.class);
         orderStatusPermissionMap.put(OrderStatusCode.PENDING, Collections.emptySet());
-        orderStatusPermissionMap.put(OrderStatusCode.CANCELED, Set.of("USER", "CUSTOMER"));
+        orderStatusPermissionMap.put(OrderStatusCode.CANCELED, Set.of("MEMBER", "CUSTOMER"));
         orderStatusPermissionMap.put(OrderStatusCode.PAYMENT_COMPLETED, Collections.emptySet());
         orderStatusPermissionMap.put(OrderStatusCode.PREPARING_PRODUCT, Set.of("CUSTOMER"));
         orderStatusPermissionMap.put(OrderStatusCode.AWAITING_RELEASE, Set.of("CUSTOMER"));
         orderStatusPermissionMap.put(OrderStatusCode.SHIPPED, Set.of("CUSTOMER"));
         orderStatusPermissionMap.put(OrderStatusCode.IN_DELIVERY, Collections.emptySet());
         orderStatusPermissionMap.put(OrderStatusCode.DELIVERED, Collections.emptySet());
-        orderStatusPermissionMap.put(OrderStatusCode.REFUND_REQUEST, Set.of("USER"));
+        orderStatusPermissionMap.put(OrderStatusCode.REFUND_REQUEST, Set.of("MEMBER"));
         orderStatusPermissionMap.put(OrderStatusCode.REFUNDED, Set.of("CUSTOMER"));
         orderStatusPermission = Collections.unmodifiableMap(orderStatusPermissionMap);
     }

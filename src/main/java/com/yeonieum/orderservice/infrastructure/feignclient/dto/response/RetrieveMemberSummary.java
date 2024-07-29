@@ -6,9 +6,7 @@ import lombok.NoArgsConstructor;
 
 @Getter
 @NoArgsConstructor
-public class RetrieveOrderInformationResponse {
-    Long productId;
-    String productName;
-    String productImage;
-    String storeName;
+public class RetrieveMemberSummary {
+    private String memberName;
+    private String memberPhoneNumber;
 }

@@ -132,6 +132,7 @@ public class OrderTrackingService {
             productResponse = productServiceFeignClient.retrieveOrderProductInformation(productIdList);
             isAvailableProductService = productResponse.getStatusCode().is2xxSuccessful();
         } catch (FeignException e) {
+            e.printStackTrace();
             isAvailableProductService = false;
         }
 
