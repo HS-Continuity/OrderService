@@ -1,6 +1,9 @@
 package com.yeonieum.orderservice.domain.order.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.yeonieum.orderservice.domain.delivery.repository.DeliveryStatusRepository;
 import com.yeonieum.orderservice.domain.order.dto.request.OrderRequest;
+import com.yeonieum.orderservice.domain.order.dto.response.OrderResponse;
 import com.yeonieum.orderservice.domain.order.entity.OrderDetail;
 import com.yeonieum.orderservice.domain.order.entity.OrderStatus;
 import com.yeonieum.orderservice.domain.order.entity.ProductOrderEntity;
@@ -19,6 +22,7 @@ import com.yeonieum.orderservice.global.enums.OrderStatusCode;
 import com.yeonieum.orderservice.global.enums.ReleaseStatusCode;
 import com.yeonieum.orderservice.infrastructure.feignclient.MemberServiceFeignClient;
 import com.yeonieum.orderservice.infrastructure.feignclient.ProductServiceFeignClient;
+import com.yeonieum.orderservice.infrastructure.messaging.producer.OrderNotificationKafkaProducer;
 import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -46,6 +50,7 @@ public class OrderProcessService {
     private final ProductServiceFeignClient stockFeignClient;
     private final MemberServiceFeignClient memberServiceFeignClient;
     private final OrderStatusPolicy orderStatusPolicy;
+    private final OrderNotificationKafkaProducer orderNotificationKafkaProducer;
     private static final String CANCELLED_PAYMENT_AMOUNT = "cancelledPaymentAmount";
     private static final String CANCELLED_DISCOUNT_AMOUNT = "cancelledDiscountAmount";
     private static final String CANCELLED_ORIGIN_PRODUCT_PRICE = "cancelledOriginProductPrice";
@@ -99,7 +104,7 @@ public class OrderProcessService {
         OrderDetail orderDetail = orderDetailRepository.findById(updateProductOrderStatus.getOrderId())
                 .orElseThrow(() -> new OrderException(ORDER_NOT_FOUND, HttpStatus.NOT_FOUND));
 
-        // TODO : 상품 json 변경감지 할 수 있는지 테스트 예정 -> 명시적 save
+        // TODO : 상품 json 변경감지 할 수 있는지 테스트 예정 -> deepcopy 활용
 
         List<ProductOrderEntity> productOrderEntityList = orderDetail.getOrderList().getProductOrderEntityList();
         ProductOrderEntity productOrder = productOrderEntityList.stream().filter(productOrderEntity ->
@@ -136,7 +141,7 @@ public class OrderProcessService {
      * @param orderCreation
      */
     @Transactional(rollbackFor = {RuntimeException.class})
-    public void placeOrder(OrderRequest.OfCreation orderCreation, String memberId) {
+    public OrderResponse.OfResultPlaceOrder placeOrder(OrderRequest.OfCreation orderCreation, String memberId) throws JsonProcessingException {
         if(orderCreation.getMemberCouponId() != null) {
             try {
                 boolean result = memberServiceFeignClient.useMemberCouponStatus(orderCreation.getMemberCouponId()).getBody().getResult();
@@ -155,6 +160,7 @@ public class OrderProcessService {
             responses = checkAvailableProductOrder(orderCreation, orderDetailId);
             isAvailableProductService = responses.getStatusCode().is2xxSuccessful() ? true : false;
         } catch (FeignException e) {
+            e.printStackTrace();
             isAvailableProductService = false;
         }
         OrderStatus orderStatus = null;
@@ -171,27 +177,33 @@ public class OrderProcessService {
         OrderDetail orderDetail = orderCreation.toOrderDetailEntity(memberId, orderStatus, orderDetailId);
         // 주문서에 대한 결제 요청 & 결제 완료 됐으면 주문서 상태 변경
         final boolean isPayment = isAvailableProductService ? checkPaymentValidation() : false;
-        final OrderStatus pending = orderStatusRepository.findByStatusName(OrderStatusCode.PAYMENT_COMPLETED);
+        final OrderStatus pending = orderStatusRepository.findByStatusName(OrderStatusCode.PENDING);
         final OrderStatus paymentCompleted = orderStatusRepository.findByStatusName(OrderStatusCode.PAYMENT_COMPLETED);
         final OrderStatus cancel = orderStatusRepository.findByStatusName(OrderStatusCode.CANCELED);
 
         // 결제성공시 각 상품 주문 상태 수정
         final boolean finalIsAvailableProductService = isAvailableProductService;
-
         orderDetail.getOrderList().getProductOrderEntityList().stream()
                 .filter(productOrder -> productOrder.getStatus().equals(pending.getStatusName()))
-                .peek(productOrder -> productOrder.changeStatus(finalIsAvailableProductService && isPayment ? paymentCompleted.getStatusName() : cancel.getStatusName()));
+                .forEach(productOrder -> productOrder.changeStatus(finalIsAvailableProductService && isPayment ? paymentCompleted.getStatusName() : cancel.getStatusName()));
         orderDetail.changeOrderStatus(finalIsAvailableProductService && isPayment ? paymentCompleted : cancel);
         orderDetail.changeOrderList(orderDetail.getOrderList()); // deepcopy
 
         orderDetailRepository.save(orderDetail);
         paymentInformationRepository.save(orderCreation.toPaymentInformationEntity(
                 orderDetail,
+                "1234-5678-1234-5678",
                 paymentAmountMap != null ? paymentAmountMap.get(CANCELLED_DISCOUNT_AMOUNT) : 0,
                 paymentAmountMap != null ? paymentAmountMap.get(CANCELLED_PAYMENT_AMOUNT) : 0,
                 paymentAmountMap != null ? paymentAmountMap.get(CANCELLED_ORIGIN_PRODUCT_PRICE) : 0));
-        // 주문 생성 후 카카오톡 알림, sse 고객에게 푸시
+
+        return OrderResponse.OfResultPlaceOrder.builder()
+                .isPayment(isPayment)
+                .paymentAmount(isPayment ? orderCreation.getPaymentAmount() : 0)
+                .orderDetailId(orderDetailId)
+                .build();
     }
+
 
     /**
      * 주문상품에 대한 재고 확인 서비스
@@ -245,7 +257,7 @@ public class OrderProcessService {
 
         for (OrderRequest.ProductOrder product : productOrderList.getProductOrderList()) {
             stockUsageDtoList.add(StockUsageRequest.OfIncreasing.builder()
-                    .orderId(orderDetailId)
+                    .orderDetailId(orderDetailId)
                     .productId(product.getProductId())
                     .quantity(product.getQuantity())
                     .build());

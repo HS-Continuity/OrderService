@@ -15,7 +15,7 @@ import java.util.List;
 public interface OrderDetailRepository extends JpaRepository<OrderDetail, String>, OrderDetailRepositoryCustom {
     @Query(value = "SELECT o FROM OrderDetail o WHERE o.memberId =" +
             ":memberId AND o.orderDateTime BETWEEN :startDate AND" +
-            ":endDate ORDER BY o.orderDateTime DESC")
+            ":endDate ORDER BY o.orderDateTime ASC")
     Page<OrderDetail> findByMemberId(@Param("memberId")String memberId,
                                      @Param("startDate") LocalDateTime startDate,
                                      @Param("endDate") LocalDateTime endDate,

@@ -2,9 +2,7 @@ package com.yeonieum.orderservice.domain.regularorder.dto.response;
 
 import com.yeonieum.orderservice.domain.order.dto.request.OrderRequest;
 import com.yeonieum.orderservice.domain.regularorder.entity.RegularDeliveryApplication;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.ToString;
+import lombok.*;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -28,7 +26,7 @@ public class RegularOrderResponse {
                     .regularOrderId(application.getRegularDeliveryApplicationId())
                     .productOrder(productOrder)
                     .orderProductAmount(application.getOrderedProductCount())
-                    .orderDate(application.getCreatedAt())
+                    .orderDate(application.getNextDeliveryDate())
                     .build();
         }
     }
@@ -56,7 +54,7 @@ public class RegularOrderResponse {
                     .productOrderList(orderList)
                     .recipient(Recipient.convertedBy(application))
                     .deliveryPeriod(DeliveryPeriod.convertedBy(application))
-                    .nextDeliveryDate(application.getCreatedAt().plusDays(application.getCycle()))
+                    .nextDeliveryDate(application.getNextDeliveryDate())
                     .isAvailableProductService(isAvailableProductService)
                     .build();
         }
@@ -132,6 +130,8 @@ public class RegularOrderResponse {
 
     @Getter
     @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
     public static class ProductOrder {
         Long productId;
         String productName;
