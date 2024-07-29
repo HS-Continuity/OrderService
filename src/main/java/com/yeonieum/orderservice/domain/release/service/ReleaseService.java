@@ -9,6 +9,7 @@ import com.yeonieum.orderservice.domain.order.dto.response.OrderResponse;
 import com.yeonieum.orderservice.domain.order.entity.OrderDetail;
 import com.yeonieum.orderservice.domain.order.entity.OrderStatus;
 import com.yeonieum.orderservice.domain.order.entity.ProductOrderEntity;
+import com.yeonieum.orderservice.domain.order.exception.OrderException;
 import com.yeonieum.orderservice.domain.order.policy.OrderStatusPolicy;
 import com.yeonieum.orderservice.domain.order.repository.OrderDetailRepository;
 import com.yeonieum.orderservice.domain.order.repository.OrderStatusRepository;
@@ -17,6 +18,7 @@ import com.yeonieum.orderservice.domain.release.dto.ReleaseResponse;
 import com.yeonieum.orderservice.domain.release.dto.ReleaseSummaryResponse;
 import com.yeonieum.orderservice.domain.release.entity.Release;
 import com.yeonieum.orderservice.domain.release.entity.ReleaseStatus;
+import com.yeonieum.orderservice.domain.release.exception.ReleaseException;
 import com.yeonieum.orderservice.domain.release.policy.ReleaseStatusPolicy;
 import com.yeonieum.orderservice.domain.release.repository.ReleaseRepository;
 import com.yeonieum.orderservice.domain.release.repository.ReleaseStatusRepository;
@@ -30,6 +32,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,6 +42,10 @@ import java.util.Date;
 import java.util.List;
 import java.util.Random;
 import java.util.stream.Collectors;
+
+import static com.yeonieum.orderservice.domain.order.exception.OrderExceptionCode.*;
+import static com.yeonieum.orderservice.domain.release.exception.ReleaseExceptionCode.*;
+import static com.yeonieum.orderservice.domain.release.exception.ReleaseExceptionCode.INVALID_ACCESS;
 
 @Service
 @RequiredArgsConstructor
@@ -58,16 +65,16 @@ public class ReleaseService {
     /**
      * 상품의 출고 상태 수정 (출고 대기 -> 출고 보류, 출고 대기 -> 출고 완료, 출고 보류 -> 출고 완료)
      * @param updateStatus (주문 ID, 업데이트 될 출고 상태값) DTO
-     * @throws IllegalStateException 존재하지 않는 주문 ID인 경우
-     * @throws RuntimeException 출고 상태 트랜지션 룰 위반일 경우
-     * @throws RuntimeException 주문 상태 트랜지션 룰 위반일 경우
+     * @throws OrderException 존재하지 않는 주문 ID인 경우
+     * @throws ReleaseException 출고 상태 트랜지션 룰 위반일 경우
+     * @throws OrderException 주문 상태 트랜지션 룰 위반일 경우
      * @return
      */
     @Transactional
     public void changReleaseStatus (ReleaseRequest.OfUpdateReleaseStatus updateStatus) {
         // 주문 상세 정보 조회
         OrderDetail targetOrderDetail = orderDetailRepository.findById(updateStatus.getOrderId())
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 주문 ID 입니다."));
+                .orElseThrow(() -> new OrderException(ORDER_NOT_FOUND, HttpStatus.NOT_FOUND));
 
         //주문내역과 출고는 1:1 관계 -> 주문내역 ID로 찾기
         Release targetRelease = releaseRepository.findByOrderDetailId(updateStatus.getOrderId());
@@ -82,7 +89,7 @@ public class ReleaseService {
 
         // 출고 상태 전환 규칙 검증
         if(!releaseStatusPolicy.getReleaseStatusTransitionRule().get(requestedStatusCode).getRequiredPreviosConditionSet().contains(releaseStatus)) {
-            throw new RuntimeException("출고상태 트랜지션 룰 위반!");
+            throw new ReleaseException(RELEASE_STATUS_TRANSITION_RULE_VIOLATION, HttpStatus.CONFLICT);
         }
 
         OrderStatus presentOrderStatus = null;
@@ -95,7 +102,6 @@ public class ReleaseService {
             case HOLD_RELEASE -> {
                 //출고객체의 출고 상태 '출고 보류'로 변경
                 targetRelease.changeReleaseStatus(requestedStatus);
-
             }
 
             //출고 완료 -> 배송 객체 생성 (배송시작)
@@ -103,7 +109,7 @@ public class ReleaseService {
 
                 //배송시작일을 입력하지 않을 경우, 출고 완료로 변경 X
                 if(targetRelease.getStartDeliveryDate() == null){
-                    throw new IllegalStateException("배송시작일을 입력하지 않으셨습니다!");
+                    throw new ReleaseException(START_DELIVERY_DATE_NOT_PROVIDED, HttpStatus.CONFLICT);
                 }
 
                 //출고객체의 출고 상태 '출고 완료'로 변경
@@ -120,7 +126,7 @@ public class ReleaseService {
                 presentOrderStatus = orderStatusRepository.findByStatusName(OrderStatusCode.SHIPPED);
                 presentOrderStatusCode = OrderStatusCode.SHIPPED;
                 if(!orderStatusPolicy.getOrderStatusTransitionRule().get(presentOrderStatus.getStatusName()).getRequiredPreviosConditionSet().contains(orderStatus)) {
-                    throw new RuntimeException("주문상태 트랜지션 룰 위반!");
+                    throw new OrderException(ORDER_STATUS_TRANSITION_RULE_VIOLATION, HttpStatus.CONFLICT);
                 }
 
                 // 주문 상태 업데이트
@@ -130,7 +136,7 @@ public class ReleaseService {
                     productOrderEntity.changeStatus(presentOrderStatusCode);
                 }
             }
-            default -> throw new RuntimeException("잘못된 접근입니다.");
+            default -> new ReleaseException(INVALID_ACCESS, HttpStatus.CONFLICT);
         }
 
         // 명시적 저장
@@ -171,7 +177,7 @@ public class ReleaseService {
         Release targetRelease = releaseRepository.findByOrderDetailId(updateDeliveryDate.getOrderId());
 
         if (targetRelease == null) {
-            throw new IllegalArgumentException("존재하지 않는 주문 ID 입니다.");
+            throw new OrderException(ORDER_NOT_FOUND, HttpStatus.NOT_FOUND);
         }
 
         targetRelease.changeStartDeliveryDate(updateDeliveryDate.getStartDeliveryDate());
@@ -181,7 +187,7 @@ public class ReleaseService {
     /**
      * 출고 메모 작성
      * @param updateMemo 출고 메모 작성 DTO
-     * @throws IllegalStateException 존재하지 않는 주문 ID인 경우
+     * @throws OrderException 존재하지 않는 주문 ID인 경우
      */
     @Transactional
     public void changeReleaseMemo (ReleaseRequest.OfRegisterMemo updateMemo) {
@@ -189,7 +195,7 @@ public class ReleaseService {
         Release targetRelease = releaseRepository.findByOrderDetailId(updateMemo.getOrderId());
 
         if (targetRelease == null) {
-            throw new IllegalArgumentException("존재하지 않는 주문 ID 입니다.");
+            throw new OrderException(ORDER_NOT_FOUND, HttpStatus.NOT_FOUND);
         }
 
         targetRelease.changeReleaseMemo(updateMemo.getMemo());
@@ -198,8 +204,8 @@ public class ReleaseService {
 
     /**
      * 출고 보류 사유 메모 작성 (출고 상태가 '출고 보류'일 경우만 작성 가능)
-     * @throws IllegalStateException 존재하지 않는 주문 ID인 경우
-     * @throws IllegalStateException 출고 상태가 '출고 보류'가 아닌 경우
+     * @throws OrderException 존재하지 않는 주문 ID인 경우
+     * @throws ReleaseException 출고 상태가 '출고 보류'가 아닌 경우
      * @param updateHoldMemo 출고 보류 메모 작성 DTO
      */
     @Transactional
@@ -208,11 +214,11 @@ public class ReleaseService {
         Release targetRelease = releaseRepository.findByOrderDetailId(updateHoldMemo.getOrderId());
 
         if (targetRelease == null) {
-            throw new IllegalArgumentException("존재하지 않는 주문 ID 입니다.");
+            throw new OrderException(ORDER_NOT_FOUND, HttpStatus.NOT_FOUND);
         }
 
         if(targetRelease.getReleaseStatus().getStatusName() != ReleaseStatusCode.HOLD_RELEASE){
-            throw new IllegalStateException("현재 출고 상태가 '출고 보류' 상태가 아닙니다.");
+            throw new ReleaseException(INVALID_RELEASE_STATUS_CODE, HttpStatus.CONFLICT);
         }
 
         targetRelease.changeReleaseHoldReason(updateHoldMemo.getMemo());
@@ -222,9 +228,9 @@ public class ReleaseService {
     /**
      * 상품의 출고 상태 일괄 수정 (출고 대기 -> 출고 보류, 출고 대기 -> 출고 완료, 출고 보류 -> 출고 완료)
      * @param bulkUpdateStatus (업데이틀 될 여러 주문 ID 들, 업데이트 될 출고 상태값) DTO
-     * @throws IllegalStateException 존재하지 않는 주문 ID인 경우
-     * @throws RuntimeException 출고 상태 트랜지션 룰 위반일 경우
-     * @throws RuntimeException 주문 상태 트랜지션 룰 위반일 경우
+     * @throws OrderException 존재하지 않는 주문 ID인 경우
+     * @throws ReleaseException 출고 상태 트랜지션 룰 위반일 경우
+     * @throws OrderException 주문 상태 트랜지션 룰 위반일 경우
      * @return
      */
     @Transactional
@@ -234,7 +240,7 @@ public class ReleaseService {
 
         // 요청된 ID 수와 조회된 결과 수가 다르면 존재하지 않는 ID가 있다는 의미
         if (orderDetails.size() != bulkUpdateStatus.getOrderIds().size()) {
-            throw new IllegalArgumentException("하나 이상의 주문 ID가 존재하지 않습니다.");
+            throw new OrderException(ORDER_ID_NOT_FOUND, HttpStatus.NOT_FOUND);
         }
 
         // 요청된 출고 상태 객체를 가져옴
@@ -250,7 +256,7 @@ public class ReleaseService {
 
             // 출고 상태 전환 규칙 확인
             if (!releaseStatusPolicy.getReleaseStatusTransitionRule().get(requestedStatusCode).getRequiredPreviosConditionSet().contains(currentReleaseStatus)) {
-                throw new RuntimeException("출고 상태 전환 규칙 위반!");
+                throw new ReleaseException(RELEASE_STATUS_TRANSITION_RULE_VIOLATION, HttpStatus.CONFLICT);
             }
 
 
@@ -269,7 +275,8 @@ public class ReleaseService {
      * 상품의 출고 상태 일괄 수정에 주문 및 배송 상태 변경
      * @param orderDetail 주문내역 엔티티
      * @param requestedStatusCode 요청된 상태 코드
-     * @throws RuntimeException 주문 상태 트랜지션 룰 위반일 경우
+     * @throws ReleaseException 배송일을 입력하지 않고, 출고 완료를 하려는 경우
+     * @throws ReleaseException 잘못된 출고 상태 코드인 경우
      * @return
      */
     private void updateOrderAndDeliveryStatus(OrderDetail orderDetail,
@@ -289,7 +296,7 @@ public class ReleaseService {
 
                     //배송시작일을 입력하지 않을 경우, 출고 완료로 변경 X
                     if(targetRelease.getStartDeliveryDate() == null){
-                        throw new IllegalStateException("배송시작일을 입력하지 않으셨습니다!");
+                        throw new ReleaseException(DELIVERY_DATE_REQUIRED, HttpStatus.CONFLICT);
                     }
 
                     // 출고 완료 상태일 경우, 배송 객체 생성
@@ -317,7 +324,7 @@ public class ReleaseService {
                 }
                 break;
             default:
-                throw new IllegalArgumentException("잘못된 출고 상태 코드입니다.");
+                throw new ReleaseException(INVALID_ACCESS, HttpStatus.CONFLICT);
         }
         orderDetailRepository.save(orderDetail);
     }
@@ -325,10 +332,10 @@ public class ReleaseService {
     /**
      * 고객의 합포장 신청
      * @param bulkUpdateStatus (업데이틀 될 여러 주문 ID 들, 업데이트 될 출고 상태값) DTO
-     * @throws IllegalStateException 존재하지 않는 주문 ID인 경우
-     * @throws IllegalStateException 출고 상태가 합포장완료가 아닌 경우
-     * @throws RuntimeException 출고 상태 트랜지션 룰 위반일 경우
-     * @throws IllegalStateException 출고 상품들의 정보가 모두 일치하지 않은 경우
+     * @throws OrderException 존재하지 않는 주문 ID인 경우
+     * @throws ReleaseException 출고 상태가 합포장완료가 아닌 경우
+     * @throws ReleaseException 출고 상태 트랜지션 룰 위반일 경우
+     * @throws ReleaseException 출고 상품들의 정보가 모두 일치하지 않은 경우
      * @return
      */
     @Transactional
@@ -338,7 +345,7 @@ public class ReleaseService {
 
         // 요청된 ID 수와 조회된 결과 수가 다르면 존재하지 않는 ID가 있다는 의미
         if (orderDetails.size() != bulkUpdateStatus.getOrderIds().size()) {
-            throw new IllegalArgumentException("하나 이상의 주문 ID가 존재하지 않습니다.");
+            throw new OrderException(ORDER_ID_NOT_FOUND, HttpStatus.NOT_FOUND);
         }
 
         // 요청된 출고 상태 객체 정보
@@ -365,7 +372,7 @@ public class ReleaseService {
                     .deliveryFee(deliveryFee)
                     .build());
         } else {
-            throw new IllegalStateException("업데이트 할 출고 상태 코드가 합포장인지 확인해주세요.");
+            throw new ReleaseException(INVALID_RELEASE_STATUS_CODE, HttpStatus.CONFLICT);
         }
 
         if(isUniformOrder){
@@ -376,7 +383,7 @@ public class ReleaseService {
 
                 // 출고 상태 전환 규칙 확인
                 if (!releaseStatusPolicy.getReleaseStatusTransitionRule().get(requestedStatusCode).getRequiredPreviosConditionSet().contains(currentReleaseStatus)) {
-                    throw new RuntimeException("출고 상태 전환 규칙 위반!");
+                    throw new ReleaseException(RELEASE_STATUS_TRANSITION_RULE_VIOLATION, HttpStatus.CONFLICT);
                 }
 
                 // 출고 상태 업데이트
@@ -401,7 +408,7 @@ public class ReleaseService {
                 orderDetailRepository.save(orderDetail);
             }
         } else {
-            throw new IllegalStateException("선택한 상품들의 회원, 배송지, 배송일, 출고 상태가 같은지 확인해주세요.");
+            throw new ReleaseException(UNIFORM_ORDER_VIOLATION, HttpStatus.CONFLICT);
         }
     }
 

@@ -67,7 +67,7 @@ public class OrderProcessService {
         OrderStatusCode requestedStatusCode = requestedStatus.getStatusName();
         OrderStatusCode orderStatus = orderDetail.getOrderStatus().getStatusName();
         if (!orderStatusPolicy.getOrderStatusTransitionRule().get(requestedStatusCode).getRequiredPreviosConditionSet().contains(orderStatus)) {
-            throw new OrderException(ORDER_STATUS_TRANSITION_RULE_VIOLATION, HttpStatus.BAD_REQUEST);
+            throw new OrderException(ORDER_STATUS_TRANSITION_RULE_VIOLATION, HttpStatus.CONFLICT);
         }
 
         switch (updateStatus.getOrderStatusCode()) {
@@ -79,7 +79,7 @@ public class OrderProcessService {
                         .build());
             }
             case PREPARING_PRODUCT, CANCELED, REFUND_REQUEST, REFUNDED -> orderDetail.changeOrderStatus(requestedStatus);
-            default -> throw new OrderException(INVALID_ACCESS, HttpStatus.BAD_REQUEST);
+            default -> throw new OrderException(INVALID_ACCESS, HttpStatus.CONFLICT);
         }
         // 주문 상태 변경
         orderDetail.changeOrderStatus(requestedStatus);
@@ -110,14 +110,14 @@ public class OrderProcessService {
         OrderStatusCode requestedStatusCode = requestedStatus.getStatusName();
         OrderStatusCode productOrderStatus = productOrder.getStatus();
         if (!orderStatusPolicy.getOrderStatusTransitionRule().get(requestedStatusCode).getRequiredPreviosConditionSet().contains(productOrderStatus)) {
-            throw new OrderException(ORDER_STATUS_TRANSITION_RULE_VIOLATION, HttpStatus.BAD_REQUEST);
+            throw new OrderException(ORDER_STATUS_TRANSITION_RULE_VIOLATION, HttpStatus.CONFLICT);
         }
 
 
         switch (updateProductOrderStatus.getOrderStatusCode()) {
             case CANCELED, REFUND_REQUEST, REFUNDED ->
                     productOrder.changeStatus(updateProductOrderStatus.getOrderStatusCode());
-            default -> throw new OrderException(INVALID_ACCESS, HttpStatus.BAD_REQUEST);
+            default -> throw new OrderException(INVALID_ACCESS, HttpStatus.CONFLICT);
         }
         orderDetail.changeOrderList(orderDetail.getOrderList()); // deepcopy
         orderDetailRepository.save(orderDetail);
@@ -292,7 +292,7 @@ public class OrderProcessService {
 
         // 요청된 ID 수와 조회된 결과 수가 다르면 존재하지 않는 ID가 있다는 의미
         if (orderDetails.size() != bulkUpdateStatus.getOrderIds().size()) {
-            throw new OrderException(ORDER_NOT_FOUND, HttpStatus.BAD_REQUEST);
+            throw new OrderException(ORDER_ID_NOT_FOUND, HttpStatus.CONFLICT);
         }
 
         OrderStatus requestedStatus = orderStatusRepository.findByStatusName(bulkUpdateStatus.getOrderStatusCode());
@@ -303,7 +303,7 @@ public class OrderProcessService {
             OrderStatusCode currentOrderStatus = orderDetail.getOrderStatus().getStatusName();
 
             if (!orderStatusPolicy.getOrderStatusTransitionRule().get(requestedStatusCode).getRequiredPreviosConditionSet().contains(currentOrderStatus)) {
-                throw new OrderException(ORDER_STATUS_TRANSITION_RULE_VIOLATION, HttpStatus.BAD_REQUEST);
+                throw new OrderException(ORDER_STATUS_TRANSITION_RULE_VIOLATION, HttpStatus.CONFLICT);
             }
 
             // 주문 상태 변경
@@ -326,7 +326,7 @@ public class OrderProcessService {
                     orderDetail.getOrderList().getProductOrderEntityList().forEach(productOrderEntity ->
                             productOrderEntity.changeStatus(requestedStatusCode));
                 }
-                default -> throw new OrderException(INVALID_ACCESS, HttpStatus.BAD_REQUEST);
+                default -> throw new OrderException(INVALID_ACCESS, HttpStatus.CONFLICT);
             }
             orderDetail.changeOrderList(orderDetail.getOrderList()); // deepcopy
             orderDetailRepository.save(orderDetail); // 명시적 저장
