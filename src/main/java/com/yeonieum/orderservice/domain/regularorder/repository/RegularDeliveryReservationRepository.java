@@ -4,6 +4,7 @@ import com.yeonieum.orderservice.domain.regularorder.entity.RegularDeliveryReser
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import java.util.List;
 
 public interface RegularDeliveryReservationRepository extends JpaRepository<RegularDeliveryReservation, Long>, RegularDeliveryReservationRepositoryCustom {
     @Query("SELECT r FROM RegularDeliveryReservation r " +
@@ -11,7 +12,7 @@ public interface RegularDeliveryReservationRepository extends JpaRepository<Regu
             "WHERE a.regularDeliveryApplicationId = :applicationId " +
             "AND r.productId = :productId " +
             "AND r.deliveryRounds = a.completedRounds + 1")
-    RegularDeliveryReservation findByDeliveryApplicationAndProductId(@Param("applicationId") Long applicationId,
-                                                                     @Param("productId") Long productId);
+    List<RegularDeliveryReservation> findByDeliveryApplicationAndProductId(@Param("applicationId") Long applicationId,
+                                                                           @Param("productId") Long productId);
 
 }
