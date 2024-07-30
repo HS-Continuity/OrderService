@@ -7,7 +7,8 @@ import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 public interface OrderDetailRepositoryCustom {
-    Page<OrderDetail> findOrders(Long customerId, OrderStatusCode orderStatusCode, String orderDetailId, LocalDateTime orderDateTime, String recipient, String recipientPhoneNumber, String recipientAddress, String memberId, LocalDate startDate, LocalDate endDate, Pageable pageable);
+    Page<OrderDetail> findOrders(Long customerId, OrderStatusCode orderStatusCode, String orderDetailId, LocalDateTime orderDateTime, String recipient, String recipientPhoneNumber, String recipientAddress, String memberId, List<String> memberIds, LocalDate startDate, LocalDate endDate, Pageable pageable);
 }
