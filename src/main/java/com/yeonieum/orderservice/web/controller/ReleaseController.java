@@ -46,7 +46,7 @@ public class ReleaseController {
                                                           @RequestParam(required = false, defaultValue = "0") int page,
                                                           @RequestParam(required = false, defaultValue = "10") int size) {
         return new ResponseEntity<>(ApiResponse.builder()
-                .result(releaseService.getReleaseDetailsByCustomerAndStatus(customerId, releaseStatus, orderId, startDeliveryDate, recipient, recipientPhoneNumber, recipientAddress, memberId, memberName, memberPhoneNumber, startDate, endDate, PageRequest.of(page, size)))
+                .result(releaseService.getReleaseDetailsByFilteredMembers(customerId, releaseStatus, orderId, startDeliveryDate, recipient, recipientPhoneNumber, recipientAddress, memberId, memberName, memberPhoneNumber, startDate, endDate, PageRequest.of(page, size)))
                 .successCode(SuccessCode.SELECT_SUCCESS)
                 .build(), HttpStatus.OK);
     }

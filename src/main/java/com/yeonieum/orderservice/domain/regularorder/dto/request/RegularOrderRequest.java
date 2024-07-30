@@ -25,7 +25,6 @@ public class RegularOrderRequest {
         Long productId;
     }
 
-
     @Getter
     @NoArgsConstructor
     public static class OfCreation {

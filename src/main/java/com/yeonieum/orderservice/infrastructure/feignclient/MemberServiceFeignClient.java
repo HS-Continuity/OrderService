@@ -10,8 +10,16 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import java.util.List;
+
 @FeignClient(name = "memberservice", url = "http://localhost:8010", configuration = FeignConfig.class)
 public interface MemberServiceFeignClient {
+
+    @GetMapping("/api/member/summaries")
+    ResponseEntity<ApiResponse<List<OrderResponse.MemberInfo>>> getOrderMemberInfos(@RequestParam List<String> memberIds);
+
+    @GetMapping("/api/member/filter")
+    ResponseEntity<ApiResponse<List<String>>> getOrderMemberFilter(@RequestParam(required = false) String memberName, @RequestParam(required = false) String memberPhoneNumber);
 
     @GetMapping("/api/member/order")
     ResponseEntity<ApiResponse<OrderResponse.MemberInfo>> getOrderMemberInfo(@RequestParam String memberId);
