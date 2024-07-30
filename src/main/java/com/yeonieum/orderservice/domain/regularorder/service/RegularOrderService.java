@@ -193,6 +193,8 @@ public class RegularOrderService {
         application.getRegularDeliveryReservationList().stream().forEach(reservation -> {
             finalProductOrderMap.get(reservation.getProductId()).changeProductAmount(reservation.getQuantity());
         });
+
+
         return RegularOrderResponse.OfRetrieveDetails.convertedBy(application, productOrderMap, isAvailableProductService);
     }
 
