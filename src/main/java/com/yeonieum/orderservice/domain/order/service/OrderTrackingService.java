@@ -25,6 +25,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+
+import java.util.*;
+
 import java.util.stream.Collectors;
 
 @Service
@@ -67,12 +70,13 @@ public class OrderTrackingService {
                 .collect(Collectors.toList());
 
         boolean isAvailableProductService = true;
-        ResponseEntity<ApiResponse<List<RetrieveOrderInformationResponse>>> productResponse = null;
+        ResponseEntity<ApiResponse<Set<RetrieveOrderInformationResponse>>> productResponse = null;
 
         try{
             productResponse = productServiceFeignClient.retrieveOrderProductInformation(productIdList);
             isAvailableProductService = productResponse.getStatusCode().is2xxSuccessful();
         } catch (FeignException e) {
+            e.printStackTrace();
             isAvailableProductService = false;
         }
 
@@ -90,9 +94,12 @@ public class OrderTrackingService {
                     OrderResponse.OfRetrieveForCustomer.convertedBy(orderDetail, memberInfo, isAvailableProductService, isAvailableMemberService);
 
             if(isAvailableProductService) {
-                List<RetrieveOrderInformationResponse> productInformation = productResponse.getBody().getResult();
-                final Map<Long, RetrieveOrderInformationResponse> productInformationMap =
-                        productInformation.stream().collect(Collectors.toMap(RetrieveOrderInformationResponse::getProductId, product -> product));
+                Set<RetrieveOrderInformationResponse> productInformation = productResponse.getBody().getResult();
+                final Map<Long, RetrieveOrderInformationResponse> productInformationMap = new HashMap<>();
+
+                for(RetrieveOrderInformationResponse product : productInformation) {
+                    productInformationMap.put(product.getProductId(), product);
+                }
 
                 orderResponse.getProductOrderList().getProductOrderList().stream().map(
                         productOrder -> {
@@ -102,6 +109,7 @@ public class OrderTrackingService {
             }
             convertedOrders.add(orderResponse);
         }
+
 
         return new PageImpl<>(convertedOrders, pageable, orderDetailsPage.getTotalElements());
     }
@@ -134,7 +142,7 @@ public class OrderTrackingService {
         List<Long> productIdList = orderDetailsPage.getContent().stream().map(orderDetail -> orderDetail.getMainProductId()).collect(Collectors.toList());
 
         boolean isAvailableProductService = true;
-        ResponseEntity<ApiResponse<List<RetrieveOrderInformationResponse>>> productResponse = null;
+        ResponseEntity<ApiResponse<Set<RetrieveOrderInformationResponse>>> productResponse = null;
         try {
             productResponse = productServiceFeignClient.retrieveOrderProductInformation(productIdList);
             isAvailableProductService = productResponse.getStatusCode().is2xxSuccessful();
@@ -144,12 +152,20 @@ public class OrderTrackingService {
         }
 
         if(isAvailableProductService) {
-            List<RetrieveOrderInformationResponse> productInformationList = productResponse.getBody().getResult();
-            Map<Long, RetrieveOrderInformationResponse> productInformationMap =
-                    productInformationList.stream().collect(Collectors.toMap(RetrieveOrderInformationResponse::getProductId, product -> product));
+            Set<RetrieveOrderInformationResponse> productInformationList = productResponse.getBody().getResult();
+            Map<Long, RetrieveOrderInformationResponse> productInformationMap = new HashMap();
+            for(RetrieveOrderInformationResponse productInformation : productInformationList) {
+                System.out.println(productInformation.getProductImage());
+            }
+            productInformationList.forEach(productInformation -> {
+                productInformationMap.put(productInformation.getProductId(), productInformation);
+            });
 
-            return orderDetailsPage.map(orderDetail -> OrderResponse.OfRetrieveForMember
-                    .convertedBy(orderDetail, productInformationMap.get(orderDetail.getMainProductId()), true));
+            return orderDetailsPage.map(orderDetail -> {
+                System.out.println(orderDetail.getMainProductId());
+                return OrderResponse.OfRetrieveForMember
+                        .convertedBy(orderDetail, productInformationMap.get(orderDetail.getMainProductId()), true);
+            });
         }
 
         return orderDetailsPage.map(orderDetail -> OrderResponse.OfRetrieveForMember

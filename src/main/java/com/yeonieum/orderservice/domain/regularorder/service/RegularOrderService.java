@@ -1,5 +1,6 @@
 package com.yeonieum.orderservice.domain.regularorder.service;
 
+import com.yeonieum.orderservice.domain.order.dto.response.OrderResponse;
 import com.yeonieum.orderservice.domain.regularorder.dto.request.RegularOrderRequest;
 import com.yeonieum.orderservice.domain.regularorder.dto.response.RegularOrderResponse;
 import com.yeonieum.orderservice.domain.regularorder.entity.RegularDeliveryApplication;
@@ -12,10 +13,10 @@ import com.yeonieum.orderservice.domain.regularorder.repository.RegularDeliveryS
 import com.yeonieum.orderservice.global.enums.DayOfWeek;
 import com.yeonieum.orderservice.global.enums.RegularDeliveryStatusCode;
 import com.yeonieum.orderservice.global.responses.ApiResponse;
+import com.yeonieum.orderservice.infrastructure.feignclient.MemberServiceFeignClient;
 import com.yeonieum.orderservice.infrastructure.feignclient.ProductServiceFeignClient;
 import feign.FeignException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.cglib.core.Local;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
@@ -44,29 +45,93 @@ public class RegularOrderService {
     private final RegularDeliveryReservationRepository regularDeliveryReservationRepository;
     private final RegularDeliveryStatusRepository regularDeliveryStatusRepository;
     private final RegularDeliveryApplicationDayRepository regularDeliveryApplicationDayRepository;
-    private final ProductServiceFeignClient feignClient;
+    private final ProductServiceFeignClient productFeignClient;
+    private final MemberServiceFeignClient memberServiceFeignClient;
 
+    /**
+     * 고객용 월별 정기주문 조회(캘린더)
+     * @param date
+     * @param customerId
+     * @param pageable
+     * @return
+     */
     @Transactional
-    public List<RegularOrderResponse.OfRetrieveDailyCount> retrieveRegularOrderCountsBetween(LocalDate startDate, LocalDate endDate, Long customerId) {
-        List<RegularOrderResponse.OfRetrieveDailyCount> regularOrderCountsForMonth = regularDeliveryReservationRepository.findRegularOrderCountsBetween(startDate, endDate, customerId);
+    public Page<RegularOrderResponse.OfRetrieveDailyDetail> retrieveRegularOrderList(LocalDate date, Long customerId,Pageable pageable) {
+        Page<RegularOrderResponse.OfRetrieveDailyDetail> regularOrderCountsForMonth = regularDeliveryReservationRepository.findRegularOrderList(date, customerId, pageable);
+        if(regularOrderCountsForMonth.getContent().size() == 0) {
+            return null;
+        }
+        ResponseEntity<ApiResponse<Map<Long, RegularOrderResponse.ProductOrder>>> productResponse = null;
+        ResponseEntity<ApiResponse<Map<String, OrderResponse.MemberInfo>>> memberResponse = null;
 
-        ResponseEntity<ApiResponse<Map<Long, RegularOrderResponse.ProductOrder>>> response = null;
         Map<Long, RegularOrderResponse.ProductOrder> productOrderMap = null;
+        Map<String, OrderResponse.MemberInfo> memberInfoMap = null;
 
+
+        List<String> memberIdList = regularOrderCountsForMonth.stream().map(dailyOrderCount -> dailyOrderCount.getMemberId()).collect(Collectors.toList());
         List<Long> productIdList = regularOrderCountsForMonth.stream().map(dailyOrderCount -> dailyOrderCount.getProductId()).collect(Collectors.toList());
         boolean isAvailableProductService = true;
         try {
-            response = feignClient.bulkRetrieveProductInformation(productIdList);
-            isAvailableProductService = response.getStatusCode().is2xxSuccessful() ? true : false;
+            productResponse = productFeignClient.bulkRetrieveProductInformation(productIdList);
+            isAvailableProductService = productResponse.getStatusCode().is2xxSuccessful() ? true : false;
         } catch (FeignException e) {
             e.printStackTrace();
             isAvailableProductService = false;
         }
 
+        boolean isAvailableMemberService = true;
+        try {
+            memberResponse = memberServiceFeignClient.getOrderMemberInfo(memberIdList);
+            isAvailableMemberService = memberResponse.getStatusCode().is2xxSuccessful() ? true : false;
+        } catch (FeignException e) {
+            e.printStackTrace();
+            isAvailableMemberService = false;
+        }
+
+        if(isAvailableMemberService) {
+            memberInfoMap = memberResponse.getBody().getResult();
+        }
         // 받아온 응답을 바탕으로 상품명 바인딩
-        for(RegularOrderResponse.OfRetrieveDailyCount dailyOrderCount : regularOrderCountsForMonth) {
-            productOrderMap = response.getBody().getResult();
+        for(RegularOrderResponse.OfRetrieveDailyDetail dailyOrderCount : regularOrderCountsForMonth) {
+            if(isAvailableProductService) {
+                productOrderMap = productResponse.getBody().getResult();
+            }
+
+
             String productName = isAvailableProductService ? productOrderMap.get(dailyOrderCount.getProductId()).getProductName() : null;
+            dailyOrderCount.bindProductName(productName);
+            dailyOrderCount.bindMemberInfo(isAvailableMemberService ? memberInfoMap.get(dailyOrderCount.getMemberId()) : null);
+            dailyOrderCount.setAvailableProductService(isAvailableProductService);
+            dailyOrderCount.setAvailableMemberService(isAvailableMemberService);
+        }
+
+        return regularOrderCountsForMonth;
+    }
+
+    /**
+     * 고객용 일별 정기 주문 리스트 조회
+     * @param startDate
+     * @param endDate
+     * @param customerId
+     * @return
+     */
+    @Transactional
+    public List<RegularOrderResponse.OfRetrieveDailySummary> retrieveRegularOrderSummaries(LocalDate startDate,LocalDate endDate ,Long customerId) {
+        List<RegularOrderResponse.OfRetrieveDailySummary> regularOrderCountsForMonth = regularDeliveryReservationRepository.findRegularOrderCountsBetween(startDate, endDate,customerId);
+
+        ResponseEntity<ApiResponse<Map<Long, RegularOrderResponse.ProductOrder>>> productResponse = null;
+
+        Map<Long, RegularOrderResponse.ProductOrder> productOrderMap = null;
+        List<String> memberIdList = regularOrderCountsForMonth.stream().map(dailyOrderCount -> dailyOrderCount.getMemberId()).collect(Collectors.toList());
+        List<Long> productIdList = regularOrderCountsForMonth.stream().map(dailyOrderCount -> dailyOrderCount.getMainProductId()).collect(Collectors.toList());
+
+
+        // 받아온 응답을 바탕으로 상품명 바인딩
+        boolean isAvailableProductService = true;
+        for(RegularOrderResponse.OfRetrieveDailySummary dailyOrderCount : regularOrderCountsForMonth) {
+            productOrderMap = productResponse.getBody().getResult();
+            String productName = isAvailableProductService ? productOrderMap.get(dailyOrderCount.getMainProductId()).getProductName() : null;
+
             dailyOrderCount.bindProductName(productName);
             dailyOrderCount.setAvailableProductService(isAvailableProductService);
         }
@@ -80,7 +145,7 @@ public class RegularOrderService {
      * @param creationRequest
      */
     @Transactional
-    public Long subscriptionDelivery(RegularOrderRequest.OfCreation creationRequest) {
+    public RegularOrderResponse.OfSuccess subscriptionDelivery(RegularOrderRequest.OfCreation creationRequest) {
         RegularDeliveryStatus pending = regularDeliveryStatusRepository.findByStatusName(RegularDeliveryStatusCode.PENDING.getCode());
         RegularDeliveryApplication regularDeliveryApplication = creationRequest.toApplicationEntity(pending);
         RegularDeliveryApplication savedEntity = regularDeliveryApplicationRepository.save(regularDeliveryApplication);
@@ -95,7 +160,11 @@ public class RegularOrderService {
         regularDeliveryApplicationRepository.save(regularDeliveryApplication);
 
         regularDeliveryReservationRepository.saveAll(creationRequest.toReservationEntityList(deliveryDateSet, regularDeliveryApplication, pending));
-        return savedEntity.getRegularDeliveryApplicationId();
+        return RegularOrderResponse.OfSuccess.builder()
+                        .regularDeliveryApplicationId(savedEntity.getRegularDeliveryApplicationId())
+                        .memberId(savedEntity.getMemberId())
+                        .customerId(savedEntity.getCustomerId())
+                        .build();
     }
 
     /**
@@ -113,7 +182,7 @@ public class RegularOrderService {
         List<Long> productIdList = applicationList.map(application -> application.getMainProductId()).stream().collect(Collectors.toList());
         boolean isAvailableProductService = true;
         try {
-            response = feignClient.bulkRetrieveProductInformation(productIdList);
+            response = productFeignClient.bulkRetrieveProductInformation(productIdList);
             isAvailableProductService = response.getStatusCode().is2xxSuccessful() ? true : false;
         } catch (FeignException e) {
             e.printStackTrace();
@@ -144,7 +213,7 @@ public class RegularOrderService {
         Map<Long, RegularOrderResponse.ProductOrder> productOrderMap = null;
         boolean isAvailableProductService = true;
         try {
-            response = feignClient.bulkRetrieveProductInformation(productIdList);
+            response = productFeignClient.bulkRetrieveProductInformation(productIdList);
             isAvailableProductService = response.getStatusCode().is2xxSuccessful() ? true : false;
         } catch (FeignException e) {
             e.printStackTrace();
@@ -156,6 +225,8 @@ public class RegularOrderService {
         application.getRegularDeliveryReservationList().stream().forEach(reservation -> {
             finalProductOrderMap.get(reservation.getProductId()).changeProductAmount(reservation.getQuantity());
         });
+
+
         return RegularOrderResponse.OfRetrieveDetails.convertedBy(application, productOrderMap, isAvailableProductService);
     }
 
@@ -178,10 +249,10 @@ public class RegularOrderService {
     /**
      * 정기주문 회차 미루기
      * @param regularOrderApplicationId
-     * @param postPoneRequest
+     * @param
      */
     @Transactional
-    public void skipRegularDeliveryReservation (Long regularOrderApplicationId, RegularOrderRequest.OfPostPone postPoneRequest) {
+    public void skipRegularDeliveryReservation (Long regularOrderApplicationId) {
         RegularDeliveryApplication application = regularDeliveryApplicationRepository.findById(regularOrderApplicationId).orElseThrow(
                 () -> new IllegalArgumentException("해당 정기주문신청이 존재하지 않습니다.")
         );
@@ -192,14 +263,14 @@ public class RegularOrderService {
         }
 
         List<RegularDeliveryReservation> regularDeliveryReservationList =
-                regularDeliveryReservationRepository.findByDeliveryApplicationAndProductId(regularOrderApplicationId, postPoneRequest.getProductId(), application.getCompletedRounds()+1);
+                regularDeliveryReservationRepository.findByDeliveryApplicationAndProductId(regularOrderApplicationId, application.getCompletedRounds()+1);
 
 
         // 다음 배송일 변경
         application.changeCompletedRounds(application.getCompletedRounds()+1);
         if(!(application.getCompletedRounds() == application.getTotalDeliveryRounds())) {
             List<RegularDeliveryReservation> nextRegularDeliveryReservationList =
-                    regularDeliveryReservationRepository.findByDeliveryApplicationAndProductId(regularOrderApplicationId, postPoneRequest.getProductId(), application.getCompletedRounds()+1);
+                    regularDeliveryReservationRepository.findByDeliveryApplicationAndProductId(regularOrderApplicationId,application.getCompletedRounds()+1);
             application.changeNextDeliveryDate(nextRegularDeliveryReservationList.get(0).getStartDate());
         }
 

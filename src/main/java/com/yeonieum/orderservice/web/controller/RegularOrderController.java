@@ -2,6 +2,7 @@ package com.yeonieum.orderservice.web.controller;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.yeonieum.orderservice.domain.regularorder.dto.request.RegularOrderRequest;
+import com.yeonieum.orderservice.domain.regularorder.dto.response.RegularOrderResponse;
 import com.yeonieum.orderservice.domain.regularorder.service.RegularOrderService;
 import com.yeonieum.orderservice.global.auth.Role;
 import com.yeonieum.orderservice.global.responses.ApiResponse;
@@ -10,6 +11,7 @@ import com.yeonieum.orderservice.infrastructure.messaging.service.OrderEventProd
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -43,8 +45,14 @@ public class RegularOrderController {
     @PostMapping
     public ResponseEntity<ApiResponse> subscriptionRegularDelivery(@RequestBody  RegularOrderRequest.OfCreation creationRequest) throws JsonProcessingException {
         String memberId = "qwe123";
-        Long regularDeliveryId = regularOrderService.subscriptionDelivery(creationRequest);
-        orderEventProduceService.produceRegularOrderEvent(memberId, regularDeliveryId, REGULAR_TOPIC, "APPLY");
+        RegularOrderResponse.OfSuccess successResult = regularOrderService.subscriptionDelivery(creationRequest);
+        orderEventProduceService.produceRegularOrderEvent(
+                successResult.getMemberId(),
+                successResult.getCustomerId(),
+                successResult.getRegularDeliveryApplicationId(),
+                REGULAR_TOPIC,
+                "APPLY"
+        );
         return new ResponseEntity<>(ApiResponse.builder()
                 .result(null)
                 .successCode(SuccessCode.INSERT_SUCCESS)
@@ -81,7 +89,13 @@ public class RegularOrderController {
     public ResponseEntity<ApiResponse> cancelRegularOrder(@RequestParam(name = "regularOrderId") Long regularDeliveryApplicationId) throws JsonProcessingException {
         String memberId = "qwe123";
         regularOrderService.cancelRegularDelivery(regularDeliveryApplicationId);
-        orderEventProduceService.produceRegularOrderEvent(memberId, regularDeliveryApplicationId, REGULAR_TOPIC, "CANCEL");
+        orderEventProduceService.produceRegularOrderEvent(
+                memberId,
+                -1L,
+                regularDeliveryApplicationId,
+                REGULAR_TOPIC,
+                "CANCEL"
+        );
 
         return new ResponseEntity<>(ApiResponse.builder()
                 .result(null)
@@ -96,11 +110,16 @@ public class RegularOrderController {
     })
     @Role(role = {"ROLE_MEMBER"}, url = "/api/regular-order/{regularOrderId}/postpone", method = "PUT")
     @PutMapping("/{regularDeliveryApplicationId}/postpone")
-    public ResponseEntity<ApiResponse> postponeRegularOrder(@PathVariable Long regularDeliveryApplicationId,
-                                                            @RequestBody RegularOrderRequest.OfPostPone postPoneRequest) throws JsonProcessingException {
+    public ResponseEntity<ApiResponse> postponeRegularOrder(@PathVariable Long regularDeliveryApplicationId) throws JsonProcessingException {
         String memberId = "qwe123";
-        regularOrderService.skipRegularDeliveryReservation(regularDeliveryApplicationId, postPoneRequest);
-        orderEventProduceService.produceRegularOrderEvent(memberId, regularDeliveryApplicationId, REGULAR_TOPIC, "POSTPONE");
+        regularOrderService.skipRegularDeliveryReservation(regularDeliveryApplicationId);
+        orderEventProduceService.produceRegularOrderEvent(
+                memberId,
+                -1L,
+                regularDeliveryApplicationId,
+                REGULAR_TOPIC,
+                "POSTPONE"
+        );
 
 
         return new ResponseEntity<>(ApiResponse.builder()
@@ -127,13 +146,31 @@ public class RegularOrderController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "정기주문월별 조회 성공"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 오류 발생")
     })
-    @GetMapping("/count")
+    @GetMapping("/monthly")
     public ResponseEntity<ApiResponse> retrieveRegularOrderCountsBetweenMonth(@RequestParam LocalDate startDate,
                                                                               @RequestParam LocalDate endDate) {
 
         Long customerId = 1L; // TODO: 로그인한 사용자의 ID를 컨텍스트에서 가져와야 함
         return new ResponseEntity<>(ApiResponse.builder()
-                .result(regularOrderService.retrieveRegularOrderCountsBetween(startDate, endDate, customerId))
+                .result(regularOrderService.retrieveRegularOrderSummaries(startDate, endDate, customerId))
+                .successCode(SuccessCode.SELECT_SUCCESS)
+                .build(), HttpStatus.OK);
+    }
+
+    @Operation(summary = "고객에게 접수된 정기주문 일별 조회", description = "고객에게 접수된 정기주문을 일별로 조회합니다.")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "정기주문일별 조회 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 오류 발생")
+    })
+    @GetMapping("/daily")
+    public ResponseEntity<ApiResponse> retrieveRegularOrderCountsBetweenDay(@RequestParam LocalDate date,
+                                                                            @RequestParam(defaultValue = "10") int size,
+                                                                            @RequestParam(defaultValue = "0") int page) {
+
+        Long customerId = 1L; // TODO: 로그인한 사용자의 ID를 컨텍스트에서 가져와야 함
+        Pageable pageable = PageRequest.of(page, size);
+        return new ResponseEntity<>(ApiResponse.builder()
+                .result(regularOrderService.retrieveRegularOrderList(date, customerId, pageable))
                 .successCode(SuccessCode.SELECT_SUCCESS)
                 .build(), HttpStatus.OK);
     }

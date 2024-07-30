@@ -86,6 +86,7 @@ public class OrderResponse {
         String storeName = null;
         String status;
         String image;
+        String orderMemo;
         ProductOrderList productOrderList;
         @Builder.Default
         boolean isAvailableProductInformation = true;
@@ -110,6 +111,7 @@ public class OrderResponse {
                     .orderDate(orderDetail.getOrderDateTime())
                     .status(orderDetail.getOrderStatus().getStatusName().getCode())
                     .storeName(storeName)
+                    .orderMemo(orderDetail.getOrderMemo())
                     .isAvailableProductInformation(isAvailableProductInformation)
                     .build();
         }
@@ -206,5 +208,6 @@ public class OrderResponse {
         boolean isPayment;
         int paymentAmount;
         String orderDetailId;
+        Long customerId;
     }
 }

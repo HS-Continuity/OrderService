@@ -1,6 +1,6 @@
 package com.yeonieum.orderservice.domain.regularorder.dto.response;
 
-import com.yeonieum.orderservice.domain.order.dto.request.OrderRequest;
+import com.yeonieum.orderservice.domain.order.dto.response.OrderResponse;
 import com.yeonieum.orderservice.domain.regularorder.entity.RegularDeliveryApplication;
 import lombok.*;
 
@@ -17,16 +17,23 @@ public class RegularOrderResponse {
         ProductOrder productOrder;
         int orderProductAmount;
         LocalDate orderDate;
+        String regularDeliveryStatus;
+        String orderMemo;
+        String storeName;
 
         public static OfRetrieve convertedBy(RegularDeliveryApplication application,
                                              Map<Long, ProductOrder> productOrderMap,
                                              boolean isAvailableProductService) {
             ProductOrder productOrder = isAvailableProductService ? productOrderMap.get(application.getMainProductId()) : null;
+            String storeName = isAvailableProductService ? productOrderMap.get(application.getMainProductId()).getStoreName() : null;
             return OfRetrieve.builder()
                     .regularOrderId(application.getRegularDeliveryApplicationId())
                     .productOrder(productOrder)
                     .orderProductAmount(application.getOrderedProductCount())
                     .orderDate(application.getNextDeliveryDate())
+                    .regularDeliveryStatus(application.getRegularDeliveryStatus().getStatusName())
+                    .orderMemo(application.getOrderMemo())
+                    .storeName(storeName)
                     .build();
         }
     }
@@ -39,51 +46,110 @@ public class RegularOrderResponse {
         Recipient recipient;
         DeliveryPeriod deliveryPeriod;
         LocalDate nextDeliveryDate;
+        String regularDeliveryStatus;
+        String orderMemo;
+        String storeName;
+        String status;
+        int paymentAmount;
         boolean isAvailableProductService;
 
         public static OfRetrieveDetails convertedBy(RegularDeliveryApplication application,
                                                     Map<Long, ProductOrder> productOrderMap,
                                                     boolean isAvailableProductService) {
 
-            // application.getReservation에서 productAmount를 가져와서 productOrderList의 요소에 넣어야할거같음.
             ProductOrderList orderList =
                     isAvailableProductService ? ProductOrderList.builder()
                             .productOrderList(productOrderMap.values().stream().collect(Collectors.toList())
                             ).build()  :  null;
 
+            String storeName = isAvailableProductService ? productOrderMap.get(application.getMainProductId()).getStoreName() : null;
             return OfRetrieveDetails.builder()
                     .regularOrderId(application.getRegularDeliveryApplicationId())
                     .productOrderList(orderList)
                     .recipient(Recipient.convertedBy(application))
                     .deliveryPeriod(DeliveryPeriod.convertedBy(application))
                     .nextDeliveryDate(application.getNextDeliveryDate())
+                    .orderMemo(application.getOrderMemo())
+                    .regularDeliveryStatus(application.getRegularDeliveryStatus().getStatusName())
+                    .storeName(storeName)
+                    .status(application.getRegularDeliveryStatus().getStatusName())
                     .isAvailableProductService(isAvailableProductService)
+                    .paymentAmount(orderList.getProductOrderList().stream().map(ProductOrder::getFinalPrice).reduce(0, Integer::sum))
                     .build();
         }
     }
 
     @Getter
-    public static class OfRetrieveDailyCount {
-        private Long orderApplicationId;
-        private LocalDate date;
+    @NoArgsConstructor
+    public static class OfRetrieveDailySummary {
         private Long productCount;
-        private Long productId;
+        private Long mainProductId;
+        private Long regularDelivaryApplicationId;
+        private LocalDate days;
         private String productName;
+        private String memberId;
+        private OrderResponse.MemberInfo memberInfo;
         private boolean isAvailableProductService;
-        public OfRetrieveDailyCount(Long orderApplicationId, LocalDate date, Long productCount, Long productId) {
-            this.orderApplicationId = orderApplicationId;
-            this.date = date;
+        private boolean isAvailableMemberService;
+
+        public OfRetrieveDailySummary(Long productCount, Long mainProductId, Long regularDelivaryApplicationId, String memberId, LocalDate days) {
             this.productCount = productCount;
-            this.productId = productId;
+            this.mainProductId = mainProductId;
+            this.memberId = memberId;
+            this.regularDelivaryApplicationId = regularDelivaryApplicationId;
+            this.days = days;
         }
+
         public void bindProductName(String productName) {
             this.productName = productName;
         }
         public void setAvailableProductService (boolean isAvailableProductService) {
             this.isAvailableProductService = isAvailableProductService;
         }
+        public void bindMemberInfo(OrderResponse.MemberInfo memberInfo) {
+            this.memberInfo = memberInfo;
+        }
+        public void setAvailableMemberService (boolean isAvailableMemberService) {
+            this.isAvailableMemberService = isAvailableMemberService;
+        }
     }
 
+
+
+    @Getter
+    public static class OfRetrieveDailyDetail {
+        private Long regularDelivaryApplicationId;
+        private LocalDate today;
+        private Long reservationCount;
+        private Long productId;
+        private String productName;
+        private String memberId;
+        private OrderResponse.MemberInfo memberInfo;
+        private boolean isAvailableProductService;
+        private boolean isAvailableMemberService;
+
+        public OfRetrieveDailyDetail(Long regularDelivaryApplicationId, LocalDate today, Long reservationCount,String memberId, Long productId) {
+            this.regularDelivaryApplicationId = regularDelivaryApplicationId;
+            this.today = today;
+            this.reservationCount = reservationCount;
+            this.memberId = memberId;
+            this.productId = productId;
+        }
+        public void bindProductName(String productName) {
+            this.productName = productName;
+        }
+
+        public void setAvailableProductService(boolean isAvailableProductService) {
+            this.isAvailableProductService = isAvailableProductService;
+        }
+
+        public void setAvailableMemberService(boolean isAvailableMemberService) {
+            this.isAvailableMemberService = isAvailableMemberService;
+        }
+        public void bindMemberInfo(OrderResponse.MemberInfo memberInfo) {
+            this.memberInfo = memberInfo;
+        }
+    }
 
 
     @Getter
@@ -138,6 +204,7 @@ public class RegularOrderResponse {
         Long productId;
         String productName;
         String productImage;
+        String storeName;
         int originPrice;
         int finalPrice;
         int productAmount;
@@ -145,5 +212,13 @@ public class RegularOrderResponse {
         public void changeProductAmount(int productAmount) {
             this.productAmount = productAmount;
         }
+    }
+
+    @Getter
+    @Builder
+    public static class OfSuccess {
+        private Long regularDeliveryApplicationId;
+        private Long customerId;
+        private String memberId;
     }
 }

@@ -40,8 +40,8 @@ public class OrderNotificationServiceForCustomer {
         SseEmitter emitter = createEmitter(customerId);
         emitter.send(SseEmitter.event()
                 .id(String.valueOf(customerId))
-                .name("order:count")
-                .data("실시간 주문 알림 스트림 연결성공. [고객아이디=" + customerId + "]"));
+                .name("message")
+                .data(orderDetailRepository.countByCustomerIdGroupedByOrderStatus(customerId)));
 
 
         final MessageListener messageListener = (message, pattern) -> {
