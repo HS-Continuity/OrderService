@@ -206,5 +206,6 @@ public class OrderResponse {
         boolean isPayment;
         int paymentAmount;
         String orderDetailId;
+        Long customerId;
     }
 }

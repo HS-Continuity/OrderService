@@ -171,4 +171,12 @@ public class RegularOrderResponse {
             this.productAmount = productAmount;
         }
     }
+
+    @Getter
+    @Builder
+    public static class OfSuccess {
+        private Long regularDeliveryApplicationId;
+        private Long customerId;
+        private String memberId;
+    }
 }
