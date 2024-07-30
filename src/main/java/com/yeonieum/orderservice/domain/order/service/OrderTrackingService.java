@@ -47,19 +47,48 @@ public class OrderTrackingService {
      */
     @Transactional(readOnly = true)
     public Page<OrderResponse.OfRetrieveForCustomer> retrieveOrdersForCustomer(Long customerId, OrderStatusCode orderStatusCode, String orderDetailId, LocalDateTime orderDateTime, String recipient, String recipientPhoneNumber, String recipientAddress, String memberId, String memberName, String memberPhoneNumber, LocalDate startDate, LocalDate endDate, Pageable pageable) {
-
         List<String> filteredMemberIds = null;
+        ResponseEntity<ApiResponse<Map<String, OrderResponse.MemberInfo>>> memberInfoMapResponse = null;
+        Map<String, OrderResponse.MemberInfo> memberMap = null;
+        boolean isAvailableMemberService = true;
+        boolean isFilteredMember = false;
 
         if (memberName != null || memberPhoneNumber != null) {
+            isFilteredMember = true;
             // 멤버 이름과 전화번호로 필터링하여 필요한 멤버 ID들을 먼저 수집
-            filteredMemberIds = memberServiceFeignClient.getOrderMemberFilter(memberName, memberPhoneNumber).getBody().getResult();
-            if (filteredMemberIds.isEmpty()) {
+            //filteredMemberIds = memberServiceFeignClient.getOrderMemberFilter(memberName, memberPhoneNumber).getBody().getResult();
+            try {
+                memberInfoMapResponse = memberServiceFeignClient.getFilterMemberMap(memberName, memberPhoneNumber);
+                if(!memberInfoMapResponse.getStatusCode().is2xxSuccessful()) {
+                    isAvailableMemberService = false;
+                }
+            } catch (FeignException e) {
+                e.printStackTrace();
+                return Page.empty(pageable);
+            }
+            if (!isAvailableMemberService || memberInfoMapResponse.getBody().getResult().isEmpty()) {
                 // 필터링된 멤버 ID가 없으면 비어 있는 페이지 반환
                 return Page.empty(pageable);
             }
+            memberMap = memberInfoMapResponse.getBody().getResult();
+            filteredMemberIds = memberInfoMapResponse.getBody().getResult().values().stream().map(OrderResponse.MemberInfo::getMemberId).toList();
         }
 
-        Page<OrderDetail> orderDetailsPage = orderDetailRepository.findOrders(customerId, orderStatusCode, orderDetailId, orderDateTime, recipient, recipientPhoneNumber, recipientAddress, memberId, filteredMemberIds, startDate, endDate, pageable);
+        Page<OrderDetail> orderDetailsPage = orderDetailRepository.findOrders(customerId, orderStatusCode, orderDetailId, orderDateTime, recipient, recipientPhoneNumber, recipientAddress, memberId, isFilteredMember && isAvailableMemberService ? memberMap.values().stream().map(OrderResponse.MemberInfo::getMemberId).toList() : null, startDate, endDate, pageable);
+        if(!isFilteredMember) {
+            List<String> memberIds = orderDetailsPage.getContent().stream().map(orderDetail -> orderDetail.getMemberId()).toList();
+            try {
+                memberInfoMapResponse = memberServiceFeignClient.getOrderMemberInfo(memberIds);
+                if(!memberInfoMapResponse.getStatusCode().is2xxSuccessful()) {
+                    isAvailableMemberService = false;
+                } else {
+                    memberMap = memberInfoMapResponse.getBody().getResult();
+                }
+            } catch (FeignException e) {
+                e.printStackTrace();
+                isAvailableMemberService = false;
+            }
+        }
 
         List<OrderResponse.OfRetrieveForCustomer> convertedOrders = new ArrayList<>();
         List<Long> productIdList = orderDetailsPage.stream()
@@ -82,13 +111,7 @@ public class OrderTrackingService {
 
         ResponseEntity<ApiResponse<OrderResponse.MemberInfo>> memberResponse = null;
         for (OrderDetail orderDetail : orderDetailsPage) {
-            boolean isAvailableMemberService = true;
-            try{
-                memberResponse = memberServiceFeignClient.getOrderMemberInfo(orderDetail.getMemberId());
-            } catch (FeignException e) {
-                isAvailableMemberService = false;
-            }
-            OrderResponse.MemberInfo memberInfo = memberResponse == null ? null : memberResponse.getBody().getResult();
+            OrderResponse.MemberInfo memberInfo = isAvailableMemberService ? memberMap.get(orderDetail.getMemberId()) : null;
 
             OrderResponse.OfRetrieveForCustomer orderResponse =
                     OrderResponse.OfRetrieveForCustomer.convertedBy(orderDetail, memberInfo, isAvailableProductService, isAvailableMemberService);
@@ -109,8 +132,6 @@ public class OrderTrackingService {
             }
             convertedOrders.add(orderResponse);
         }
-
-
         return new PageImpl<>(convertedOrders, pageable, orderDetailsPage.getTotalElements());
     }
 
