@@ -124,15 +124,36 @@ public class RegularOrderResponse {
         private Long productId;
         private String productName;
         private String memberId;
+        LocalDate startDate;
+        LocalDate endDate;
+        LocalDate nextDeliveryDate;
+        int deliveryCycle;
+        int totalDeliveryRounds;
+        List<String> deliveryDayOfWeeks;
         private OrderResponse.MemberInfo memberInfo;
+        private DeliveryPeriod deliveryPeriod;
         private boolean isAvailableProductService;
         private boolean isAvailableMemberService;
 
-        public OfRetrieveDailyDetail(Long regularDelivaryApplicationId, LocalDate today, Long reservationCount,String memberId, Long productId) {
+        public OfRetrieveDailyDetail(Long regularDelivaryApplicationId,
+                                     LocalDate today,
+                                     Long reservationCount,
+                                     String memberId,
+                                     LocalDate startDate,
+                                     LocalDate endDate,
+                                     LocalDate nextDeliveryDate,
+                                     int totalDeliveryRounds,
+                                     int deliveryCycle,
+                                     Long productId) {
             this.regularDelivaryApplicationId = regularDelivaryApplicationId;
             this.today = today;
             this.reservationCount = reservationCount;
             this.memberId = memberId;
+            this.startDate = startDate;
+            this.endDate = endDate;
+            this.nextDeliveryDate = nextDeliveryDate;
+            this.deliveryCycle = deliveryCycle;
+            this.totalDeliveryRounds = totalDeliveryRounds;
             this.productId = productId;
         }
         public void bindProductName(String productName) {

@@ -54,6 +54,11 @@ public class RegularDeliveryReservationRepositoryCustomImpl implements RegularDe
                         reservation.startDate,
                         reservation.regularDeliveryReservationId.count(),
                         application.memberId,
+                        application.startDate,
+                        application.endDate,
+                        application.nextDeliveryDate,
+                        application.totalDeliveryRounds,
+                        application.cycle,
                         reservation.productId))
                 .from(reservation)
                 .join(reservation.regularDeliveryApplication, application)
