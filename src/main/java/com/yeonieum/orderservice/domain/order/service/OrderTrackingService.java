@@ -55,8 +55,6 @@ public class OrderTrackingService {
 
         if (memberName != null || memberPhoneNumber != null) {
             isFilteredMember = true;
-            // 멤버 이름과 전화번호로 필터링하여 필요한 멤버 ID들을 먼저 수집
-            //filteredMemberIds = memberServiceFeignClient.getOrderMemberFilter(memberName, memberPhoneNumber).getBody().getResult();
             try {
                 memberInfoMapResponse = memberServiceFeignClient.getFilterMemberMap(memberName, memberPhoneNumber);
                 if(!memberInfoMapResponse.getStatusCode().is2xxSuccessful()) {
