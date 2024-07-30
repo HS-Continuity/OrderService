@@ -96,10 +96,9 @@ public class RegularOrderController {
     })
     @Role(role = {"ROLE_MEMBER"}, url = "/api/regular-order/{regularOrderId}/postpone", method = "PUT")
     @PutMapping("/{regularDeliveryApplicationId}/postpone")
-    public ResponseEntity<ApiResponse> postponeRegularOrder(@PathVariable Long regularDeliveryApplicationId,
-                                                            @RequestBody RegularOrderRequest.OfPostPone postPoneRequest) throws JsonProcessingException {
+    public ResponseEntity<ApiResponse> postponeRegularOrder(@PathVariable Long regularDeliveryApplicationId) throws JsonProcessingException {
         String memberId = "qwe123";
-        regularOrderService.skipRegularDeliveryReservation(regularDeliveryApplicationId, postPoneRequest);
+        regularOrderService.skipRegularDeliveryReservation(regularDeliveryApplicationId);
         orderEventProduceService.produceRegularOrderEvent(memberId, regularDeliveryApplicationId, REGULAR_TOPIC, "POSTPONE");
 
 

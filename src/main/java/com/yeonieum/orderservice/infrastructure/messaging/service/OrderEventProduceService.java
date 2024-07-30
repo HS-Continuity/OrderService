@@ -13,7 +13,7 @@ public class OrderEventProduceService {
 
     private final OrderNotificationKafkaProducer orderNotificationKafkaProducer;
 
-    public void produceOrderEvent(String memberId, String orderDetailId,String topic, String eventType) throws JsonProcessingException {
+    public void produceOrderEvent(String memberId, String orderDetailId,String topic ,String eventType) throws JsonProcessingException {
         orderNotificationKafkaProducer.sendMessage(OrderEventMessage.builder()
                 .orderDetailId(orderDetailId)
                 .memberId(memberId)
@@ -22,7 +22,7 @@ public class OrderEventProduceService {
                 .build());
     }
 
-    public void produceRegularOrderEvent(String memberId, Long regularDeliveryId,String topic, String eventType) throws JsonProcessingException {
+    public void produceRegularOrderEvent(String memberId, Long regularDeliveryId,  String topic, String eventType) throws JsonProcessingException {
         orderNotificationKafkaProducer.sendMessage(RegularDeliveryEventMessage.builder()
                 .regularDeliveryId(regularDeliveryId)
                 .memberId(memberId)

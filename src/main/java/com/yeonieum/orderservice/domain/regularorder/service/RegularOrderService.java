@@ -225,14 +225,14 @@ public class RegularOrderService {
         }
 
         List<RegularDeliveryReservation> regularDeliveryReservationList =
-                regularDeliveryReservationRepository.findByDeliveryApplicationAndProductId(regularOrderApplicationId, postPoneRequest.getProductId(), application.getCompletedRounds()+1);
+                regularDeliveryReservationRepository.findByDeliveryApplicationAndProductId(regularOrderApplicationId, application.getCompletedRounds()+1);
 
 
         // 다음 배송일 변경
         application.changeCompletedRounds(application.getCompletedRounds()+1);
         if(!(application.getCompletedRounds() == application.getTotalDeliveryRounds())) {
             List<RegularDeliveryReservation> nextRegularDeliveryReservationList =
-                    regularDeliveryReservationRepository.findByDeliveryApplicationAndProductId(regularOrderApplicationId, postPoneRequest.getProductId(), application.getCompletedRounds()+1);
+                    regularDeliveryReservationRepository.findByDeliveryApplicationAndProductId(regularOrderApplicationId,application.getCompletedRounds()+1);
             application.changeNextDeliveryDate(nextRegularDeliveryReservationList.get(0).getStartDate());
         }
 
