@@ -1,5 +1,6 @@
 package com.yeonieum.orderservice.domain.regularorder.service;
 
+import com.yeonieum.orderservice.domain.order.dto.response.OrderResponse;
 import com.yeonieum.orderservice.domain.regularorder.dto.request.RegularOrderRequest;
 import com.yeonieum.orderservice.domain.regularorder.dto.response.RegularOrderResponse;
 import com.yeonieum.orderservice.domain.regularorder.entity.RegularDeliveryApplication;
@@ -12,6 +13,7 @@ import com.yeonieum.orderservice.domain.regularorder.repository.RegularDeliveryS
 import com.yeonieum.orderservice.global.enums.DayOfWeek;
 import com.yeonieum.orderservice.global.enums.RegularDeliveryStatusCode;
 import com.yeonieum.orderservice.global.responses.ApiResponse;
+import com.yeonieum.orderservice.infrastructure.feignclient.MemberServiceFeignClient;
 import com.yeonieum.orderservice.infrastructure.feignclient.ProductServiceFeignClient;
 import feign.FeignException;
 import lombok.RequiredArgsConstructor;
@@ -43,63 +45,93 @@ public class RegularOrderService {
     private final RegularDeliveryReservationRepository regularDeliveryReservationRepository;
     private final RegularDeliveryStatusRepository regularDeliveryStatusRepository;
     private final RegularDeliveryApplicationDayRepository regularDeliveryApplicationDayRepository;
-    private final ProductServiceFeignClient feignClient;
+    private final ProductServiceFeignClient productFeignClient;
+    private final MemberServiceFeignClient memberServiceFeignClient;
 
+    /**
+     * 고객용 월별 정기주문 조회(캘린더)
+     * @param date
+     * @param customerId
+     * @param pageable
+     * @return
+     */
     @Transactional
     public Page<RegularOrderResponse.OfRetrieveDailyDetail> retrieveRegularOrderList(LocalDate date, Long customerId,Pageable pageable) {
         Page<RegularOrderResponse.OfRetrieveDailyDetail> regularOrderCountsForMonth = regularDeliveryReservationRepository.findRegularOrderList(date, customerId, pageable);
         if(regularOrderCountsForMonth.getContent().size() == 0) {
             return null;
         }
-        ResponseEntity<ApiResponse<Map<Long, RegularOrderResponse.ProductOrder>>> response = null;
-        Map<Long, RegularOrderResponse.ProductOrder> productOrderMap = null;
+        ResponseEntity<ApiResponse<Map<Long, RegularOrderResponse.ProductOrder>>> productResponse = null;
+        ResponseEntity<ApiResponse<Map<String, OrderResponse.MemberInfo>>> memberResponse = null;
 
+        Map<Long, RegularOrderResponse.ProductOrder> productOrderMap = null;
+        Map<String, OrderResponse.MemberInfo> memberInfoMap = null;
+
+
+        List<String> memberIdList = regularOrderCountsForMonth.stream().map(dailyOrderCount -> dailyOrderCount.getMemberId()).collect(Collectors.toList());
         List<Long> productIdList = regularOrderCountsForMonth.stream().map(dailyOrderCount -> dailyOrderCount.getProductId()).collect(Collectors.toList());
         boolean isAvailableProductService = true;
         try {
-            response = feignClient.bulkRetrieveProductInformation(productIdList);
-            isAvailableProductService = response.getStatusCode().is2xxSuccessful() ? true : false;
+            productResponse = productFeignClient.bulkRetrieveProductInformation(productIdList);
+            isAvailableProductService = productResponse.getStatusCode().is2xxSuccessful() ? true : false;
         } catch (FeignException e) {
             e.printStackTrace();
             isAvailableProductService = false;
         }
 
+        boolean isAvailableMemberService = true;
+        try {
+            memberResponse = memberServiceFeignClient.getOrderMemberInfo(memberIdList);
+            isAvailableMemberService = memberResponse.getStatusCode().is2xxSuccessful() ? true : false;
+        } catch (FeignException e) {
+            e.printStackTrace();
+            isAvailableMemberService = false;
+        }
+
+        if(isAvailableMemberService) {
+            memberInfoMap = memberResponse.getBody().getResult();
+        }
         // 받아온 응답을 바탕으로 상품명 바인딩
         for(RegularOrderResponse.OfRetrieveDailyDetail dailyOrderCount : regularOrderCountsForMonth) {
             if(isAvailableProductService) {
-                productOrderMap = response.getBody().getResult();
+                productOrderMap = productResponse.getBody().getResult();
             }
+
+
             String productName = isAvailableProductService ? productOrderMap.get(dailyOrderCount.getProductId()).getProductName() : null;
             dailyOrderCount.bindProductName(productName);
+            dailyOrderCount.bindMemberInfo(isAvailableMemberService ? memberInfoMap.get(dailyOrderCount.getMemberId()) : null);
             dailyOrderCount.setAvailableProductService(isAvailableProductService);
+            dailyOrderCount.setAvailableMemberService(isAvailableMemberService);
         }
 
         return regularOrderCountsForMonth;
     }
 
-
+    /**
+     * 고객용 일별 정기 주문 리스트 조회
+     * @param startDate
+     * @param endDate
+     * @param customerId
+     * @return
+     */
     @Transactional
     public List<RegularOrderResponse.OfRetrieveDailySummary> retrieveRegularOrderSummaries(LocalDate startDate,LocalDate endDate ,Long customerId) {
         List<RegularOrderResponse.OfRetrieveDailySummary> regularOrderCountsForMonth = regularDeliveryReservationRepository.findRegularOrderCountsBetween(startDate, endDate,customerId);
 
-        ResponseEntity<ApiResponse<Map<Long, RegularOrderResponse.ProductOrder>>> response = null;
-        Map<Long, RegularOrderResponse.ProductOrder> productOrderMap = null;
+        ResponseEntity<ApiResponse<Map<Long, RegularOrderResponse.ProductOrder>>> productResponse = null;
 
+        Map<Long, RegularOrderResponse.ProductOrder> productOrderMap = null;
+        List<String> memberIdList = regularOrderCountsForMonth.stream().map(dailyOrderCount -> dailyOrderCount.getMemberId()).collect(Collectors.toList());
         List<Long> productIdList = regularOrderCountsForMonth.stream().map(dailyOrderCount -> dailyOrderCount.getMainProductId()).collect(Collectors.toList());
-        boolean isAvailableProductService = true;
-        try {
-            response = feignClient.bulkRetrieveProductInformation(productIdList);
-            isAvailableProductService = response.getStatusCode().is2xxSuccessful() ? true : false;
-        } catch (FeignException e) {
-            e.printStackTrace();
-            isAvailableProductService = false;
-        }
+
 
         // 받아온 응답을 바탕으로 상품명 바인딩
+        boolean isAvailableProductService = true;
         for(RegularOrderResponse.OfRetrieveDailySummary dailyOrderCount : regularOrderCountsForMonth) {
-            productOrderMap = response.getBody().getResult();
-            System.out.println(productOrderMap.size());
+            productOrderMap = productResponse.getBody().getResult();
             String productName = isAvailableProductService ? productOrderMap.get(dailyOrderCount.getMainProductId()).getProductName() : null;
+
             dailyOrderCount.bindProductName(productName);
             dailyOrderCount.setAvailableProductService(isAvailableProductService);
         }
@@ -150,7 +182,7 @@ public class RegularOrderService {
         List<Long> productIdList = applicationList.map(application -> application.getMainProductId()).stream().collect(Collectors.toList());
         boolean isAvailableProductService = true;
         try {
-            response = feignClient.bulkRetrieveProductInformation(productIdList);
+            response = productFeignClient.bulkRetrieveProductInformation(productIdList);
             isAvailableProductService = response.getStatusCode().is2xxSuccessful() ? true : false;
         } catch (FeignException e) {
             e.printStackTrace();
@@ -181,7 +213,7 @@ public class RegularOrderService {
         Map<Long, RegularOrderResponse.ProductOrder> productOrderMap = null;
         boolean isAvailableProductService = true;
         try {
-            response = feignClient.bulkRetrieveProductInformation(productIdList);
+            response = productFeignClient.bulkRetrieveProductInformation(productIdList);
             isAvailableProductService = response.getStatusCode().is2xxSuccessful() ? true : false;
         } catch (FeignException e) {
             e.printStackTrace();

@@ -1,5 +1,6 @@
 package com.yeonieum.orderservice.domain.regularorder.dto.response;
 
+import com.yeonieum.orderservice.domain.order.dto.response.OrderResponse;
 import com.yeonieum.orderservice.domain.regularorder.entity.RegularDeliveryApplication;
 import lombok.*;
 
@@ -86,11 +87,15 @@ public class RegularOrderResponse {
         private Long regularDelivaryApplicationId;
         private LocalDate days;
         private String productName;
+        private String memberId;
+        private OrderResponse.MemberInfo memberInfo;
         private boolean isAvailableProductService;
+        private boolean isAvailableMemberService;
 
-        public OfRetrieveDailySummary(Long productCount, Long mainProductId, Long regularDelivaryApplicationId,LocalDate days) {
+        public OfRetrieveDailySummary(Long productCount, Long mainProductId, Long regularDelivaryApplicationId, String memberId, LocalDate days) {
             this.productCount = productCount;
             this.mainProductId = mainProductId;
+            this.memberId = memberId;
             this.regularDelivaryApplicationId = regularDelivaryApplicationId;
             this.days = days;
         }
@@ -101,7 +106,14 @@ public class RegularOrderResponse {
         public void setAvailableProductService (boolean isAvailableProductService) {
             this.isAvailableProductService = isAvailableProductService;
         }
+        public void bindMemberInfo(OrderResponse.MemberInfo memberInfo) {
+            this.memberInfo = memberInfo;
+        }
+        public void setAvailableMemberService (boolean isAvailableMemberService) {
+            this.isAvailableMemberService = isAvailableMemberService;
+        }
     }
+
 
 
     @Getter
@@ -111,21 +123,33 @@ public class RegularOrderResponse {
         private Long reservationCount;
         private Long productId;
         private String productName;
+        private String memberId;
+        private OrderResponse.MemberInfo memberInfo;
         private boolean isAvailableProductService;
-        public OfRetrieveDailyDetail(Long regularDelivaryApplicationId, LocalDate today, Long reservationCount, Long productId) {
+        private boolean isAvailableMemberService;
+
+        public OfRetrieveDailyDetail(Long regularDelivaryApplicationId, LocalDate today, Long reservationCount,String memberId, Long productId) {
             this.regularDelivaryApplicationId = regularDelivaryApplicationId;
             this.today = today;
             this.reservationCount = reservationCount;
+            this.memberId = memberId;
             this.productId = productId;
         }
         public void bindProductName(String productName) {
             this.productName = productName;
         }
-        public void setAvailableProductService (boolean isAvailableProductService) {
+
+        public void setAvailableProductService(boolean isAvailableProductService) {
             this.isAvailableProductService = isAvailableProductService;
         }
-    }
 
+        public void setAvailableMemberService(boolean isAvailableMemberService) {
+            this.isAvailableMemberService = isAvailableMemberService;
+        }
+        public void bindMemberInfo(OrderResponse.MemberInfo memberInfo) {
+            this.memberInfo = memberInfo;
+        }
+    }
 
 
     @Getter
