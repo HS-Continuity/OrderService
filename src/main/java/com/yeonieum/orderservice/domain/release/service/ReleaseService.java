@@ -118,11 +118,19 @@ public class ReleaseService {
                 targetRelease.changeReleaseStatus(requestedStatus);
 
                 //배송객체 '배송시작'상태로 생성
-                Delivery.builder()
+                // 출고 완료 상태일 경우, 배송 객체 생성
+                Delivery delivery = deliveryRepository.save(Delivery.builder()
                         .deliveryStatus(deliveryStatusRepository.findByStatusName(DeliveryStatusCode.SHIPPED))
                         .shipmentNumber(makeShipNumber())
                         .deliveryFee(deliveryFee)
-                        .build();
+                        .build());
+
+                //출고 완료 상태일 경우, 포장 객체 생성
+                packagingRepository.save(Packaging.builder()
+                        .release(targetRelease)
+                        .orderDetail(targetOrderDetail)
+                        .delivery(delivery)
+                        .build());
 
                 //출고가 완료되면, 배송 시작 -> 주문 상태는 '배송 시작'으로 변경
                 presentOrderStatus = orderStatusRepository.findByStatusName(OrderStatusCode.SHIPPED);
@@ -271,8 +279,6 @@ public class ReleaseService {
         ReleaseStatus requestedStatus = releaseStatusRepository.findByStatusName(bulkUpdateStatus.getReleaseStatusCode());
         ReleaseStatusCode requestedStatusCode = requestedStatus.getStatusName();
 
-
-
         // 모든 주문에 대해 상태 변경 수행
         for (OrderDetail orderDetail : orderDetails) {
             Release currentRelease = releaseRepository.findByOrderDetailId(orderDetail.getOrderDetailId());
@@ -282,7 +288,6 @@ public class ReleaseService {
             if (!releaseStatusPolicy.getReleaseStatusTransitionRule().get(requestedStatusCode).getRequiredPreviosConditionSet().contains(currentReleaseStatus)) {
                 throw new ReleaseException(RELEASE_STATUS_TRANSITION_RULE_VIOLATION, HttpStatus.CONFLICT);
             }
-
 
             // 출고 상태 업데이트
             currentRelease.changeReleaseStatus(requestedStatus);
