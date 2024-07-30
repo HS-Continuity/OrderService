@@ -40,8 +40,8 @@ public class DeliveryService {
      * @return 페이징된 배송 응답 리스트
      */
     @Transactional(readOnly = true)
-    public Page<DeliveryGenuineResponse> retrieveDeliveryList(Long customerId, LocalDate startDate, LocalDate endDate, Pageable pageable) {
-        Page<Object[]> rawResults = packagingRepository.findAllDeliveryInfo(customerId, startDate, endDate, pageable);
+    public Page<DeliveryGenuineResponse> retrieveDeliveryList(Long customerId, LocalDate startDate, LocalDate endDate, String shipmentNumber, String deliveryStatusCode, String memberId, Pageable pageable) {
+        Page<Object[]> rawResults = packagingRepository.findAllDeliveryInfo(customerId, startDate, endDate, shipmentNumber, deliveryStatusCode, memberId, pageable);
 
         List<DeliveryGenuineResponse> deliveryResponses = rawResults.getContent().stream()
                 .map(this::convertToDeliveryGenuineResponse)
@@ -49,6 +49,7 @@ public class DeliveryService {
 
         return new PageImpl<>(deliveryResponses, pageable, rawResults.getTotalElements());
     }
+
 
     /**
      * 배송 정보를 객체로 변환하는 메서드

@@ -34,12 +34,15 @@ public class DeliveryController {
     public ResponseEntity<ApiResponse> getCustomersDelivery(@RequestParam Long customerId,
                                                             @RequestParam(required = false) LocalDate startDate,
                                                             @RequestParam(required = false) LocalDate endDate,
+                                                            @RequestParam(required = false) String shipmentNumber,
+                                                            @RequestParam(required = false) String deliveryStatusCode,
+                                                            @RequestParam(required = false) String memberId,
                                                             @RequestParam(required = false, defaultValue = "0") int page,
                                                             @RequestParam(required = false, defaultValue = "10") int size) {
         Pageable pageable = PageRequest.of(page, size);
 
         return new ResponseEntity<>(ApiResponse.builder()
-                .result(deliveryService.retrieveDeliveryList(customerId, startDate, endDate, pageable))
+                .result(deliveryService.retrieveDeliveryList(customerId, startDate, endDate, shipmentNumber, deliveryStatusCode, memberId, pageable))
                 .successCode(SuccessCode.SELECT_SUCCESS)
                 .build(), HttpStatus.OK);
     }
