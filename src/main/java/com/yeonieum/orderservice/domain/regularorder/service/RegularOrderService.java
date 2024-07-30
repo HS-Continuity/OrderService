@@ -46,9 +46,9 @@ public class RegularOrderService {
     private final ProductServiceFeignClient feignClient;
 
     @Transactional
-    public List<RegularOrderResponse.OfRetrieveDailyDetail> retrieveRegularOrderList(LocalDate date, Long customerId, int startPage, int pageSize) {
-        List<RegularOrderResponse.OfRetrieveDailyDetail> regularOrderCountsForMonth = regularDeliveryReservationRepository.findRegularOrderList(date, customerId, startPage, pageSize);
-        if(regularOrderCountsForMonth.size() == 0) {
+    public Page<RegularOrderResponse.OfRetrieveDailyDetail> retrieveRegularOrderList(LocalDate date, Long customerId,Pageable pageable) {
+        Page<RegularOrderResponse.OfRetrieveDailyDetail> regularOrderCountsForMonth = regularDeliveryReservationRepository.findRegularOrderList(date, customerId, pageable);
+        if(regularOrderCountsForMonth.getContent().size() == 0) {
             return null;
         }
         ResponseEntity<ApiResponse<Map<Long, RegularOrderResponse.ProductOrder>>> response = null;
