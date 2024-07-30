@@ -33,4 +33,7 @@ public interface MemberServiceFeignClient {
     @GetMapping("/api/member/list/order")
     public ResponseEntity<ApiResponse<Map<String, OrderResponse.MemberInfo>>> getOrderMemberInfo(@RequestParam List<String> memberIds);
 
+    @GetMapping("/api/member/filter-map")
+    ResponseEntity<ApiResponse<Map<String, OrderResponse.MemberInfo>>> getFilterMemberMap(@RequestParam(required = false) String memberName,
+                                                                                          @RequestParam(required = false) String memberPhoneNumber);
     }
