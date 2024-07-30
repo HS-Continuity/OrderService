@@ -21,7 +21,7 @@ public class ReleaseRepositoryImpl implements ReleaseRepositoryCustom {
     private final JPAQueryFactory queryFactory;
 
     @Override
-    public Page<Release> findReleases(Long customerId, ReleaseStatusCode statusCode, String orderId, LocalDate startDeliveryDate, String recipient, String recipientPhoneNumber, String recipientAddress, String memberId, LocalDate startDate, LocalDate endDate, Pageable pageable) {
+    public Page<Release> findReleases(Long customerId, ReleaseStatusCode statusCode, String orderId, LocalDate startDeliveryDate, String recipient, String recipientPhoneNumber, String recipientAddress, List<String> memberIds, LocalDate startDate, LocalDate endDate, Pageable pageable) {
         QRelease release = QRelease.release;
         BooleanBuilder builder = new BooleanBuilder();
 
@@ -46,8 +46,8 @@ public class ReleaseRepositoryImpl implements ReleaseRepositoryCustom {
         if (recipientAddress != null) {
             builder.and(release.orderDetail.deliveryAddress.eq(recipientAddress));
         }
-        if (memberId != null) {
-            builder.and(release.orderDetail.memberId.eq(memberId));
+        if (memberIds != null && !memberIds.isEmpty()) {
+            builder.and(release.orderDetail.memberId.in(memberIds));
         }
         if (startDate != null) {
             builder.and(release.createdDate.goe(startDate));

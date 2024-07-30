@@ -42,7 +42,6 @@ public class OrderRequest {
         OrderStatusCode orderStatusCode;
     }
 
-
     @Getter
     @NoArgsConstructor
     public static class OfCreation {
@@ -57,7 +56,6 @@ public class OrderRequest {
         int deliveryFee;
         String orderMemo;
         private int paymentCardId;
-        //PaymentCard paymentCard;
 
         public OrderDetail toOrderDetailEntity(String memberId,OrderStatus orderStatus, String orderDetailId) {
             return OrderDetail.builder()
