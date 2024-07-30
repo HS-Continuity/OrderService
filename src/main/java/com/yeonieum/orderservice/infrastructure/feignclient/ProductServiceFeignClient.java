@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @FeignClient(name = "productservice", url = "http://localhost:8020", configuration = FeignConfig.class)
 public interface ProductServiceFeignClient {
@@ -28,8 +29,8 @@ public interface ProductServiceFeignClient {
     @GetMapping("/api/shopping/product/order/{productIdList}")
     public ResponseEntity<ApiResponse<RetrieveOrderInformationResponse>> retrieveOrderProductInformation(@RequestParam("productIdList") Long productIdList);
     
-    @GetMapping("/api/shopping/product/orders/{productIdList}")
-    public ResponseEntity<ApiResponse<List<RetrieveOrderInformationResponse>>> retrieveOrderProductInformation(@RequestParam("productIdList") List<Long> productIdList);
+    @GetMapping("/api/shopping/product/orders")
+    ResponseEntity<ApiResponse<Set<RetrieveOrderInformationResponse>>> retrieveOrderProductInformation(@RequestParam("productIdList") List<Long> productIdList);
 
     @GetMapping("/api/customer/delivery-fee/{customerId}")
     ResponseEntity<ApiResponse<Integer>> retrieveDeliveryFee(@PathVariable("customerId") Long customerId);
