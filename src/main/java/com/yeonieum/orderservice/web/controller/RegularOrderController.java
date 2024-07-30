@@ -11,6 +11,7 @@ import com.yeonieum.orderservice.infrastructure.messaging.service.OrderEventProd
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -167,8 +168,9 @@ public class RegularOrderController {
                                                                             @RequestParam(defaultValue = "0") int page) {
 
         Long customerId = 1L; // TODO: 로그인한 사용자의 ID를 컨텍스트에서 가져와야 함
+        Pageable pageable = PageRequest.of(page, size);
         return new ResponseEntity<>(ApiResponse.builder()
-                .result(regularOrderService.retrieveRegularOrderList(date, customerId, page, size))
+                .result(regularOrderService.retrieveRegularOrderList(date, customerId, pageable))
                 .successCode(SuccessCode.SELECT_SUCCESS)
                 .build(), HttpStatus.OK);
     }

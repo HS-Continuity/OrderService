@@ -7,6 +7,9 @@ import com.yeonieum.orderservice.domain.regularorder.dto.response.RegularOrderRe
 import com.yeonieum.orderservice.domain.regularorder.entity.QRegularDeliveryApplication;
 import com.yeonieum.orderservice.domain.regularorder.entity.QRegularDeliveryReservation;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
@@ -38,14 +41,13 @@ public class RegularDeliveryReservationRepositoryCustomImpl implements RegularDe
     }
 
 
-    public List<RegularOrderResponse.OfRetrieveDailyDetail> findRegularOrderList(LocalDate date, Long customerId, int startPage, int pageSize) {
+    public Page<RegularOrderResponse.OfRetrieveDailyDetail> findRegularOrderList(LocalDate date, Long customerId, Pageable pageable) {
         QRegularDeliveryReservation reservation = QRegularDeliveryReservation.regularDeliveryReservation;
         QRegularDeliveryApplication application = QRegularDeliveryApplication.regularDeliveryApplication;
         BooleanExpression isDate = reservation.startDate.eq(date);
         BooleanExpression isCustomerId = application.customerId.eq(customerId);
 
-        int offset = (startPage) * pageSize;
-        return queryFactory
+        List<RegularOrderResponse.OfRetrieveDailyDetail> results = queryFactory
                 .select(Projections.constructor(RegularOrderResponse.OfRetrieveDailyDetail.class,
                         application.regularDeliveryApplicationId,
                         reservation.startDate,
@@ -55,9 +57,19 @@ public class RegularDeliveryReservationRepositoryCustomImpl implements RegularDe
                 .join(reservation.regularDeliveryApplication, application)
                 .where(isDate, isCustomerId)
                 .orderBy(reservation.regularDeliveryReservationId.asc())
-                .offset(offset)
-                .limit(pageSize)
+                .offset(pageable.getOffset())
+                .limit(pageable.getPageSize())
                 .fetch();
+
+        // 전체 결과 수를 가져옴
+        long total = queryFactory
+                .selectFrom(reservation)
+                .join(reservation.regularDeliveryApplication, application)
+                .where(isDate, isCustomerId)
+                .fetchCount();
+
+        return new PageImpl<>(results, pageable, 0);
+
     }
 }
 
