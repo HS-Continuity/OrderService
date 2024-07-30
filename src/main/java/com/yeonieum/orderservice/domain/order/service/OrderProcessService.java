@@ -208,6 +208,7 @@ public class OrderProcessService {
                 .isPayment(isPayment)
                 .paymentAmount(isPayment ? orderCreation.getPaymentAmount() : 0)
                 .orderDetailId(orderDetailId)
+                .customerId(orderDetail.getCustomerId())
                 .build();
     }
 

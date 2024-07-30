@@ -83,10 +83,8 @@ public class NotificationKafkaConsumer {
         Optional<OrderDetail> orderDetailOptional = orderDetailRepository.findById(orderDetailId);
 
         if(orderDetailOptional.isEmpty()) {
-            System.out.println("나 여기");
             return null;
         }
-        System.out.println("나여기");
         ResponseEntity<ApiResponse<RetrieveMemberSummary>> memberResponse = null;
         ResponseEntity<ApiResponse<RetrieveOrderInformationResponse>> productResponse = null;
         try {

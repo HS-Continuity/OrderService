@@ -132,7 +132,13 @@ public class OrderDetailController {
 
         orderProcessService.changeOrderStatus(updateStatus);
         if(updateStatus.getOrderStatusCode().equals(OrderStatusCode.CANCELED)) {
-            orderEventProduceService.produceOrderEvent(memberId, updateStatus.getOrderId(), ORDER_TOPIC ,"CANCELED");
+            orderEventProduceService.produceOrderEvent(
+                    memberId,
+                    -1L,
+                    updateStatus.getOrderId(),
+                    ORDER_TOPIC ,
+                    "CANCELED"
+            );
         }
         return new ResponseEntity<>(ApiResponse.builder()
                 .result(null)
@@ -156,7 +162,13 @@ public class OrderDetailController {
         // 주문 성공 시 SSE 알림 및 이벤트 발행
         if(resultPlaceOrder.isPayment()) {
             notificationService.sendEventMessage(creationRequest.getCustomerId());
-            orderEventProduceService.produceOrderEvent(memberId, orderDetailId,ORDER_TOPIC ,"PAYMENT_COMPLETED");
+            orderEventProduceService.produceOrderEvent(
+                    memberId,
+                    resultPlaceOrder.getCustomerId(),
+                    orderDetailId,
+                    ORDER_TOPIC ,
+                    "PAYMENT_COMPLETED"
+            );
         } else {
             throw new RuntimeException("주문 생성 실패");
         }
