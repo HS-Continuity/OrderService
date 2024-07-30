@@ -21,7 +21,7 @@ public class ReleaseRepositoryImpl implements ReleaseRepositoryCustom {
     private final JPAQueryFactory queryFactory;
 
     @Override
-    public Page<Release> findReleases(Long customerId, ReleaseStatusCode statusCode, String orderId, LocalDate startDeliveryDate, String recipient, String recipientPhoneNumber, String recipientAddress, List<String> memberIds, LocalDate startDate, LocalDate endDate, Pageable pageable) {
+    public Page<Release> findReleases(Long customerId, ReleaseStatusCode statusCode, String orderId, LocalDate startDeliveryDate, String recipient, String recipientPhoneNumber, String recipientAddress, String memberId, List<String> memberIds, LocalDate startDate, LocalDate endDate, Pageable pageable) {
         QRelease release = QRelease.release;
         BooleanBuilder builder = new BooleanBuilder();
 
@@ -32,19 +32,22 @@ public class ReleaseRepositoryImpl implements ReleaseRepositoryCustom {
             builder.and(release.releaseStatus.statusName.eq(statusCode));
         }
         if (orderId != null) {
-            builder.and(release.orderDetail.orderDetailId.eq(orderId));
+            builder.and(release.orderDetail.orderDetailId.contains(orderId));
         }
         if (startDeliveryDate != null) {
             builder.and(release.startDeliveryDate.eq(startDeliveryDate));
         }
         if (recipient != null) {
-            builder.and(release.orderDetail.recipient.eq(recipient));
+            builder.and(release.orderDetail.recipient.contains(recipient));
         }
         if (recipientPhoneNumber != null) {
-            builder.and(release.orderDetail.recipientPhoneNumber.eq(recipientPhoneNumber));
+            builder.and(release.orderDetail.recipientPhoneNumber.contains(recipientPhoneNumber));
         }
         if (recipientAddress != null) {
-            builder.and(release.orderDetail.deliveryAddress.eq(recipientAddress));
+            builder.and(release.orderDetail.deliveryAddress.contains(recipientAddress));
+        }
+        if (memberId != null) {
+            builder.and(release.orderDetail.memberId.contains(memberId));
         }
         if (memberIds != null && !memberIds.isEmpty()) {
             builder.and(release.orderDetail.memberId.in(memberIds));

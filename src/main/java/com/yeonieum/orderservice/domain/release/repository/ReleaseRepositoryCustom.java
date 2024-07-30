@@ -9,5 +9,5 @@ import java.time.LocalDate;
 import java.util.List;
 
 public interface ReleaseRepositoryCustom {
-    Page<Release> findReleases(Long customerId, ReleaseStatusCode statusCode, String orderId, LocalDate startDeliveryDate, String recipient, String recipientPhoneNumber, String recipientAddress, List<String> memberIds, LocalDate startDate, LocalDate endDate, Pageable pageable);
+    Page<Release> findReleases(Long customerId, ReleaseStatusCode statusCode, String orderId, LocalDate startDeliveryDate, String recipient, String recipientPhoneNumber, String recipientAddress, String memberId, List<String> memberIds, LocalDate startDate, LocalDate endDate, Pageable pageable);
 }

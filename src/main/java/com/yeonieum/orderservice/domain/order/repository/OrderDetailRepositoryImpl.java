@@ -22,7 +22,7 @@ public class OrderDetailRepositoryImpl implements OrderDetailRepositoryCustom {
     private final JPAQueryFactory queryFactory;
 
     @Override
-    public Page<OrderDetail> findOrders(Long customerId, OrderStatusCode orderStatusCode, String orderDetailId, LocalDateTime orderDateTime, String recipient, String recipientPhoneNumber, String recipientAddress, String memberId, LocalDate startDate, LocalDate endDate, Pageable pageable) {
+    public Page<OrderDetail> findOrders(Long customerId, OrderStatusCode orderStatusCode, String orderDetailId, LocalDateTime orderDateTime, String recipient, String recipientPhoneNumber, String recipientAddress, String memberId, List<String> memberIds, LocalDate startDate, LocalDate endDate, Pageable pageable) {
         QOrderDetail orderDetail = QOrderDetail.orderDetail;
         BooleanBuilder builder = new BooleanBuilder();
 
@@ -33,22 +33,25 @@ public class OrderDetailRepositoryImpl implements OrderDetailRepositoryCustom {
             builder.and(orderDetail.orderStatus.statusName.eq(orderStatusCode));
         }
         if (orderDetailId != null) {
-            builder.and(orderDetail.orderDetailId.eq(orderDetailId));
+            builder.and(orderDetail.orderDetailId.contains(orderDetailId));
         }
         if (orderDateTime != null) {
             builder.and(orderDetail.orderDateTime.eq(orderDateTime));
         }
         if (recipient != null) {
-            builder.and(orderDetail.recipient.eq(recipient));
+            builder.and(orderDetail.recipient.contains(recipient));
         }
         if (recipientPhoneNumber != null) {
-            builder.and(orderDetail.recipientPhoneNumber.eq(recipientPhoneNumber));
+            builder.and(orderDetail.recipientPhoneNumber.contains(recipientPhoneNumber));
         }
         if (recipientAddress != null) {
-            builder.and(orderDetail.deliveryAddress.eq(recipientAddress));
+            builder.and(orderDetail.deliveryAddress.contains(recipientAddress));
         }
         if (memberId != null) {
-            builder.and(orderDetail.memberId.eq(memberId));
+            builder.and(orderDetail.memberId.contains(memberId));
+        }
+        if (memberIds != null && !memberIds.isEmpty()) {
+            builder.and(orderDetail.memberId.in(memberIds));
         }
         if (startDate != null) {
             builder.and(orderDetail.createdDate.goe(startDate));

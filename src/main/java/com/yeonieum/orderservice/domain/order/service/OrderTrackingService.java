@@ -21,7 +21,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+
 import java.util.*;
+
 import java.util.stream.Collectors;
 
 @Service
@@ -29,7 +35,7 @@ import java.util.stream.Collectors;
 public class OrderTrackingService {
     private final OrderDetailRepository orderDetailRepository;
     private final OrderStatusRepository orderStatusRepository;
-    private final MemberServiceFeignClient memberFeignClient;
+    private final MemberServiceFeignClient memberServiceFeignClient;
     private final ProductServiceFeignClient productServiceFeignClient;
 
     /**
@@ -41,8 +47,19 @@ public class OrderTrackingService {
      */
     @Transactional(readOnly = true)
     public Page<OrderResponse.OfRetrieveForCustomer> retrieveOrdersForCustomer(Long customerId, OrderStatusCode orderStatusCode, String orderDetailId, LocalDateTime orderDateTime, String recipient, String recipientPhoneNumber, String recipientAddress, String memberId, String memberName, String memberPhoneNumber, LocalDate startDate, LocalDate endDate, Pageable pageable) {
-        Page<OrderDetail> orderDetailsPage =
-                orderDetailRepository.findOrders(customerId, orderStatusCode, orderDetailId, orderDateTime, recipient, recipientPhoneNumber, recipientAddress, memberId, startDate, endDate, pageable);
+
+        List<String> filteredMemberIds = null;
+
+        if (memberName != null || memberPhoneNumber != null) {
+            // 멤버 이름과 전화번호로 필터링하여 필요한 멤버 ID들을 먼저 수집
+            filteredMemberIds = memberServiceFeignClient.getOrderMemberFilter(memberName, memberPhoneNumber).getBody().getResult();
+            if (filteredMemberIds.isEmpty()) {
+                // 필터링된 멤버 ID가 없으면 비어 있는 페이지 반환
+                return Page.empty(pageable);
+            }
+        }
+
+        Page<OrderDetail> orderDetailsPage = orderDetailRepository.findOrders(customerId, orderStatusCode, orderDetailId, orderDateTime, recipient, recipientPhoneNumber, recipientAddress, memberId, filteredMemberIds, startDate, endDate, pageable);
 
         List<OrderResponse.OfRetrieveForCustomer> convertedOrders = new ArrayList<>();
         List<Long> productIdList = orderDetailsPage.stream()
@@ -67,40 +84,36 @@ public class OrderTrackingService {
         for (OrderDetail orderDetail : orderDetailsPage) {
             boolean isAvailableMemberService = true;
             try{
-                memberResponse = memberFeignClient.getOrderMemberInfo(orderDetail.getMemberId());
+                memberResponse = memberServiceFeignClient.getOrderMemberInfo(orderDetail.getMemberId());
             } catch (FeignException e) {
                 isAvailableMemberService = false;
             }
             OrderResponse.MemberInfo memberInfo = memberResponse == null ? null : memberResponse.getBody().getResult();
 
-            // 필터링 조건을 확인하여 필요한 경우 필터링
-//            if (memberInfo != null &&
-//                    (memberName == null || memberName.equals(memberInfo.getMemberName())) &&
-//                    (memberPhoneNumber == null || memberPhoneNumber.equals(memberInfo.getMemberPhoneNumber()))) {
+            OrderResponse.OfRetrieveForCustomer orderResponse =
+                    OrderResponse.OfRetrieveForCustomer.convertedBy(orderDetail, memberInfo, isAvailableProductService, isAvailableMemberService);
 
-                OrderResponse.OfRetrieveForCustomer orderResponse =
-                        OrderResponse.OfRetrieveForCustomer.convertedBy(orderDetail, memberInfo, isAvailableProductService, isAvailableMemberService);
+            if(isAvailableProductService) {
+                Set<RetrieveOrderInformationResponse> productInformation = productResponse.getBody().getResult();
+                final Map<Long, RetrieveOrderInformationResponse> productInformationMap = new HashMap<>();
 
-                if(isAvailableProductService) {
-                    Set<RetrieveOrderInformationResponse> productInformation = productResponse.getBody().getResult();
-                    final Map<Long, RetrieveOrderInformationResponse> productInformationMap = new HashMap<>();
-
-                    for(RetrieveOrderInformationResponse product : productInformation) {
-                        productInformationMap.put(product.getProductId(), product);
-                    }
-
-                    orderResponse.getProductOrderList().getProductOrderList().stream().map(
-                            productOrder -> {
-                                productOrder.changeName(productInformationMap.get(productOrder.getProductId()).getProductName());
-                                return productOrder;
-                            }).collect(Collectors.toList());
+                for(RetrieveOrderInformationResponse product : productInformation) {
+                    productInformationMap.put(product.getProductId(), product);
                 }
-                convertedOrders.add(orderResponse);
+
+                orderResponse.getProductOrderList().getProductOrderList().stream().map(
+                        productOrder -> {
+                            productOrder.changeName(productInformationMap.get(productOrder.getProductId()).getProductName());
+                            return productOrder;
+                        }).collect(Collectors.toList());
             }
-        //}
+            convertedOrders.add(orderResponse);
+        }
+
 
         return new PageImpl<>(convertedOrders, pageable, orderDetailsPage.getTotalElements());
     }
+
 
     /**
      * 고객용 주문상태별 주문 건수 조회 서비스

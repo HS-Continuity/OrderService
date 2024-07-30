@@ -38,10 +38,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -160,13 +157,14 @@ public class ReleaseService {
      */
     @Transactional
     public Page<ReleaseResponse.OfRetrieve> getReleaseDetailsByFilteredMembers(Long customerId, ReleaseStatusCode statusCode, String orderId, LocalDate startDeliveryDate, String recipient, String recipientPhoneNumber, String recipientAddress, String memberId, String memberName, String memberPhoneNumber, LocalDate startDate, LocalDate endDate, Pageable pageable) {
+        List<String> filteredMemberIds;
         if (memberName != null || memberPhoneNumber != null) {
 
             // 멤버 이름과 전화번호로 필터링하여 필요한 멤버 ID들을 먼저 수집
-            List<String> filteredMemberIds = memberServiceFeignClient.getOrderMemberFilter(memberName, memberPhoneNumber).getBody().getResult();
+            filteredMemberIds = memberServiceFeignClient.getOrderMemberFilter(memberName, memberPhoneNumber).getBody().getResult();
 
             // 필터링된 멤버 ID에 해당하는 출고 정보 조회
-            Page<Release> releasesPage = releaseRepository.findReleases(customerId, statusCode, orderId, startDeliveryDate, recipient, recipientPhoneNumber, recipientAddress, filteredMemberIds, startDate, endDate, pageable);
+            Page<Release> releasesPage = releaseRepository.findReleases(customerId, statusCode, orderId, startDeliveryDate, recipient, recipientPhoneNumber, recipientAddress, memberId, filteredMemberIds, startDate, endDate, pageable);
 
             // 멤버 정보 조회
             List<OrderResponse.MemberInfo> memberSummaries = memberServiceFeignClient.getOrderMemberInfos(filteredMemberIds).getBody().getResult();
@@ -185,8 +183,11 @@ public class ReleaseService {
             return new PageImpl<>(filteredReleases, pageable, releasesPage.getTotalElements());
 
         } else {
+
+            filteredMemberIds = null;
+
             // 멤버 정보 필터링 없이 출고 정보만 조회
-            Page<Release> releasesPage = releaseRepository.findReleases(customerId, statusCode, orderId, startDeliveryDate, recipient, recipientPhoneNumber, recipientAddress, null, startDate, endDate, pageable);
+            Page<Release> releasesPage = releaseRepository.findReleases(customerId, statusCode, orderId, startDeliveryDate, recipient, recipientPhoneNumber, recipientAddress, memberId, filteredMemberIds, startDate, endDate, pageable);
 
             List<ReleaseResponse.OfRetrieve> releases = releasesPage.getContent().stream()
                     .map(release -> {
