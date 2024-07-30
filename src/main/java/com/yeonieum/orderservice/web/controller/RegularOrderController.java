@@ -2,6 +2,7 @@ package com.yeonieum.orderservice.web.controller;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.yeonieum.orderservice.domain.regularorder.dto.request.RegularOrderRequest;
+import com.yeonieum.orderservice.domain.regularorder.dto.response.RegularOrderResponse;
 import com.yeonieum.orderservice.domain.regularorder.service.RegularOrderService;
 import com.yeonieum.orderservice.global.auth.Role;
 import com.yeonieum.orderservice.global.responses.ApiResponse;
@@ -43,8 +44,14 @@ public class RegularOrderController {
     @PostMapping
     public ResponseEntity<ApiResponse> subscriptionRegularDelivery(@RequestBody  RegularOrderRequest.OfCreation creationRequest) throws JsonProcessingException {
         String memberId = "qwe123";
-        Long regularDeliveryId = regularOrderService.subscriptionDelivery(creationRequest);
-        orderEventProduceService.produceRegularOrderEvent(memberId, regularDeliveryId, REGULAR_TOPIC, "APPLY");
+        RegularOrderResponse.OfSuccess successResult = regularOrderService.subscriptionDelivery(creationRequest);
+        orderEventProduceService.produceRegularOrderEvent(
+                successResult.getMemberId(),
+                successResult.getCustomerId(),
+                successResult.getRegularDeliveryApplicationId(),
+                REGULAR_TOPIC,
+                "APPLY"
+        );
         return new ResponseEntity<>(ApiResponse.builder()
                 .result(null)
                 .successCode(SuccessCode.INSERT_SUCCESS)
@@ -81,7 +88,13 @@ public class RegularOrderController {
     public ResponseEntity<ApiResponse> cancelRegularOrder(@RequestParam(name = "regularOrderId") Long regularDeliveryApplicationId) throws JsonProcessingException {
         String memberId = "qwe123";
         regularOrderService.cancelRegularDelivery(regularDeliveryApplicationId);
-        orderEventProduceService.produceRegularOrderEvent(memberId, regularDeliveryApplicationId, REGULAR_TOPIC, "CANCEL");
+        orderEventProduceService.produceRegularOrderEvent(
+                memberId,
+                -1L,
+                regularDeliveryApplicationId,
+                REGULAR_TOPIC,
+                "CANCEL"
+        );
 
         return new ResponseEntity<>(ApiResponse.builder()
                 .result(null)
@@ -99,7 +112,13 @@ public class RegularOrderController {
     public ResponseEntity<ApiResponse> postponeRegularOrder(@PathVariable Long regularDeliveryApplicationId) throws JsonProcessingException {
         String memberId = "qwe123";
         regularOrderService.skipRegularDeliveryReservation(regularDeliveryApplicationId);
-        orderEventProduceService.produceRegularOrderEvent(memberId, regularDeliveryApplicationId, REGULAR_TOPIC, "POSTPONE");
+        orderEventProduceService.produceRegularOrderEvent(
+                memberId,
+                -1L,
+                regularDeliveryApplicationId,
+                REGULAR_TOPIC,
+                "POSTPONE"
+        );
 
 
         return new ResponseEntity<>(ApiResponse.builder()
