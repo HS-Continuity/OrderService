@@ -48,6 +48,8 @@ public class RegularOrderResponse {
         String regularDeliveryStatus;
         String orderMemo;
         String storeName;
+        String status;
+        int paymentAmount;
         boolean isAvailableProductService;
 
         public static OfRetrieveDetails convertedBy(RegularDeliveryApplication application,
@@ -69,7 +71,9 @@ public class RegularOrderResponse {
                     .orderMemo(application.getOrderMemo())
                     .regularDeliveryStatus(application.getRegularDeliveryStatus().getStatusName())
                     .storeName(storeName)
+                    .status(application.getRegularDeliveryStatus().getStatusName())
                     .isAvailableProductService(isAvailableProductService)
+                    .paymentAmount(orderList.getProductOrderList().stream().map(ProductOrder::getFinalPrice).reduce(0, Integer::sum))
                     .build();
         }
     }

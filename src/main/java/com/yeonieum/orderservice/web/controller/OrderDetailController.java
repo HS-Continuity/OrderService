@@ -174,7 +174,7 @@ public class OrderDetailController {
         }
 
         return new ResponseEntity<>(ApiResponse.builder()
-                .result(resultPlaceOrder.getPaymentAmount())
+                .result(resultPlaceOrder)
                 .successCode(SuccessCode.UPDATE_SUCCESS)
                 .build(), HttpStatus.OK);
     }
