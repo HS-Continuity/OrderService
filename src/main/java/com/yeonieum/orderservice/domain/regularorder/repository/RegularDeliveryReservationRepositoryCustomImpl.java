@@ -31,6 +31,7 @@ public class RegularDeliveryReservationRepositoryCustomImpl implements RegularDe
                         reservation.regularDeliveryReservationId.count(),
                         application.mainProductId,
                         application.regularDeliveryApplicationId,
+                        application.memberId,
                         reservation.startDate))
                 .from(reservation)
                 .join(reservation.regularDeliveryApplication, application)
@@ -52,6 +53,7 @@ public class RegularDeliveryReservationRepositoryCustomImpl implements RegularDe
                         application.regularDeliveryApplicationId,
                         reservation.startDate,
                         reservation.regularDeliveryReservationId.count(),
+                        application.memberId,
                         reservation.productId))
                 .from(reservation)
                 .join(reservation.regularDeliveryApplication, application)
