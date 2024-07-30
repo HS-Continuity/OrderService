@@ -211,10 +211,10 @@ public class RegularOrderService {
     /**
      * 정기주문 회차 미루기
      * @param regularOrderApplicationId
-     * @param postPoneRequest
+     * @param
      */
     @Transactional
-    public void skipRegularDeliveryReservation (Long regularOrderApplicationId, RegularOrderRequest.OfPostPone postPoneRequest) {
+    public void skipRegularDeliveryReservation (Long regularOrderApplicationId) {
         RegularDeliveryApplication application = regularDeliveryApplicationRepository.findById(regularOrderApplicationId).orElseThrow(
                 () -> new IllegalArgumentException("해당 정기주문신청이 존재하지 않습니다.")
         );

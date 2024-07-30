@@ -16,16 +16,23 @@ public class RegularOrderResponse {
         ProductOrder productOrder;
         int orderProductAmount;
         LocalDate orderDate;
+        String regularDeliveryStatus;
+        String orderMemo;
+        String storeName;
 
         public static OfRetrieve convertedBy(RegularDeliveryApplication application,
                                              Map<Long, ProductOrder> productOrderMap,
                                              boolean isAvailableProductService) {
             ProductOrder productOrder = isAvailableProductService ? productOrderMap.get(application.getMainProductId()) : null;
+            String storeName = isAvailableProductService ? productOrderMap.get(application.getMainProductId()).getStoreName() : null;
             return OfRetrieve.builder()
                     .regularOrderId(application.getRegularDeliveryApplicationId())
                     .productOrder(productOrder)
                     .orderProductAmount(application.getOrderedProductCount())
                     .orderDate(application.getNextDeliveryDate())
+                    .regularDeliveryStatus(application.getRegularDeliveryStatus().getStatusName())
+                    .orderMemo(application.getOrderMemo())
+                    .storeName(storeName)
                     .build();
         }
     }
@@ -38,24 +45,30 @@ public class RegularOrderResponse {
         Recipient recipient;
         DeliveryPeriod deliveryPeriod;
         LocalDate nextDeliveryDate;
+        String regularDeliveryStatus;
+        String orderMemo;
+        String storeName;
         boolean isAvailableProductService;
 
         public static OfRetrieveDetails convertedBy(RegularDeliveryApplication application,
                                                     Map<Long, ProductOrder> productOrderMap,
                                                     boolean isAvailableProductService) {
 
-            // application.getReservation에서 productAmount를 가져와서 productOrderList의 요소에 넣어야할거같음.
             ProductOrderList orderList =
                     isAvailableProductService ? ProductOrderList.builder()
                             .productOrderList(productOrderMap.values().stream().collect(Collectors.toList())
                             ).build()  :  null;
 
+            String storeName = isAvailableProductService ? productOrderMap.get(application.getMainProductId()).getStoreName() : null;
             return OfRetrieveDetails.builder()
                     .regularOrderId(application.getRegularDeliveryApplicationId())
                     .productOrderList(orderList)
                     .recipient(Recipient.convertedBy(application))
                     .deliveryPeriod(DeliveryPeriod.convertedBy(application))
                     .nextDeliveryDate(application.getNextDeliveryDate())
+                    .orderMemo(application.getOrderMemo())
+                    .regularDeliveryStatus(application.getRegularDeliveryStatus().getStatusName())
+                    .storeName(storeName)
                     .isAvailableProductService(isAvailableProductService)
                     .build();
         }
@@ -163,6 +176,7 @@ public class RegularOrderResponse {
         Long productId;
         String productName;
         String productImage;
+        String storeName;
         int originPrice;
         int finalPrice;
         int productAmount;
