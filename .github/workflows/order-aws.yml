@@ -4,7 +4,6 @@ on:
   push:
     branches: [ "KAN-678--feat/주문서비스-배포자동화-스크립트-작성" ]
 
-
 env:
   AWS_REGION: ap-northeast-2
   ECR_REPOSITORY: t4-orderservice-ecr
