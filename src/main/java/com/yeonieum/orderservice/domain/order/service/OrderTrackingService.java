@@ -3,6 +3,7 @@ package com.yeonieum.orderservice.domain.order.service;
 import com.yeonieum.orderservice.domain.order.dto.response.OrderResponse;
 import com.yeonieum.orderservice.domain.order.entity.OrderDetail;
 import com.yeonieum.orderservice.domain.order.entity.ProductOrderEntity;
+import com.yeonieum.orderservice.domain.order.exception.OrderException;
 import com.yeonieum.orderservice.domain.order.repository.OrderDetailRepository;
 import com.yeonieum.orderservice.domain.order.repository.OrderStatusRepository;
 import com.yeonieum.orderservice.global.enums.OrderStatusCode;
@@ -15,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,11 +26,12 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 
 import java.util.*;
 
 import java.util.stream.Collectors;
+
+import static com.yeonieum.orderservice.domain.order.exception.OrderExceptionCode.ORDER_NOT_FOUND;
 
 @Service
 @RequiredArgsConstructor
@@ -146,7 +149,7 @@ public class OrderTrackingService {
     }
 
     /**
-     * 회원용 주문 조회 서비스
+     * 회원용 주문 리스트 조회 서비스
      * @param memberId
      * @param startDate
      * @param endDate
@@ -173,15 +176,12 @@ public class OrderTrackingService {
         if(isAvailableProductService) {
             Set<RetrieveOrderInformationResponse> productInformationList = productResponse.getBody().getResult();
             Map<Long, RetrieveOrderInformationResponse> productInformationMap = new HashMap();
-            for(RetrieveOrderInformationResponse productInformation : productInformationList) {
-                System.out.println(productInformation.getProductImage());
-            }
+
             productInformationList.forEach(productInformation -> {
                 productInformationMap.put(productInformation.getProductId(), productInformation);
             });
 
             return orderDetailsPage.map(orderDetail -> {
-                System.out.println(orderDetail.getMainProductId());
                 return OrderResponse.OfRetrieveForMember
                         .convertedBy(orderDetail, productInformationMap.get(orderDetail.getMainProductId()), true);
             });
@@ -189,5 +189,54 @@ public class OrderTrackingService {
 
         return orderDetailsPage.map(orderDetail -> OrderResponse.OfRetrieveForMember
                     .convertedBy(orderDetail, null, false));
+    }
+
+
+
+    /**
+     * 회원용 주문 상세 조회 서비스
+     * @param memberId
+     *
+     * @return
+     */
+    // 대표 상품에 대해서만 가져오기
+    @Transactional(readOnly = true)
+    public OrderResponse.OfRetrieveDetailForMember retrieveOrderDetailForMember(String memberId, String orderDetailId) {
+       OrderDetail orderDetail = orderDetailRepository.findById(orderDetailId).orElseThrow(
+                () -> new OrderException(ORDER_NOT_FOUND, HttpStatus.NOT_FOUND));
+
+        List<Long> productIdList = orderDetail.getOrderList().getProductOrderEntityList()
+                .stream().map(orderedProduct -> orderedProduct.getProductId()).collect(Collectors.toList());
+
+        boolean isAvailableProductService = true;
+        ResponseEntity<ApiResponse<Set<RetrieveOrderInformationResponse>>> productResponse = null;
+        try {
+            productResponse = productServiceFeignClient.retrieveOrderProductInformation(productIdList);
+            isAvailableProductService = productResponse.getStatusCode().is2xxSuccessful();
+        } catch (FeignException e) {
+            e.printStackTrace();
+            isAvailableProductService = false;
+        }
+
+        if(isAvailableProductService) {
+            Set<RetrieveOrderInformationResponse> productInformationList = productResponse.getBody().getResult();
+            Map<Long, RetrieveOrderInformationResponse> productInformationMap = new HashMap();
+
+            productInformationList.forEach(productInformation -> {
+                productInformationMap.put(productInformation.getProductId(), productInformation);
+            });
+
+            OrderResponse.OfRetrieveDetailForMember result = OrderResponse.OfRetrieveDetailForMember
+                        .convertedBy(orderDetail, productInformationMap.values().stream().findFirst().get().getStoreName() , true);
+
+            result.getProductOrderList().getProductOrderList().forEach(productOrder -> {
+                productOrder.changeName(productInformationMap.get(productOrder.getProductId()).getProductName());
+                productOrder.changeImage(productInformationMap.get(productOrder.getProductId()).getProductImage());
+            });
+
+            return result;
+        }
+        return OrderResponse.OfRetrieveDetailForMember
+                .convertedBy(orderDetail, null, false);
     }
 }

@@ -192,9 +192,12 @@ public class RegularOrderService {
         final boolean finalIsAvailableProductService = isAvailableProductService;
         final Map<Long, RegularOrderResponse.ProductOrder> productOrderMap = isAvailableProductService ? response.getBody().getResult() : null;
         Map<Long, RegularOrderResponse.ProductOrder> finalProductOrderMap = productOrderMap;
-        applicationList.stream().forEach(application -> application.getRegularDeliveryReservationList().stream().forEach(reservation -> {
-            finalProductOrderMap.get(reservation.getProductId()).changeProductAmount(reservation.getQuantity());
-        }));
+
+        if(isAvailableProductService) {
+            applicationList.stream().forEach(application -> {
+                finalProductOrderMap.get(application.getMainProductId()).changeProductAmount(application.getOrderedProductCount());
+            });
+        }
         return applicationList.map(application -> RegularOrderResponse.OfRetrieve.convertedBy(application, productOrderMap, finalIsAvailableProductService));
     }
 
@@ -206,6 +209,9 @@ public class RegularOrderService {
     @Transactional
     public RegularOrderResponse.OfRetrieveDetails retrieveRegularDeliveryDetails(Long regularDeliveryApplicationId) {
         RegularDeliveryApplication application = regularDeliveryApplicationRepository.findWithReservationsAndApplicationDaysById(regularDeliveryApplicationId);
+        if(application == null) {
+            throw new IllegalArgumentException("해당 정기주문신청이 존재하지 않습니다.");
+        }
 
         // 상품Id 리스트 추출 후 상품서비스의 상품정보 조회 API 호출
         List<Long> productIdList = application.getRegularDeliveryReservationList().stream().map(reservation -> reservation.getProductId()).collect(Collectors.toList());
@@ -225,7 +231,6 @@ public class RegularOrderService {
         application.getRegularDeliveryReservationList().stream().forEach(reservation -> {
             finalProductOrderMap.get(reservation.getProductId()).changeProductAmount(reservation.getQuantity());
         });
-
 
         return RegularOrderResponse.OfRetrieveDetails.convertedBy(application, productOrderMap, isAvailableProductService);
     }

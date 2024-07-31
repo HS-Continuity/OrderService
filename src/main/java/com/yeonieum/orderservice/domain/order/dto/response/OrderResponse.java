@@ -13,6 +13,7 @@ import lombok.NoArgsConstructor;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 
@@ -77,6 +78,44 @@ public class OrderResponse {
 
     @Getter
     @Builder
+    public static class OfRetrieveDetailForMember {
+        String memberId;
+        String orderDetailId;
+        Recipient recipient;
+        LocalDateTime orderDate;
+        @Builder.Default
+        String storeName = null;
+        String status;
+        String orderMemo;
+        ProductOrderList productOrderList;
+        @Builder.Default
+        boolean isAvailableProductInformation = true;
+
+
+        public static OrderResponse.OfRetrieveDetailForMember convertedBy(OrderDetail orderDetail,
+                                                                          String storeName,
+                                                                          boolean isAvailableProductInformation) {
+
+            return OrderResponse.OfRetrieveDetailForMember.builder()
+                    .memberId(orderDetail.getMemberId())
+                    .productOrderList(ProductOrderList.convertedBy(orderDetail))
+                    .recipient(new Recipient(
+                            orderDetail.getRecipient(),
+                            orderDetail.getRecipientPhoneNumber(),
+                            orderDetail.getDeliveryAddress()
+                    ))
+                    .orderDetailId(orderDetail.getOrderDetailId())
+                    .orderDate(orderDetail.getOrderDateTime())
+                    .status(orderDetail.getOrderStatus().getStatusName().getCode())
+                    .storeName(storeName)
+                    .orderMemo(orderDetail.getOrderMemo())
+                    .isAvailableProductInformation(isAvailableProductInformation)
+                    .build();
+        }
+    }
+
+    @Getter
+    @Builder
     public static class OfRetrieveForMember {
         String memberId;
         String orderDetailId;
@@ -87,7 +126,8 @@ public class OrderResponse {
         String status;
         String image;
         String orderMemo;
-        ProductOrderList productOrderList;
+        int orderedProductCount;
+        ProductOrder mainProduct;
         @Builder.Default
         boolean isAvailableProductInformation = true;
 
@@ -100,7 +140,7 @@ public class OrderResponse {
             String storeName = isAvailableProductInformation ? retrieveOrderInformationResponse.getStoreName() : null;
             return OfRetrieveForMember.builder()
                     .memberId(orderDetail.getMemberId())
-                    .productOrderList(ProductOrderList.convertedBy(orderDetail))
+                    .mainProduct(ProductOrder.convertedBy(orderDetail.getOrderList().getProductOrderEntityList().get(0)))
                     .recipient(new Recipient(
                             orderDetail.getRecipient(),
                             orderDetail.getRecipientPhoneNumber(),
@@ -112,6 +152,7 @@ public class OrderResponse {
                     .status(orderDetail.getOrderStatus().getStatusName().getCode())
                     .storeName(storeName)
                     .orderMemo(orderDetail.getOrderMemo())
+                    .orderedProductCount(orderDetail.getOrderList().getProductOrderEntityList().size())
                     .isAvailableProductInformation(isAvailableProductInformation)
                     .build();
         }
@@ -125,6 +166,7 @@ public class OrderResponse {
     public static class ProductOrder {
         Long productId;
         String name;
+        String image;
         int originPrice; // 상품금액
         int discountAmount; // 상품 할인액
         int finalPrice; // 최종상품금액
@@ -137,6 +179,9 @@ public class OrderResponse {
         }
         public void changeName(String name){
             this.name = name;
+        }
+        public void changeImage(String image){
+            this.image = image;
         }
 
         public static ProductOrder convertedBy(ProductOrderEntity productOrderEntity) {
