@@ -11,7 +11,6 @@ import com.yeonieum.orderservice.infrastructure.messaging.service.OrderEventProd
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -20,7 +19,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 
-import static com.yeonieum.orderservice.infrastructure.messaging.producer.OrderNotificationKafkaProducer.REGULAR_TOPIC;
+import static com.yeonieum.orderservice.infrastructure.messaging.producer.OrderEventProducer.REGULAR_TOPIC;
 
 /**
  * 1. 정기주문 생성

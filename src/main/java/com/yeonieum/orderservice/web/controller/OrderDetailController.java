@@ -11,6 +11,8 @@ import com.yeonieum.orderservice.global.auth.Role;
 import com.yeonieum.orderservice.global.enums.OrderStatusCode;
 import com.yeonieum.orderservice.global.responses.ApiResponse;
 import com.yeonieum.orderservice.global.responses.code.SuccessCode;
+import com.yeonieum.orderservice.infrastructure.messaging.dto.ShippedEventMessage;
+import com.yeonieum.orderservice.infrastructure.messaging.producer.OrderEventProducer;
 import com.yeonieum.orderservice.infrastructure.messaging.service.OrderEventProduceService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -23,8 +25,10 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
 
-import static com.yeonieum.orderservice.infrastructure.messaging.producer.OrderNotificationKafkaProducer.ORDER_TOPIC;
+import static com.yeonieum.orderservice.infrastructure.messaging.producer.OrderEventProducer.ORDER_TOPIC;
 
 @RestController
 @RequiredArgsConstructor
@@ -36,6 +40,7 @@ public class OrderDetailController {
     private final OrderNotificationServiceForCustomer notificationService;
     private final OrderStatusPolicy orderStatusPolicy;
     private final OrderEventProduceService orderEventProduceService;
+    private final OrderEventProducer orderEventProducer;
 
     @Operation(summary = "고객용 주문 조회", description = "고객(seller)에게 접수된 주문리스트를 조회합니다. 주문상태에 따라 필터링이 가능합니다.")
     @ApiResponses({
@@ -122,8 +127,14 @@ public class OrderDetailController {
     })
     @Role(role = {"ROLE_CUSTOMER", "ROLE_MEMBER"}, url = "/api/order/product/status", method = "PATCH")
     @PatchMapping("/product/status")
-    public ResponseEntity<ApiResponse> changeProductOrder(@RequestBody OrderRequest.OfUpdateProductOrderStatus updateProductOrderStatus) {
-        orderProcessService.changeOrderProductStatus(updateProductOrderStatus);
+    public ResponseEntity<ApiResponse> changeProductOrder(@RequestBody OrderRequest.OfUpdateProductOrderStatus updateProductOrderStatus) throws JsonProcessingException {
+        OrderResponse.OfResultUpdateStatus result = orderProcessService.changeOrderProductStatus(updateProductOrderStatus);
+        if(updateProductOrderStatus.getOrderStatusCode().equals(OrderStatusCode.CANCELED)) {
+            orderEventProducer.sendCancelMessage(
+                    result.getProductOrderEntityList().stream().map(productOrderEntity ->
+                            ShippedEventMessage.convertedBy(result.getOrderDetailId(), productOrderEntity)).collect(Collectors.toList()));
+
+        }
 
         return new ResponseEntity<>(ApiResponse.builder()
                 .result(null)
@@ -140,13 +151,20 @@ public class OrderDetailController {
     @Role(role = {"ROLE_MEMBER", "ROLE_CUSTOMER"}, url = "/api/order/status", method = "PATCH")
     @PatchMapping("/status")
     public ResponseEntity<ApiResponse> changeOrderStatus(@RequestBody OrderRequest.OfUpdateOrderStatus updateStatus) throws JsonProcessingException {
-        String Role = "MEMBER";
+        String Role = "CUSTOMER";
         String memberId = "qwe123";
         if(!orderStatusPolicy.getOrderStatusPermission().get(updateStatus.getOrderStatusCode()).contains(Role)) {
             throw new RuntimeException("접근권한이 없습니다.");
         }
 
-        orderProcessService.changeOrderStatus(updateStatus);
+        OrderResponse.OfResultUpdateStatus result = orderProcessService.changeOrderStatus(updateStatus);
+        if(updateStatus.getOrderStatusCode().equals(OrderStatusCode.PREPARING_PRODUCT)) {
+            // ShippedEventMessage의 리스트 컬렉션 생성
+            orderEventProducer.sendApproveMessage(
+                    result.getProductOrderEntityList().stream().map(productOrderEntity ->
+                                    ShippedEventMessage.convertedBy(result.getOrderDetailId(), productOrderEntity)).collect(Collectors.toList()));
+        }
+
         if(updateStatus.getOrderStatusCode().equals(OrderStatusCode.CANCELED)) {
             orderEventProduceService.produceOrderEvent(
                     memberId,
@@ -155,6 +173,11 @@ public class OrderDetailController {
                     ORDER_TOPIC ,
                     "CANCELED"
             );
+
+            orderEventProducer.sendCancelMessage(
+                    result.getProductOrderEntityList().stream().map(productOrderEntity ->
+                            ShippedEventMessage.convertedBy(result.getOrderDetailId(), productOrderEntity)).collect(Collectors.toList()));
+
         }
         return new ResponseEntity<>(ApiResponse.builder()
                 .result(null)
@@ -201,16 +224,32 @@ public class OrderDetailController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "주문 상태 일괄 변경 실패")
     })
     @PatchMapping("/bulk-status")
-    public ResponseEntity<ApiResponse> changeBulkOrderStatus(@RequestBody OrderRequest.OfBulkUpdateOrderStatus updateStatus) {
+    public ResponseEntity<ApiResponse> changeBulkOrderStatus(@RequestBody OrderRequest.OfBulkUpdateOrderStatus updateStatus) throws JsonProcessingException {
         String Role = "CUSTOMER";
         if(!orderStatusPolicy.getOrderStatusPermission().get(updateStatus.getOrderStatusCode()).contains(Role)) {
             throw new RuntimeException("접근권한이 없습니다.");
         }
 
-        orderProcessService.changeBulkOrderStatus(updateStatus);
+        List<OrderResponse.OfResultUpdateStatus> resultPlaceOrders = orderProcessService.changeBulkOrderStatus(updateStatus);
+        for (OrderResponse.OfResultUpdateStatus resultPlaceOrder : resultPlaceOrders) {
+            if(updateStatus.getOrderStatusCode().equals(OrderStatusCode.PREPARING_PRODUCT)) {
+                orderEventProducer.sendApproveMessage(
+                        resultPlaceOrder.getProductOrderEntityList().stream().map(productOrderEntity ->
+                                ShippedEventMessage.convertedBy(resultPlaceOrder.getOrderDetailId(), productOrderEntity)).collect(Collectors.toList()));
+            }
+
+            if(updateStatus.getOrderStatusCode().equals(OrderStatusCode.CANCELED)) {
+                orderEventProducer.sendCancelMessage(
+                        resultPlaceOrder.getProductOrderEntityList().stream().map(productOrderEntity ->
+                                ShippedEventMessage.convertedBy(resultPlaceOrder.getOrderDetailId(), productOrderEntity)).collect(Collectors.toList()));
+            }
+        }
         return new ResponseEntity<>(ApiResponse.builder()
                 .result(null)
                 .successCode(SuccessCode.UPDATE_SUCCESS)
                 .build(), HttpStatus.OK);
     }
+
+
+
 }
