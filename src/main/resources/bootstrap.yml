@@ -8,7 +8,7 @@ spring :
       uri : http://43.201.146.199:8071
 eureka :
   instance :
-    preferIpAddress : false
+    prefer-ip-address: true
   client :
     registerWithEureka : true
     fetchRegistry : true
