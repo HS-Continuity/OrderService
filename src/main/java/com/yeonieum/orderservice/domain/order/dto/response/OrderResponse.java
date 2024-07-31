@@ -255,4 +255,13 @@ public class OrderResponse {
         String orderDetailId;
         Long customerId;
     }
+
+
+    @Getter
+    @Builder
+    public static class OfResultUpdateStatus {
+        String orderDetailId;
+        String orderStatusCode;
+        List<ProductOrderEntity> productOrderEntityList;
+    }
 }
