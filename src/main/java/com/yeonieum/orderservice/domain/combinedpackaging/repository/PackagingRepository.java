@@ -9,7 +9,6 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
-import java.util.List;
 
 public interface PackagingRepository extends JpaRepository<Packaging, Long> {
 
@@ -38,14 +37,6 @@ public interface PackagingRepository extends JpaRepository<Packaging, Long> {
                 "AND (:memberId IS NULL OR od.member_id LIKE %:memberId%)",
         nativeQuery = true)
 Page<Object[]> findAllDeliveryInfo(@Param("customerId") Long customerId, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate, @Param("shipmentNumber") String shipmentNumber, @Param("deliveryStatusCode") String deliveryStatusCode, @Param("memberId") String memberId, Pageable pageable);
-
-        @Query("SELECT new com.yeonieum.orderservice.domain.delivery.dto.DeliverySummaryResponse(d.deliveryStatus.statusName, COUNT(p)) " +
-                "FROM Packaging p " +
-                "JOIN p.delivery d " +
-                "JOIN p.orderDetail od " +
-                "WHERE od.customerId = :customerId " +
-                "GROUP BY d.deliveryStatus.statusName")
-        List<DeliverySummaryResponse> countByDeliveryStatus(@Param("customerId") Long customerId);
 }
 
 
