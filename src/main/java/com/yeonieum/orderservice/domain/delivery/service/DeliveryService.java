@@ -6,7 +6,7 @@ import com.yeonieum.orderservice.domain.delivery.dto.DeliveryGenuineResponse;
 import com.yeonieum.orderservice.domain.delivery.dto.DeliveryResponse;
 import com.yeonieum.orderservice.domain.delivery.dto.DeliverySummaryResponse;
 import com.yeonieum.orderservice.domain.delivery.exception.DeliveryException;
-import com.yeonieum.orderservice.domain.delivery.exception.DeliveryExceptionCode;
+import com.yeonieum.orderservice.domain.delivery.repository.DeliveryRepository;
 import com.yeonieum.orderservice.domain.delivery.repository.DeliveryStatusRepository;
 import com.yeonieum.orderservice.global.enums.DeliveryStatusCode;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +30,7 @@ public class DeliveryService {
     private final PackagingRepository packagingRepository;
     private final ObjectMapper objectMapper;
     private final DeliveryStatusRepository deliveryStatusRepository;
+    private final DeliveryRepository deliveryRepository;
 
     /**
      * 고객의 배송 리스트를 조회하는 서비스
@@ -72,6 +73,6 @@ public class DeliveryService {
      * @return 배송 상태별 카운팅된 수
      */
     public List<DeliverySummaryResponse> countDeliveryStatus(Long customerId) {
-        return packagingRepository.countByDeliveryStatus(customerId);
+        return deliveryRepository.countByDeliveryStatusForCustomer(customerId);
     }
 }
