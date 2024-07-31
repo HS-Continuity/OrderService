@@ -7,7 +7,7 @@ import java.time.LocalDate;
 
 @Getter
 @Builder
-public class RegularOrderNotificationMessage {
+public class RegularDeliveryNotificationMessage {
     private String productName;
     private int productCount;
     private int completedOrderCount;

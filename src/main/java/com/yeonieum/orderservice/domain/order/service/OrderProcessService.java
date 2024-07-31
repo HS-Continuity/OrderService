@@ -1,7 +1,6 @@
 package com.yeonieum.orderservice.domain.order.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.yeonieum.orderservice.domain.delivery.repository.DeliveryStatusRepository;
 import com.yeonieum.orderservice.domain.order.dto.request.OrderRequest;
 import com.yeonieum.orderservice.domain.order.dto.response.OrderResponse;
 import com.yeonieum.orderservice.domain.order.entity.OrderDetail;
@@ -22,7 +21,7 @@ import com.yeonieum.orderservice.global.enums.OrderStatusCode;
 import com.yeonieum.orderservice.global.enums.ReleaseStatusCode;
 import com.yeonieum.orderservice.infrastructure.feignclient.MemberServiceFeignClient;
 import com.yeonieum.orderservice.infrastructure.feignclient.ProductServiceFeignClient;
-import com.yeonieum.orderservice.infrastructure.messaging.producer.OrderNotificationKafkaProducer;
+import com.yeonieum.orderservice.infrastructure.messaging.producer.OrderEventProducer;
 import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -50,7 +49,7 @@ public class OrderProcessService {
     private final ProductServiceFeignClient stockFeignClient;
     private final MemberServiceFeignClient memberServiceFeignClient;
     private final OrderStatusPolicy orderStatusPolicy;
-    private final OrderNotificationKafkaProducer orderNotificationKafkaProducer;
+    private final OrderEventProducer orderEventProducer;
     private static final String CANCELLED_PAYMENT_AMOUNT = "cancelledPaymentAmount";
     private static final String CANCELLED_DISCOUNT_AMOUNT = "cancelledDiscountAmount";
     private static final String CANCELLED_ORIGIN_PRODUCT_PRICE = "cancelledOriginProductPrice";
@@ -64,7 +63,7 @@ public class OrderProcessService {
      * @return
      */
     @Transactional
-    public void changeOrderStatus(OrderRequest.OfUpdateOrderStatus updateStatus) {
+    public OrderResponse.OfResultUpdateStatus changeOrderStatus(OrderRequest.OfUpdateOrderStatus updateStatus) {
         OrderDetail orderDetail = orderDetailRepository.findById(updateStatus.getOrderId()).orElseThrow(
                 () ->  new OrderException(ORDER_NOT_FOUND, HttpStatus.NOT_FOUND));
 
@@ -92,6 +91,12 @@ public class OrderProcessService {
                 productOrderEntity.changeStatus(requestedStatusCode));
         // 명시적 저장
         orderDetailRepository.save(orderDetail);
+        return OrderResponse.OfResultUpdateStatus.builder()
+                .orderDetailId(orderDetail.getOrderDetailId())
+                .orderStatusCode(requestedStatusCode.getCode())
+                .productOrderEntityList(orderDetail.getOrderList().getProductOrderEntityList().stream().filter(
+                        productOrderEntity -> productOrderEntity.getStatus().equals(requestedStatusCode)).collect(Collectors.toList())
+                ).build();
     }
 
     /**
@@ -100,7 +105,7 @@ public class OrderProcessService {
      * @param updateProductOrderStatus
      */
     @Transactional
-    public void changeOrderProductStatus(OrderRequest.OfUpdateProductOrderStatus updateProductOrderStatus) {
+    public OrderResponse.OfResultUpdateStatus changeOrderProductStatus(OrderRequest.OfUpdateProductOrderStatus updateProductOrderStatus) {
         OrderDetail orderDetail = orderDetailRepository.findById(updateProductOrderStatus.getOrderId())
                 .orElseThrow(() -> new OrderException(ORDER_NOT_FOUND, HttpStatus.NOT_FOUND));
 
@@ -133,6 +138,14 @@ public class OrderProcessService {
         }
         orderDetail.changeOrderList(orderDetail.getOrderList()); // deepcopy
         orderDetailRepository.save(orderDetail);
+
+        return OrderResponse.OfResultUpdateStatus.builder()
+                .orderDetailId(orderDetail.getOrderDetailId())
+                .productOrderEntityList(productOrderEntityList.stream().filter(
+                        productOrderEntity -> productOrderEntity.getStatus().equals(requestedCode)).collect(Collectors.toList()
+                ))
+                .orderStatusCode(requestedCode.getCode())
+                .build();
     }
 
 
@@ -306,7 +319,7 @@ public class OrderProcessService {
      * @return
      */
     @Transactional
-    public void changeBulkOrderStatus(OrderRequest.OfBulkUpdateOrderStatus bulkUpdateStatus) {
+    public List<OrderResponse.OfResultUpdateStatus> changeBulkOrderStatus(OrderRequest.OfBulkUpdateOrderStatus bulkUpdateStatus) {
         // 요청된 모든 주문 상세 정보를 가져옴
         List<OrderDetail> orderDetails = orderDetailRepository.findAllById(bulkUpdateStatus.getOrderIds());
 
@@ -350,6 +363,13 @@ public class OrderProcessService {
             }
             orderDetail.changeOrderList(orderDetail.getOrderList()); // deepcopy
             orderDetailRepository.save(orderDetail); // 명시적 저장
+
         }
+        return orderDetails.stream().map(order -> OrderResponse.OfResultUpdateStatus.builder()
+                .orderDetailId(order.getOrderDetailId())
+                .orderStatusCode(requestedStatusCode.getCode())
+                .productOrderEntityList(order.getOrderList().getProductOrderEntityList().stream().filter(
+                        productOrderEntity -> productOrderEntity.getStatus().equals(requestedStatusCode)).collect(Collectors.toList())
+                ).build()).collect(Collectors.toList());
     }
 }
