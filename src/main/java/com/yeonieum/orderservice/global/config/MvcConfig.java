@@ -13,7 +13,7 @@ public class MvcConfig implements WebMvcConfigurer {
         registry.addMapping("/**")
                 .allowedOrigins("http://localhost:5173", "http://localhost:5174")
                 .allowCredentials(true)
-                .allowedMethods("GET", "POST", "DELETE", "OPTIONS", "PATCH")
+                .allowedMethods("GET", "POST", "DELETE", "OPTIONS", "PATCH", "PUT")
                 .allowedHeaders("Content-Type", "application/json", "Authorization", "Bearer")
                 .maxAge(3600);
     }

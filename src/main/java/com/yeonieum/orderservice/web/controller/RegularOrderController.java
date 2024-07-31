@@ -54,7 +54,7 @@ public class RegularOrderController {
                 "APPLY"
         );
         return new ResponseEntity<>(ApiResponse.builder()
-                .result(null)
+                .result(successResult)
                 .successCode(SuccessCode.INSERT_SUCCESS)
                 .build(), HttpStatus.CREATED);
     }
