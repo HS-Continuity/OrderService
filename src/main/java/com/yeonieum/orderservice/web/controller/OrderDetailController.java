@@ -87,13 +87,29 @@ public class OrderDetailController {
     })
     @Role(role = {"ROLE_MEMBER"}, url = "/api/order/member-service", method = "GET")
     @GetMapping("/member-service")
-    public ResponseEntity<ApiResponse> getMembersOrder (@RequestParam String memberId,
-                                                        @RequestParam LocalDate startDate,
+    public ResponseEntity<ApiResponse> getMembersOrder (@RequestParam LocalDate startDate,
                                                         @RequestParam LocalDate endDate,
                                                         @RequestParam(required = false, defaultValue = "0") int page,
                                                         @RequestParam(required = false, defaultValue = "10") int size){
+        String member = "qwe123";
         return new ResponseEntity<>(ApiResponse.builder()
-                .result(orderTrackingService.retrieveOrderForMember(memberId,startDate,endDate,PageRequest.of(page, size)))
+                .result(orderTrackingService.retrieveOrderForMember(member,startDate,endDate,PageRequest.of(page, size)))
+                .successCode(SuccessCode.SELECT_SUCCESS)
+                .build(), HttpStatus.OK);
+    }
+
+
+    @Operation(summary = "회원용 주문 상세 조회", description = "회원용 주문 상세정보를 조회합니다.")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "주문상세 조회 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 오류 발생")
+    })
+    @Role(role = {"ROLE_MEMBER", "ROLE_CUSTOMER"}, url = "/api/order/{orderDetailId}", method = "GET")
+    @GetMapping("/member-service/{orderDetailId}")
+    public ResponseEntity<ApiResponse> getOrderDetail (@PathVariable String orderDetailId) {
+        String member = "qwe123";
+        return new ResponseEntity<>(ApiResponse.builder()
+                .result(orderTrackingService.retrieveOrderDetailForMember(member, orderDetailId))
                 .successCode(SuccessCode.SELECT_SUCCESS)
                 .build(), HttpStatus.OK);
     }
