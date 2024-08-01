@@ -16,24 +16,26 @@ import java.util.Map;
 @FeignClient(name = "memberservice", url = "http://localhost:8010", configuration = FeignConfig.class)
 public interface MemberServiceFeignClient {
 
-    @GetMapping("/api/member/summaries")
+    @GetMapping("/memberservice/api/member/summaries")
     ResponseEntity<ApiResponse<List<OrderResponse.MemberInfo>>> getOrderMemberInfos(@RequestParam List<String> memberIds);
 
-    @GetMapping("/api/member/filter")
+    @GetMapping("/memberservice/api/member/filter")
     ResponseEntity<ApiResponse<List<String>>> getOrderMemberFilter(@RequestParam(required = false) String memberName, @RequestParam(required = false) String memberPhoneNumber);
 
-    @GetMapping("/api/member/order")
+    @GetMapping("/memberservice/api/member/order")
     ResponseEntity<ApiResponse<OrderResponse.MemberInfo>> getOrderMemberInfo(@RequestParam String memberId);
 
-    @PutMapping("/api/member-coupon/use-status")
+    @PutMapping("/memberservice/api/member-coupon/use-status")
     ResponseEntity<ApiResponse<Boolean>> useMemberCouponStatus(@RequestParam Long memberCouponId);
 
-    @GetMapping("api/member/summary")
+    @GetMapping("/memberservice/api/member/summary")
     ResponseEntity<ApiResponse<RetrieveMemberSummary>> getMemberSummary(@RequestParam String memberId);
-    @GetMapping("/api/member/list/order")
+    @GetMapping("/memberservice/api/member/list/order")
     public ResponseEntity<ApiResponse<Map<String, OrderResponse.MemberInfo>>> getOrderMemberInfo(@RequestParam List<String> memberIds);
 
-    @GetMapping("/api/member/filter-map")
+    @GetMapping("/memberservice/api/member/filter-map")
     ResponseEntity<ApiResponse<Map<String, OrderResponse.MemberInfo>>> getFilterMemberMap(@RequestParam(required = false) String memberName,
                                                                                           @RequestParam(required = false) String memberPhoneNumber);
+    @GetMapping("/memberservice/api/member/statistics")
+    ResponseEntity<ApiResponse<OrderResponse.MemberStatistics>> getOrderMemberStatistics(@RequestParam String memberId);
     }

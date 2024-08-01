@@ -10,10 +10,15 @@ import java.util.*;
 
 @Component
 public class ReleaseStatusPolicy {
+
+    //출고 상태 전환 규칙 Map
     @Getter
     public Map<ReleaseStatusCode, RequiredPreviousCondition> releaseStatusTransitionRule;
+
+    //출고 상태 변경 권한 Map
     @Getter
     public Map<ReleaseStatusCode, Set<String>> releaseStatusPermission;
+
 
     private Map<ReleaseStatusCode, RequiredPreviousCondition> releaseStatusTransitionMap = new EnumMap<>(ReleaseStatusCode.class);
     private Map<ReleaseStatusCode, Set<String>> releaseStatusCodeSetMap = new EnumMap(ReleaseStatusCode.class);

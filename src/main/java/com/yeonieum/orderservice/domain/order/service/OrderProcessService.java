@@ -18,7 +18,10 @@ import com.yeonieum.orderservice.domain.release.entity.Release;
 import com.yeonieum.orderservice.domain.release.entity.ReleaseStatus;
 import com.yeonieum.orderservice.domain.release.repository.ReleaseRepository;
 import com.yeonieum.orderservice.domain.release.repository.ReleaseStatusRepository;
+import com.yeonieum.orderservice.domain.statistics.entity.Statistics;
+import com.yeonieum.orderservice.domain.statistics.repository.StatisticsRepository;
 import com.yeonieum.orderservice.global.enums.OrderStatusCode;
+import com.yeonieum.orderservice.global.enums.OrderType;
 import com.yeonieum.orderservice.global.enums.ReleaseStatusCode;
 import com.yeonieum.orderservice.infrastructure.feignclient.MemberServiceFeignClient;
 import com.yeonieum.orderservice.infrastructure.feignclient.ProductServiceFeignClient;
@@ -30,6 +33,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -54,6 +58,7 @@ public class OrderProcessService {
     private static final String CANCELLED_PAYMENT_AMOUNT = "cancelledPaymentAmount";
     private static final String CANCELLED_DISCOUNT_AMOUNT = "cancelledDiscountAmount";
     private static final String CANCELLED_ORIGIN_PRODUCT_PRICE = "cancelledOriginProductPrice";
+    private final StatisticsRepository statisticsRepository;
 
 
     /**
@@ -203,6 +208,26 @@ public class OrderProcessService {
                 paymentAmountMap != null ? paymentAmountMap.get(CANCELLED_DISCOUNT_AMOUNT) : 0,
                 paymentAmountMap != null ? paymentAmountMap.get(CANCELLED_PAYMENT_AMOUNT) : 0,
                 paymentAmountMap != null ? paymentAmountMap.get(CANCELLED_ORIGIN_PRODUCT_PRICE) : 0));
+
+        //통계 테이블 생성
+        for(ProductOrderEntity productOrderEntity : orderDetail.getOrderList().getProductOrderEntityList()) {
+
+            //feignClient 필요한 회원정보 요청
+            OrderResponse.MemberStatistics memberStatistics = memberServiceFeignClient.getOrderMemberStatistics(orderDetail.getMemberId()).getBody().getResult();
+
+            statisticsRepository.save(Statistics.builder()
+                    .customerId(orderDetail.getCustomerId())
+                    .memberId(orderDetail.getMemberId())
+                    .productId(productOrderEntity.getProductId())
+                    .purchaseDate(orderDetail.getOrderDateTime().toLocalDate())
+                    .ageRange(memberStatistics.getAgeRange())
+                    .gender(memberStatistics.getGender())
+                    .quantity(productOrderEntity.getQuantity())
+                    .orderType(OrderType.General)
+                    .price(productOrderEntity.getFinalPrice())
+                    .build());
+
+        }
 
         return OrderResponse.OfResultPlaceOrder.builder()
                 .isPayment(isPayment)
