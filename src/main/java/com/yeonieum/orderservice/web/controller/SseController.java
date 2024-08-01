@@ -22,6 +22,7 @@ public class SseController {
     @Role(role = {"ROLE_CUSTOMER"}, url = "/api/order-notification/{customerId}/subscription", method = "GET")
     @GetMapping(value = "/{customerId}/subscription", produces = MediaType.ALL_VALUE)
     public ResponseEntity<SseEmitter> connect(@PathVariable Long customerId) throws IOException {
+        System.out.println("들어오냐?");
         return ResponseEntity.ok(notificationService.subscribe(customerId));
     }
 }
