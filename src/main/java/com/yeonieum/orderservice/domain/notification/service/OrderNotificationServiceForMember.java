@@ -2,7 +2,7 @@ package com.yeonieum.orderservice.domain.notification.service;
 
 import com.yeonieum.orderservice.domain.notification.util.MessageBuilder;
 import com.yeonieum.orderservice.infrastructure.messaging.dto.OrderNotificationMessage;
-import com.yeonieum.orderservice.infrastructure.messaging.dto.RegularOrderNotificationMessage;
+import com.yeonieum.orderservice.infrastructure.messaging.dto.RegularDeliveryNotificationMessage;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import net.nurigo.sdk.NurigoApp;
@@ -45,21 +45,21 @@ public class OrderNotificationServiceForMember {
 
 
     // 정기주문 메시지
-    public void sendRegularOrderMessage(RegularOrderNotificationMessage regularOrderNotificationMessage) throws NurigoMessageNotReceivedException, NurigoEmptyResponseException, NurigoUnknownException {
+    public void sendRegularOrderMessage(RegularDeliveryNotificationMessage regularDeliveryNotificationMessage) throws NurigoMessageNotReceivedException, NurigoEmptyResponseException, NurigoUnknownException {
         Message message = new Message();
         message.setFrom("01089387607");
-        message.setTo(regularOrderNotificationMessage.getPhoneNumber());
+        message.setTo(regularDeliveryNotificationMessage.getPhoneNumber());
         //message.setTo("01089387607");
         String text = "";
-        switch (regularOrderNotificationMessage.getEventType()) {
+        switch (regularDeliveryNotificationMessage.getEventType()) {
             case "APPLY" -> {
-                text = MessageBuilder.createRegularOrderMessage(regularOrderNotificationMessage);
+                text = MessageBuilder.createRegularOrderMessage(regularDeliveryNotificationMessage);
             }
             case "POSTPONE" -> {
-                text = MessageBuilder.postponeRegularOrderMessage(regularOrderNotificationMessage);
+                text = MessageBuilder.postponeRegularOrderMessage(regularDeliveryNotificationMessage);
             }
             case "CANCEL" -> {
-                text = MessageBuilder.cancelRegularOrderMessage(regularOrderNotificationMessage);
+                text = MessageBuilder.cancelRegularOrderMessage(regularDeliveryNotificationMessage);
             }
             default -> throw new RuntimeException("알 수 없는 이벤트 타입입니다.");
         }

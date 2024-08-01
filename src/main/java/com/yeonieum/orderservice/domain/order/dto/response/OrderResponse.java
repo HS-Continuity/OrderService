@@ -257,10 +257,19 @@ public class OrderResponse {
         Long customerId;
     }
 
+
     @Getter
     @Builder
     public static class MemberStatistics {
         int ageRange;
         Gender gender;
+    }
+
+    @Getter
+    @Builder
+    public static class OfResultUpdateStatus {
+        String orderDetailId;
+        String orderStatusCode;
+        List<ProductOrderEntity> productOrderEntityList;
     }
 }
