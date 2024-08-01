@@ -263,4 +263,16 @@ public class OrderResponse {
         int ageRange;
         Gender gender;
     }
+
+    @Getter
+    @Builder
+    public static class ProductOrderCount  {
+        private Long productId;
+        private Long orderCount;
+
+        public ProductOrderCount(Long productId, Long orderCount) {
+            this.productId = productId;
+            this.orderCount = orderCount;
+        }
+    }
 }
