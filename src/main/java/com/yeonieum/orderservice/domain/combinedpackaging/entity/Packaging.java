@@ -18,7 +18,7 @@ public class Packaging extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "packaging_id")
-    private Long PackagingId;
+    private Long packagingId;
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "release_id", nullable = false)

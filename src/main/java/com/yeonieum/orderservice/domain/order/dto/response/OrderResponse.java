@@ -3,6 +3,7 @@ package com.yeonieum.orderservice.domain.order.dto.response;
 import com.yeonieum.orderservice.domain.order.entity.OrderDetail;
 import com.yeonieum.orderservice.domain.order.entity.PaymentInformation;
 import com.yeonieum.orderservice.domain.order.entity.ProductOrderEntity;
+import com.yeonieum.orderservice.global.enums.Gender;
 import com.yeonieum.orderservice.global.enums.OrderStatusCode;
 import com.yeonieum.orderservice.infrastructure.feignclient.dto.response.RetrieveOrderInformationResponse;
 import lombok.AllArgsConstructor;
@@ -256,6 +257,13 @@ public class OrderResponse {
         Long customerId;
     }
 
+
+    @Getter
+    @Builder
+    public static class MemberStatistics {
+        int ageRange;
+        Gender gender;
+    }
 
     @Getter
     @Builder
