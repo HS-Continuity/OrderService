@@ -257,6 +257,7 @@ public class OrderResponse {
         Long customerId;
     }
 
+
     @Getter
     @Builder
     public static class MemberStatistics {
@@ -274,5 +275,12 @@ public class OrderResponse {
             this.productId = productId;
             this.orderCount = orderCount;
         }
+    }
+
+    public static class OfResultUpdateStatus {
+        String orderDetailId;
+        String orderStatusCode;
+        List<ProductOrderEntity> productOrderEntityList;
+
     }
 }

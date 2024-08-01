@@ -15,7 +15,7 @@ import com.yeonieum.orderservice.infrastructure.feignclient.dto.response.Retriev
 import com.yeonieum.orderservice.infrastructure.messaging.dto.OrderEventMessage;
 import com.yeonieum.orderservice.infrastructure.messaging.dto.OrderNotificationMessage;
 import com.yeonieum.orderservice.infrastructure.messaging.dto.RegularDeliveryEventMessage;
-import com.yeonieum.orderservice.infrastructure.messaging.dto.RegularOrderNotificationMessage;
+import com.yeonieum.orderservice.infrastructure.messaging.dto.RegularDeliveryNotificationMessage;
 import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import net.nurigo.sdk.message.exception.NurigoEmptyResponseException;
@@ -64,13 +64,13 @@ public class NotificationKafkaConsumer {
         try {
 
             RegularDeliveryEventMessage regularDeliveryEventMessage = objectMapper.readValue(message, RegularDeliveryEventMessage.class);
-            RegularOrderNotificationMessage regularOrderNotificationMessage = regularOrderNotificationMessageBuilder(
+            RegularDeliveryNotificationMessage regularDeliveryNotificationMessage = regularOrderNotificationMessageBuilder(
                     regularDeliveryEventMessage.getMemberId(),
                     regularDeliveryEventMessage.getRegularDeliveryId(),
                     regularDeliveryEventMessage.getEventType()
             );
 
-            orderNotificationServiceForMember.sendRegularOrderMessage(regularOrderNotificationMessage);
+            orderNotificationServiceForMember.sendRegularOrderMessage(regularDeliveryNotificationMessage);
         } catch (JsonProcessingException e) {
             // 무시
         } catch (NurigoMessageNotReceivedException | NurigoEmptyResponseException |  NurigoUnknownException e) {
@@ -113,7 +113,7 @@ public class NotificationKafkaConsumer {
     }
 
 
-    public RegularOrderNotificationMessage regularOrderNotificationMessageBuilder(String memberId, Long regularDeliveryId, String eventType) {
+    public RegularDeliveryNotificationMessage regularOrderNotificationMessageBuilder(String memberId, Long regularDeliveryId, String eventType) {
         ResponseEntity<ApiResponse<RetrieveMemberSummary>> memberResponse = null;
         ResponseEntity<ApiResponse<RetrieveOrderInformationResponse>> productResponse = null;
         Optional<RegularDeliveryApplication> regularDeliveryApplicationOptional =
@@ -133,7 +133,7 @@ public class NotificationKafkaConsumer {
         if(memberResponse.getStatusCode().is2xxSuccessful()) {
             RetrieveMemberSummary memberSummary = memberResponse.getBody().getResult();
             RetrieveOrderInformationResponse productInformation = productResponse.getBody().getResult();
-            return RegularOrderNotificationMessage.builder()
+            return RegularDeliveryNotificationMessage.builder()
                     .productName(productInformation.getProductName())
                     .productCount(regularDeliveryApplication.getOrderedProductCount())
                     .completedOrderCount(regularDeliveryApplication.getCompletedRounds())
