@@ -7,7 +7,9 @@ import com.yeonieum.orderservice.domain.order.dto.response.OrderResponse;
 import com.yeonieum.orderservice.domain.order.policy.OrderStatusPolicy;
 import com.yeonieum.orderservice.domain.order.service.OrderProcessService;
 import com.yeonieum.orderservice.domain.order.service.OrderTrackingService;
+import com.yeonieum.orderservice.domain.statistics.service.StatisticsService;
 import com.yeonieum.orderservice.global.auth.Role;
+import com.yeonieum.orderservice.global.enums.Gender;
 import com.yeonieum.orderservice.global.enums.OrderStatusCode;
 import com.yeonieum.orderservice.global.responses.ApiResponse;
 import com.yeonieum.orderservice.global.responses.code.SuccessCode;
@@ -40,6 +42,7 @@ public class OrderDetailController {
     private final OrderNotificationServiceForCustomer notificationService;
     private final OrderStatusPolicy orderStatusPolicy;
     private final OrderEventProduceService orderEventProduceService;
+    private final StatisticsService statisticsService;
     private final OrderEventProducer orderEventProducer;
 
     @Operation(summary = "고객용 주문 조회", description = "고객(seller)에게 접수된 주문리스트를 조회합니다. 주문상태에 따라 필터링이 가능합니다.")
@@ -251,5 +254,18 @@ public class OrderDetailController {
     }
 
 
+    @Operation(summary = "회원 판매상품 성별 top3 조회", description = "회원의 판매상품 중 성별로 top3 상품을 조회합니다.")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "상품 조회 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "상품 조회 실패")
+    })
 
+    @GetMapping("/ranking/gender")
+    public ResponseEntity<ApiResponse> getOrderGenderTop3 (@RequestParam Long customerId, @RequestParam Gender gender) {
+
+        return new ResponseEntity<>(ApiResponse.builder()
+                .result(statisticsService.genderProductOrderCounts(customerId, gender))
+                .successCode(SuccessCode.SELECT_SUCCESS)
+                .build(), HttpStatus.OK);
+    }
 }

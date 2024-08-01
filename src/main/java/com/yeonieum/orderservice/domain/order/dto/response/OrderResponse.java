@@ -267,9 +267,20 @@ public class OrderResponse {
 
     @Getter
     @Builder
+    public static class ProductOrderCount  {
+        private Long productId;
+        private Long orderCount;
+
+        public ProductOrderCount(Long productId, Long orderCount) {
+            this.productId = productId;
+            this.orderCount = orderCount;
+        }
+    }
+
     public static class OfResultUpdateStatus {
         String orderDetailId;
         String orderStatusCode;
         List<ProductOrderEntity> productOrderEntityList;
+
     }
 }
