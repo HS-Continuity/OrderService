@@ -36,4 +36,24 @@ public class StatisticsRepositoryImpl implements StatisticsRepositoryCustom{
                 .limit(3)
                 .fetch();
     }
+
+    @Override
+    public List<OrderResponse.ProductOrderCount> findTop3ProductsByAgeRange(Long customerId, int ageRange) {
+        QStatistics statistics = QStatistics.statistics;
+
+        LocalDate threeMonthsAgo = LocalDate.now().minusMonths(3);
+
+        return queryFactory
+                .select(Projections.constructor(OrderResponse.ProductOrderCount.class,
+                        statistics.productId,
+                        statistics.productId.count().as("orderCount")))
+                .from(statistics)
+                .where(statistics.customerId.eq(customerId)
+                        .and(statistics.ageRange.eq(ageRange))
+                        .and(statistics.purchaseDate.after(threeMonthsAgo)))
+                .groupBy(statistics.productId)
+                .orderBy(statistics.productId.count().desc())
+                .limit(3)
+                .fetch();
+    }
 }

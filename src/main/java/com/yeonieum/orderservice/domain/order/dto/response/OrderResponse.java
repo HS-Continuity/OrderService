@@ -277,6 +277,8 @@ public class OrderResponse {
         }
     }
 
+    @Getter
+    @Builder
     public static class OfResultUpdateStatus {
         String orderDetailId;
         String orderStatusCode;
