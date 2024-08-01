@@ -268,4 +268,19 @@ public class OrderDetailController {
                 .successCode(SuccessCode.SELECT_SUCCESS)
                 .build(), HttpStatus.OK);
     }
+
+    @Operation(summary = "회원 판매상품 연령별 top3 조회", description = "회원의 판매상품 중 연령별로 top3 상품을 조회합니다.")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "상품 조회 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "상품 조회 실패")
+    })
+
+    @GetMapping("/ranking/age-range")
+    public ResponseEntity<ApiResponse> getOrderAgeRangeTop3 (@RequestParam Long customerId, @RequestParam int ageRange) {
+
+        return new ResponseEntity<>(ApiResponse.builder()
+                .result(statisticsService.ageProductOrderCounts(customerId, ageRange))
+                .successCode(SuccessCode.SELECT_SUCCESS)
+                .build(), HttpStatus.OK);
+    }
 }
