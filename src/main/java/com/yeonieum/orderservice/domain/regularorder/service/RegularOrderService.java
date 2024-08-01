@@ -1,7 +1,7 @@
 package com.yeonieum.orderservice.domain.regularorder.service;
 
-import com.yeonieum.orderservice.domain.order.dto.response.OrderResponse;
 import com.yeonieum.orderservice.domain.regularorder.dto.request.RegularOrderRequest;
+import com.yeonieum.orderservice.domain.order.dto.response.OrderResponse;
 import com.yeonieum.orderservice.domain.regularorder.dto.response.RegularOrderResponse;
 import com.yeonieum.orderservice.domain.regularorder.entity.RegularDeliveryApplication;
 import com.yeonieum.orderservice.domain.regularorder.entity.RegularDeliveryReservation;
@@ -10,7 +10,10 @@ import com.yeonieum.orderservice.domain.regularorder.repository.RegularDeliveryA
 import com.yeonieum.orderservice.domain.regularorder.repository.RegularDeliveryApplicationRepository;
 import com.yeonieum.orderservice.domain.regularorder.repository.RegularDeliveryReservationRepository;
 import com.yeonieum.orderservice.domain.regularorder.repository.RegularDeliveryStatusRepository;
+import com.yeonieum.orderservice.domain.statistics.entity.Statistics;
+import com.yeonieum.orderservice.domain.statistics.repository.StatisticsRepository;
 import com.yeonieum.orderservice.global.enums.DayOfWeek;
+import com.yeonieum.orderservice.global.enums.OrderType;
 import com.yeonieum.orderservice.global.enums.RegularDeliveryStatusCode;
 import com.yeonieum.orderservice.global.responses.ApiResponse;
 import com.yeonieum.orderservice.infrastructure.feignclient.MemberServiceFeignClient;
@@ -47,6 +50,7 @@ public class RegularOrderService {
     private final RegularDeliveryApplicationDayRepository regularDeliveryApplicationDayRepository;
     private final ProductServiceFeignClient productFeignClient;
     private final MemberServiceFeignClient memberServiceFeignClient;
+    private final StatisticsRepository statisticsRepository;
 
     /**
      * 고객용 월별 정기주문 조회(캘린더)

@@ -239,7 +239,6 @@ public class OrderProcessService {
                     .orderType(OrderType.General)
                     .price(productOrderEntity.getFinalPrice())
                     .build());
-
         }
 
         return OrderResponse.OfResultPlaceOrder.builder()

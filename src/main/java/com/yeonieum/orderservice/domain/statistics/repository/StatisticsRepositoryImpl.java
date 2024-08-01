@@ -5,6 +5,7 @@ import com.querydsl.jpa.impl.JPAQueryFactory;
 import com.yeonieum.orderservice.domain.order.dto.response.OrderResponse;
 import com.yeonieum.orderservice.domain.statistics.entity.QStatistics;
 import com.yeonieum.orderservice.global.enums.Gender;
+import com.yeonieum.orderservice.global.enums.OrderType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
@@ -54,6 +55,25 @@ public class StatisticsRepositoryImpl implements StatisticsRepositoryCustom{
                 .groupBy(statistics.productId)
                 .orderBy(statistics.productId.count().desc())
                 .limit(3)
+                .fetch();
+    }
+
+    @Override
+    public List<OrderResponse.ProductOrderCount> findAllProductsByOrderType(Long customerId, OrderType orderType) {
+        QStatistics statistics = QStatistics.statistics;
+
+        LocalDate threeMonthsAgo = LocalDate.now().minusMonths(3);
+
+        return queryFactory
+                .select(Projections.constructor(OrderResponse.ProductOrderCount.class,
+                        statistics.productId,
+                        statistics.productId.count().as("orderCount")))
+                .from(statistics)
+                .where(statistics.customerId.eq(customerId)
+                        .and(statistics.orderType.eq(orderType))
+                        .and(statistics.purchaseDate.after(threeMonthsAgo)))
+                .groupBy(statistics.productId)
+                .orderBy(statistics.productId.count().desc())
                 .fetch();
     }
 }

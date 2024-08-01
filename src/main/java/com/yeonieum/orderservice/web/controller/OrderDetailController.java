@@ -11,6 +11,7 @@ import com.yeonieum.orderservice.domain.statistics.service.StatisticsService;
 import com.yeonieum.orderservice.global.auth.Role;
 import com.yeonieum.orderservice.global.enums.Gender;
 import com.yeonieum.orderservice.global.enums.OrderStatusCode;
+import com.yeonieum.orderservice.global.enums.OrderType;
 import com.yeonieum.orderservice.global.responses.ApiResponse;
 import com.yeonieum.orderservice.global.responses.code.SuccessCode;
 import com.yeonieum.orderservice.infrastructure.messaging.dto.ShippedEventMessage;
@@ -280,6 +281,21 @@ public class OrderDetailController {
 
         return new ResponseEntity<>(ApiResponse.builder()
                 .result(statisticsService.ageProductOrderCounts(customerId, ageRange))
+                .successCode(SuccessCode.SELECT_SUCCESS)
+                .build(), HttpStatus.OK);
+    }
+
+    @Operation(summary = "회원 판매타입별 상품 판매량 조회", description = "회원의 판매상품별 상품을 조회합니다.")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "상품 조회 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "상품 조회 실패")
+    })
+
+    @GetMapping("/ranking/order-type")
+    public ResponseEntity<ApiResponse> getOrderAgeRangeTop3 (@RequestParam Long customerId, @RequestParam OrderType orderTpye) {
+
+        return new ResponseEntity<>(ApiResponse.builder()
+                .result(statisticsService.orderTypeProductOrderCounts(customerId, orderTpye))
                 .successCode(SuccessCode.SELECT_SUCCESS)
                 .build(), HttpStatus.OK);
     }
