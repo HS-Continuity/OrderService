@@ -30,15 +30,15 @@ public class OrderStatusPolicy {
 
         Map<OrderStatusCode, Set<String>> orderStatusPermissionMap = new EnumMap(OrderStatusCode.class);
         orderStatusPermissionMap.put(OrderStatusCode.PENDING, Collections.emptySet());
-        orderStatusPermissionMap.put(OrderStatusCode.CANCELED, Set.of("MEMBER", "CUSTOMER"));
+        orderStatusPermissionMap.put(OrderStatusCode.CANCELED, Set.of("ROLE_MEMBER", "ROLE_CUSTOMER"));
         orderStatusPermissionMap.put(OrderStatusCode.PAYMENT_COMPLETED, Collections.emptySet());
-        orderStatusPermissionMap.put(OrderStatusCode.PREPARING_PRODUCT, Set.of("CUSTOMER"));
-        orderStatusPermissionMap.put(OrderStatusCode.AWAITING_RELEASE, Set.of("CUSTOMER"));
-        orderStatusPermissionMap.put(OrderStatusCode.SHIPPED, Set.of("CUSTOMER"));
+        orderStatusPermissionMap.put(OrderStatusCode.PREPARING_PRODUCT, Set.of("ROLE_CUSTOMER"));
+        orderStatusPermissionMap.put(OrderStatusCode.AWAITING_RELEASE, Set.of("ROLE_CUSTOMER"));
+        orderStatusPermissionMap.put(OrderStatusCode.SHIPPED, Set.of("ROLE_CUSTOMER"));
         orderStatusPermissionMap.put(OrderStatusCode.IN_DELIVERY, Collections.emptySet());
         orderStatusPermissionMap.put(OrderStatusCode.DELIVERED, Collections.emptySet());
-        orderStatusPermissionMap.put(OrderStatusCode.REFUND_REQUEST, Set.of("MEMBER"));
-        orderStatusPermissionMap.put(OrderStatusCode.REFUNDED, Set.of("CUSTOMER"));
+        orderStatusPermissionMap.put(OrderStatusCode.REFUND_REQUEST, Set.of("ROLE_MEMBER"));
+        orderStatusPermissionMap.put(OrderStatusCode.REFUNDED, Set.of("ROLE_CUSTOMER"));
         orderStatusPermission = Collections.unmodifiableMap(orderStatusPermissionMap);
     }
 
