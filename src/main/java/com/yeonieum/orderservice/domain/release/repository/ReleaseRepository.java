@@ -10,8 +10,8 @@ import java.util.List;
 
 public interface ReleaseRepository extends JpaRepository<Release, Long>, ReleaseRepositoryCustom {
 
-    @Query("SELECT r FROM Release r WHERE r.orderDetail.orderDetailId = :orderDetailId")
-    Release findByOrderDetailId(String orderDetailId);
+    @Query("SELECT r FROM Release r JOIN FETCH r.orderDetail od WHERE od.orderDetailId = :orderDetailId AND od.customerId = :customerId")
+    Release findByOrderDetailId(@Param("orderDetailId") String orderDetailId, @Param("customerId") Long customerId);
 
     @Query("SELECT new com.yeonieum.orderservice.domain.release.dto.ReleaseSummaryResponse(r.releaseStatus.statusName, COUNT(r)) " +
             "FROM Release r " +

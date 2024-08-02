@@ -149,9 +149,9 @@ public class RegularOrderService {
      * @param creationRequest
      */
     @Transactional
-    public RegularOrderResponse.OfSuccess subscriptionDelivery(RegularOrderRequest.OfCreation creationRequest) {
+    public RegularOrderResponse.OfSuccess subscriptionDelivery(String memberId, RegularOrderRequest.OfCreation creationRequest) {
         RegularDeliveryStatus pending = regularDeliveryStatusRepository.findByStatusName(RegularDeliveryStatusCode.PENDING.getCode());
-        RegularDeliveryApplication regularDeliveryApplication = creationRequest.toApplicationEntity(pending);
+        RegularDeliveryApplication regularDeliveryApplication = creationRequest.toApplicationEntity(memberId, pending);
         RegularDeliveryApplication savedEntity = regularDeliveryApplicationRepository.save(regularDeliveryApplication);
         regularDeliveryApplicationDayRepository.saveAll(creationRequest.toApplicationDayEnityList(regularDeliveryApplication));
         // 총 배송 회차
@@ -163,7 +163,7 @@ public class RegularOrderService {
         regularDeliveryApplication.changeStartDate(firstDeliveryDate);
         regularDeliveryApplicationRepository.save(regularDeliveryApplication);
 
-        regularDeliveryReservationRepository.saveAll(creationRequest.toReservationEntityList(deliveryDateSet, regularDeliveryApplication, pending));
+        regularDeliveryReservationRepository.saveAll(creationRequest.toReservationEntityList(memberId, deliveryDateSet, regularDeliveryApplication, pending));
         return RegularOrderResponse.OfSuccess.builder()
                         .regularDeliveryApplicationId(savedEntity.getRegularDeliveryApplicationId())
                         .memberId(savedEntity.getMemberId())
@@ -211,9 +211,9 @@ public class RegularOrderService {
      * @return
      */
     @Transactional
-    public RegularOrderResponse.OfRetrieveDetails retrieveRegularDeliveryDetails(Long regularDeliveryApplicationId) {
+    public RegularOrderResponse.OfRetrieveDetails retrieveRegularDeliveryDetails(String memberId, Long regularDeliveryApplicationId) {
         RegularDeliveryApplication application = regularDeliveryApplicationRepository.findWithReservationsAndApplicationDaysById(regularDeliveryApplicationId);
-        if(application == null) {
+        if(application == null || !application.getMemberId().equals(memberId)) {
             throw new IllegalArgumentException("해당 정기주문신청이 존재하지 않습니다.");
         }
 
@@ -245,9 +245,13 @@ public class RegularOrderService {
      * @param regularDeliveryApplicationId
      */
     @Transactional
-    public void cancelRegularDelivery(Long regularDeliveryApplicationId) {
+    public void cancelRegularDelivery(String memberId, Long regularDeliveryApplicationId) {
         RegularDeliveryStatus status = regularDeliveryStatusRepository.findByStatusName(RegularDeliveryStatusCode.CANCELED.getCode());
         RegularDeliveryApplication application = regularDeliveryApplicationRepository.findByIdWithPendingReservations(regularDeliveryApplicationId);
+        if(application == null || !application.getMemberId().equals(memberId)) {
+            throw new IllegalArgumentException("해당 정기주문신청이 존재하지 않습니다.");
+        }
+
         application.changeDeliveryStatus(status);
         for(RegularDeliveryReservation deliveryReservation : application.getRegularDeliveryReservationList()) {
             deliveryReservation.changeStatus(status);
@@ -261,14 +265,17 @@ public class RegularOrderService {
      * @param
      */
     @Transactional
-    public void skipRegularDeliveryReservation (Long regularOrderApplicationId) {
+    public void skipRegularDeliveryReservation (String memberId, Long regularOrderApplicationId) {
         RegularDeliveryApplication application = regularDeliveryApplicationRepository.findById(regularOrderApplicationId).orElseThrow(
                 () -> new IllegalArgumentException("해당 정기주문신청이 존재하지 않습니다.")
         );
 
+        if (!application.getMemberId().equals(memberId)) {
+            throw new IllegalArgumentException("해당 정기주문신청이 존재하지 않습니다.");
+        }
+
         if(application.getCompletedRounds() == application.getTotalDeliveryRounds()) {
             throw new IllegalArgumentException("미룰 수 있는 정기배송예약이 존재하지 않습니다.");
-
         }
 
         List<RegularDeliveryReservation> regularDeliveryReservationList =

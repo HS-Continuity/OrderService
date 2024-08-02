@@ -68,9 +68,19 @@ public class OrderProcessService {
      * @return
      */
     @Transactional
-    public OrderResponse.OfResultUpdateStatus changeOrderStatus(OrderRequest.OfUpdateOrderStatus updateStatus) {
+    public OrderResponse.OfResultUpdateStatus changeOrderStatus(String roleType, String loginId, OrderRequest.OfUpdateOrderStatus updateStatus) {
         OrderDetail orderDetail = orderDetailRepository.findById(updateStatus.getOrderId()).orElseThrow(
                 () ->  new OrderException(ORDER_NOT_FOUND, HttpStatus.NOT_FOUND));
+
+        if(roleType.equals("ROLE_MEMBER")) {
+            if(!orderDetail.getMemberId().equals(loginId)) {
+                throw new IllegalArgumentException("접근 권한이 없습니다.");
+            }
+        } else {
+            if(!loginId.equals(orderDetail.getCustomerId())) {
+                throw new IllegalArgumentException("접근 권한이 없습니다.");
+            }
+        }
 
         OrderStatus requestedStatus = orderStatusRepository.findByStatusName(updateStatus.getOrderStatusCode());
         OrderStatusCode requestedStatusCode = requestedStatus.getStatusName();
@@ -110,10 +120,19 @@ public class OrderProcessService {
      * @param updateProductOrderStatus
      */
     @Transactional
-    public OrderResponse.OfResultUpdateStatus changeOrderProductStatus(OrderRequest.OfUpdateProductOrderStatus updateProductOrderStatus) {
+    public OrderResponse.OfResultUpdateStatus changeOrderProductStatus(String roleType, String loginId, OrderRequest.OfUpdateProductOrderStatus updateProductOrderStatus) {
         OrderDetail orderDetail = orderDetailRepository.findById(updateProductOrderStatus.getOrderId())
                 .orElseThrow(() -> new OrderException(ORDER_NOT_FOUND, HttpStatus.NOT_FOUND));
 
+        if(roleType.equals("ROLE_MEMBER")) {
+            if(!orderDetail.getMemberId().equals(loginId)) {
+                throw new IllegalArgumentException("접근 권한이 없습니다.");
+            }
+        } else {
+            if(!loginId.equals(orderDetail.getCustomerId())) {
+                throw new IllegalArgumentException("접근 권한이 없습니다.");
+            }
+        }
         // TODO : 상품 json 변경감지 할 수 있는지 테스트 예정 -> deepcopy 활용
 
         List<ProductOrderEntity> productOrderEntityList = orderDetail.getOrderList().getProductOrderEntityList();
@@ -343,9 +362,9 @@ public class OrderProcessService {
      * @return
      */
     @Transactional
-    public List<OrderResponse.OfResultUpdateStatus> changeBulkOrderStatus(OrderRequest.OfBulkUpdateOrderStatus bulkUpdateStatus) {
+    public List<OrderResponse.OfResultUpdateStatus> changeBulkOrderStatus(Long customerId, OrderRequest.OfBulkUpdateOrderStatus bulkUpdateStatus) {
         // 요청된 모든 주문 상세 정보를 가져옴
-        List<OrderDetail> orderDetails = orderDetailRepository.findAllById(bulkUpdateStatus.getOrderIds());
+        List<OrderDetail> orderDetails = orderDetailRepository.findAllByIdAndCustomerId(bulkUpdateStatus.getOrderIds(), customerId);
 
         // 요청된 ID 수와 조회된 결과 수가 다르면 존재하지 않는 ID가 있다는 의미
         if (orderDetails.size() != bulkUpdateStatus.getOrderIds().size()) {

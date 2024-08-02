@@ -14,6 +14,7 @@ import com.yeonieum.orderservice.global.enums.OrderStatusCode;
 import com.yeonieum.orderservice.global.enums.OrderType;
 import com.yeonieum.orderservice.global.responses.ApiResponse;
 import com.yeonieum.orderservice.global.responses.code.SuccessCode;
+import com.yeonieum.orderservice.global.usercontext.UserContextHolder;
 import com.yeonieum.orderservice.infrastructure.messaging.dto.ShippedEventMessage;
 import com.yeonieum.orderservice.infrastructure.messaging.producer.OrderEventProducer;
 import com.yeonieum.orderservice.infrastructure.messaging.service.OrderEventProduceService;
@@ -68,8 +69,9 @@ public class OrderDetailController {
                                                           @RequestParam(required = false, defaultValue = "0") int page,
                                                           @RequestParam(required = false, defaultValue = "10") int size){
         Pageable pageable = PageRequest.of(page, size);
+        Long customer = Long.valueOf(UserContextHolder.getContext().getUniqueId());
         return new ResponseEntity<>(ApiResponse.builder()
-                .result(orderTrackingService.retrieveOrdersForCustomer(customerId, orderStatusCode, orderDetailId, orderDateTime, recipient, recipientPhoneNumber, recipientAddress, memberId, memberName, memberPhoneNumber, startDate, endDate, pageable))
+                .result(orderTrackingService.retrieveOrdersForCustomer(customer, orderStatusCode, orderDetailId, orderDateTime, recipient, recipientPhoneNumber, recipientAddress, memberId, memberName, memberPhoneNumber, startDate, endDate, pageable))
                 .successCode(SuccessCode.SELECT_SUCCESS)
                 .build(), HttpStatus.OK);
     }
@@ -83,8 +85,9 @@ public class OrderDetailController {
     @GetMapping("/counts")
     public ResponseEntity<ApiResponse> getCustomersOrderCounts (@RequestParam Long customerId,
                                                                 @RequestParam OrderStatusCode orderStatus){
+        Long customer = Long.valueOf(UserContextHolder.getContext().getUniqueId());
         return new ResponseEntity<>(ApiResponse.builder()
-                .result(orderTrackingService.retrieveTotalOrderCountForCustomer(customerId, orderStatus))
+                .result(orderTrackingService.retrieveTotalOrderCountForCustomer(customer, orderStatus))
                 .successCode(SuccessCode.SELECT_SUCCESS)
                 .build(), HttpStatus.OK);
     }
@@ -100,7 +103,7 @@ public class OrderDetailController {
                                                         @RequestParam LocalDate endDate,
                                                         @RequestParam(required = false, defaultValue = "0") int page,
                                                         @RequestParam(required = false, defaultValue = "10") int size){
-        String member = "qwe123";
+        String member = UserContextHolder.getContext().getUserId();
         return new ResponseEntity<>(ApiResponse.builder()
                 .result(orderTrackingService.retrieveOrderForMember(member,startDate,endDate,PageRequest.of(page, size)))
                 .successCode(SuccessCode.SELECT_SUCCESS)
@@ -116,7 +119,7 @@ public class OrderDetailController {
     @Role(role = {"ROLE_MEMBER", "ROLE_CUSTOMER"}, url = "/api/order/{orderDetailId}", method = "GET")
     @GetMapping("/member-service/{orderDetailId}")
     public ResponseEntity<ApiResponse> getOrderDetail (@PathVariable String orderDetailId) {
-        String member = "qwe123";
+        String member = UserContextHolder.getContext().getUserId();
         return new ResponseEntity<>(ApiResponse.builder()
                 .result(orderTrackingService.retrieveOrderDetailForMember(member, orderDetailId))
                 .successCode(SuccessCode.SELECT_SUCCESS)
@@ -132,7 +135,16 @@ public class OrderDetailController {
     @Role(role = {"ROLE_CUSTOMER", "ROLE_MEMBER"}, url = "/api/order/product/status", method = "PATCH")
     @PatchMapping("/product/status")
     public ResponseEntity<ApiResponse> changeProductOrder(@RequestBody OrderRequest.OfUpdateProductOrderStatus updateProductOrderStatus) throws JsonProcessingException {
-        OrderResponse.OfResultUpdateStatus result = orderProcessService.changeOrderProductStatus(updateProductOrderStatus);
+        String loginId;
+        String roleType = UserContextHolder.getContext().getRoleType();
+
+        if(UserContextHolder.getContext().getRoleType().equals("ROLE_MEMBER")) {
+            loginId = UserContextHolder.getContext().getUserId();
+        } else {
+            loginId = UserContextHolder.getContext().getUniqueId();
+        }
+
+        OrderResponse.OfResultUpdateStatus result = orderProcessService.changeOrderProductStatus(roleType, loginId, updateProductOrderStatus);
         if(updateProductOrderStatus.getOrderStatusCode().equals(OrderStatusCode.CANCELED)) {
             orderEventProducer.sendCancelMessage(
                     result.getProductOrderEntityList().stream().map(productOrderEntity ->
@@ -155,13 +167,19 @@ public class OrderDetailController {
     @Role(role = {"ROLE_MEMBER", "ROLE_CUSTOMER"}, url = "/api/order/status", method = "PATCH")
     @PatchMapping("/status")
     public ResponseEntity<ApiResponse> changeOrderStatus(@RequestBody OrderRequest.OfUpdateOrderStatus updateStatus) throws JsonProcessingException {
-        String Role = "CUSTOMER";
-        String memberId = "qwe123";
-        if(!orderStatusPolicy.getOrderStatusPermission().get(updateStatus.getOrderStatusCode()).contains(Role)) {
+        String loginId;
+        String roleType = UserContextHolder.getContext().getRoleType();
+
+        if(UserContextHolder.getContext().getRoleType().equals("ROLE_MEMBER")) {
+            loginId = UserContextHolder.getContext().getUserId();
+        } else {
+            loginId = UserContextHolder.getContext().getUniqueId();
+        }
+        if(!orderStatusPolicy.getOrderStatusPermission().get(updateStatus.getOrderStatusCode()).contains(roleType)) {
             throw new RuntimeException("접근권한이 없습니다.");
         }
 
-        OrderResponse.OfResultUpdateStatus result = orderProcessService.changeOrderStatus(updateStatus);
+        OrderResponse.OfResultUpdateStatus result = orderProcessService.changeOrderStatus(roleType, loginId, updateStatus);
         if(updateStatus.getOrderStatusCode().equals(OrderStatusCode.PREPARING_PRODUCT)) {
             // ShippedEventMessage의 리스트 컬렉션 생성
             orderEventProducer.sendApproveMessage(
@@ -171,7 +189,7 @@ public class OrderDetailController {
 
         if(updateStatus.getOrderStatusCode().equals(OrderStatusCode.CANCELED)) {
             orderEventProduceService.produceOrderEvent(
-                    memberId,
+                    loginId,
                     -1L,
                     updateStatus.getOrderId(),
                     ORDER_TOPIC ,
@@ -198,15 +216,15 @@ public class OrderDetailController {
     @Role(role = {"ROLE_MEMBER", "ROLE_CUSTOMER"}, url = "/api/order", method = "POST")
     @PostMapping
     public ResponseEntity<ApiResponse> placeOrder (@RequestBody OrderRequest.OfCreation creationRequest) throws JsonProcessingException {
-        String memberId = "qwe123";
-        OrderResponse.OfResultPlaceOrder resultPlaceOrder = orderProcessService.placeOrder(creationRequest, memberId);
+        String member = UserContextHolder.getContext().getUserId();
+        OrderResponse.OfResultPlaceOrder resultPlaceOrder = orderProcessService.placeOrder(creationRequest, member);
         String orderDetailId = resultPlaceOrder.getOrderDetailId();
 
         // 주문 성공 시 SSE 알림 및 이벤트 발행
         if(resultPlaceOrder.isPayment()) {
             notificationService.sendEventMessage(creationRequest.getCustomerId());
             orderEventProduceService.produceOrderEvent(
-                    memberId,
+                    member,
                     resultPlaceOrder.getCustomerId(),
                     orderDetailId,
                     ORDER_TOPIC ,
@@ -229,12 +247,14 @@ public class OrderDetailController {
     })
     @PatchMapping("/bulk-status")
     public ResponseEntity<ApiResponse> changeBulkOrderStatus(@RequestBody OrderRequest.OfBulkUpdateOrderStatus updateStatus) throws JsonProcessingException {
-        String Role = "CUSTOMER";
-        if(!orderStatusPolicy.getOrderStatusPermission().get(updateStatus.getOrderStatusCode()).contains(Role)) {
+        Long customer = Long.valueOf(UserContextHolder.getContext().getUniqueId());
+        String roleType = UserContextHolder.getContext().getRoleType();
+
+        if(!orderStatusPolicy.getOrderStatusPermission().get(updateStatus.getOrderStatusCode()).contains(roleType)) {
             throw new RuntimeException("접근권한이 없습니다.");
         }
 
-        List<OrderResponse.OfResultUpdateStatus> resultPlaceOrders = orderProcessService.changeBulkOrderStatus(updateStatus);
+        List<OrderResponse.OfResultUpdateStatus> resultPlaceOrders = orderProcessService.changeBulkOrderStatus(customer, updateStatus);
         for (OrderResponse.OfResultUpdateStatus resultPlaceOrder : resultPlaceOrders) {
             if(updateStatus.getOrderStatusCode().equals(OrderStatusCode.PREPARING_PRODUCT)) {
                 orderEventProducer.sendApproveMessage(
@@ -263,9 +283,10 @@ public class OrderDetailController {
 
     @GetMapping("/ranking/gender")
     public ResponseEntity<ApiResponse> getOrderGenderTop3 (@RequestParam Long customerId, @RequestParam Gender gender) {
+        Long customer = Long.valueOf(UserContextHolder.getContext().getUniqueId());
 
         return new ResponseEntity<>(ApiResponse.builder()
-                .result(statisticsService.genderProductOrderCounts(customerId, gender))
+                .result(statisticsService.genderProductOrderCounts(customer, gender))
                 .successCode(SuccessCode.SELECT_SUCCESS)
                 .build(), HttpStatus.OK);
     }
@@ -278,9 +299,10 @@ public class OrderDetailController {
 
     @GetMapping("/ranking/age-range")
     public ResponseEntity<ApiResponse> getOrderAgeRangeTop3 (@RequestParam Long customerId, @RequestParam int ageRange) {
+        Long customer = Long.valueOf(UserContextHolder.getContext().getUniqueId());
 
         return new ResponseEntity<>(ApiResponse.builder()
-                .result(statisticsService.ageProductOrderCounts(customerId, ageRange))
+                .result(statisticsService.ageProductOrderCounts(customer, ageRange))
                 .successCode(SuccessCode.SELECT_SUCCESS)
                 .build(), HttpStatus.OK);
     }
@@ -293,9 +315,10 @@ public class OrderDetailController {
 
     @GetMapping("/ranking/order-type")
     public ResponseEntity<ApiResponse> getOrderAgeRangeTop3 (@RequestParam Long customerId, @RequestParam OrderType orderTpye) {
+        Long customer = Long.valueOf(UserContextHolder.getContext().getUniqueId());
 
         return new ResponseEntity<>(ApiResponse.builder()
-                .result(statisticsService.orderTypeProductOrderCounts(customerId, orderTpye))
+                .result(statisticsService.orderTypeProductOrderCounts(customer, orderTpye))
                 .successCode(SuccessCode.SELECT_SUCCESS)
                 .build(), HttpStatus.OK);
     }
