@@ -71,13 +71,16 @@ public class ReleaseService {
      * @return
      */
     @Transactional
-    public void changReleaseStatus (ReleaseRequest.OfUpdateReleaseStatus updateStatus) {
+    public void changReleaseStatus (Long customerId, ReleaseRequest.OfUpdateReleaseStatus updateStatus) {
         // 주문 상세 정보 조회
         OrderDetail targetOrderDetail = orderDetailRepository.findById(updateStatus.getOrderId())
                 .orElseThrow(() -> new OrderException(ORDER_NOT_FOUND, HttpStatus.NOT_FOUND));
 
+        if(targetOrderDetail.getCustomerId() != customerId){
+            throw new IllegalArgumentException("해당 주문 ID에 대한 권한이 없습니다.");
+        }
         //주문내역과 출고는 1:1 관계 -> 주문내역 ID로 찾기
-        Release targetRelease = releaseRepository.findByOrderDetailId(updateStatus.getOrderId());
+        Release targetRelease = releaseRepository.findByOrderDetailId(updateStatus.getOrderId(), customerId);
         ReleaseStatus requestedStatus = releaseStatusRepository.findByStatusName(updateStatus.getReleaseStatusCode());
         ReleaseStatusCode requestedStatusCode = requestedStatus.getStatusName();
 
@@ -85,8 +88,16 @@ public class ReleaseService {
         ReleaseStatusCode releaseStatus = targetRelease.getReleaseStatus().getStatusName();
 
         //업체의 배송비
-        Integer deliveryFee = productServiceFeignClient.retrieveDeliveryFee(targetOrderDetail.getCustomerId()).getBody().getResult();
-
+        ResponseEntity<ApiResponse<Integer>> response = null;
+        Integer deliveryFee = null;
+        try {
+            response = productServiceFeignClient.retrieveDeliveryFee(targetOrderDetail.getCustomerId());
+        } catch (FeignException e) {
+            e.printStackTrace();
+        }
+        if(response != null || response.getStatusCode().is2xxSuccessful()){
+            deliveryFee = response.getBody().getResult();
+        }
         // 출고 상태 전환 규칙 검증
         if(!releaseStatusPolicy.getReleaseStatusTransitionRule().get(requestedStatusCode).getRequiredPreviosConditionSet().contains(releaseStatus)) {
             throw new ReleaseException(RELEASE_STATUS_TRANSITION_RULE_VIOLATION, HttpStatus.CONFLICT);
@@ -219,9 +230,9 @@ public class ReleaseService {
      * @param updateDeliveryDate 배송 시작 날짜 변경 DTO
      */
     @Transactional
-    public void changeDeliveryDate (ReleaseRequest.OfUpdateDeliveryDate updateDeliveryDate) {
+    public void changeDeliveryDate (Long customerId, ReleaseRequest.OfUpdateDeliveryDate updateDeliveryDate) {
 
-        Release targetRelease = releaseRepository.findByOrderDetailId(updateDeliveryDate.getOrderId());
+        Release targetRelease = releaseRepository.findByOrderDetailId(updateDeliveryDate.getOrderId(), customerId);
 
         if (targetRelease == null) {
             throw new OrderException(ORDER_NOT_FOUND, HttpStatus.NOT_FOUND);
@@ -237,9 +248,9 @@ public class ReleaseService {
      * @throws OrderException 존재하지 않는 주문 ID인 경우
      */
     @Transactional
-    public void changeReleaseMemo (ReleaseRequest.OfRegisterMemo updateMemo) {
+    public void changeReleaseMemo (Long customerId, ReleaseRequest.OfRegisterMemo updateMemo) {
 
-        Release targetRelease = releaseRepository.findByOrderDetailId(updateMemo.getOrderId());
+        Release targetRelease = releaseRepository.findByOrderDetailId(updateMemo.getOrderId(), customerId);
 
         if (targetRelease == null) {
             throw new OrderException(ORDER_NOT_FOUND, HttpStatus.NOT_FOUND);
@@ -256,9 +267,9 @@ public class ReleaseService {
      * @param updateHoldMemo 출고 보류 메모 작성 DTO
      */
     @Transactional
-    public void changeReleaseHoldMemo (ReleaseRequest.OfHoldMemo updateHoldMemo) {
+    public void changeReleaseHoldMemo(Long customerId, ReleaseRequest.OfHoldMemo updateHoldMemo) {
 
-        Release targetRelease = releaseRepository.findByOrderDetailId(updateHoldMemo.getOrderId());
+        Release targetRelease = releaseRepository.findByOrderDetailId(updateHoldMemo.getOrderId(), customerId);
 
         if (targetRelease == null) {
             throw new OrderException(ORDER_NOT_FOUND, HttpStatus.NOT_FOUND);
@@ -281,9 +292,9 @@ public class ReleaseService {
      * @return
      */
     @Transactional
-    public void changeBulkReleaseStatus(ReleaseRequest.OfBulkUpdateReleaseStatus bulkUpdateStatus) {
+    public void changeBulkReleaseStatus(Long customerId, ReleaseRequest.OfBulkUpdateReleaseStatus bulkUpdateStatus) {
         // 요청된 모든 주문 상세 정보를 가져옴
-        List<OrderDetail> orderDetails = orderDetailRepository.findAllById(bulkUpdateStatus.getOrderIds());
+        List<OrderDetail> orderDetails = orderDetailRepository.findAllByIdAndCustomerId(bulkUpdateStatus.getOrderIds(), customerId);
 
         // 요청된 ID 수와 조회된 결과 수가 다르면 존재하지 않는 ID가 있다는 의미
         if (orderDetails.size() != bulkUpdateStatus.getOrderIds().size()) {
@@ -296,7 +307,7 @@ public class ReleaseService {
 
         // 모든 주문에 대해 상태 변경 수행
         for (OrderDetail orderDetail : orderDetails) {
-            Release currentRelease = releaseRepository.findByOrderDetailId(orderDetail.getOrderDetailId());
+            Release currentRelease = releaseRepository.findByOrderDetailId(orderDetail.getOrderDetailId(), customerId);
             ReleaseStatusCode currentReleaseStatus =  currentRelease.getReleaseStatus().getStatusName();
 
             // 출고 상태 전환 규칙 확인
@@ -329,7 +340,16 @@ public class ReleaseService {
         OrderStatus newOrderStatus;
 
         //업체의 배송비
-        Integer deliveryFee = productServiceFeignClient.retrieveDeliveryFee(orderDetail.getCustomerId()).getBody().getResult();
+        ResponseEntity<ApiResponse<Integer>> response = null;
+        Integer deliveryFee = null;
+        try {
+            response = productServiceFeignClient.retrieveDeliveryFee(orderDetail.getCustomerId());
+        } catch (FeignException e) {
+            e.printStackTrace();
+        }
+        if(response != null || response.getStatusCode().is2xxSuccessful()){
+            deliveryFee = response.getBody().getResult();
+        }
 
         switch (requestedStatusCode) {
             case HOLD_RELEASE:
@@ -383,9 +403,9 @@ public class ReleaseService {
      * @return
      */
     @Transactional
-    public void changeCombinedPackaging(ReleaseRequest.OfBulkUpdateReleaseStatus bulkUpdateStatus) {
+    public void changeCombinedPackaging(Long customerId, ReleaseRequest.OfBulkUpdateReleaseStatus bulkUpdateStatus) {
         // 요청된 모든 주문 상세 정보를 가져옴
-        List<OrderDetail> orderDetails = orderDetailRepository.findAllById(bulkUpdateStatus.getOrderIds());
+        List<OrderDetail> orderDetails = orderDetailRepository.findAllByIdAndCustomerId(bulkUpdateStatus.getOrderIds(), customerId);
 
         // 요청된 ID 수와 조회된 결과 수가 다르면 존재하지 않는 ID가 있다는 의미
         if (orderDetails.size() != bulkUpdateStatus.getOrderIds().size()) {
@@ -397,14 +417,23 @@ public class ReleaseService {
         ReleaseStatusCode requestedStatusCode = requestedStatus.getStatusName();
 
         //업체의 배송비
-        Integer deliveryFee = productServiceFeignClient.retrieveDeliveryFee(orderDetails.get(0).getCustomerId()).getBody().getResult();
+        ResponseEntity<ApiResponse<Integer>> response = null;
+        Integer deliveryFee = null;
+        try {
+            response = productServiceFeignClient.retrieveDeliveryFee(orderDetails.get(0).getCustomerId());
+        } catch (FeignException e) {
+            e.printStackTrace();
+        }
+        if(response != null || response.getStatusCode().is2xxSuccessful()){
+            deliveryFee = response.getBody().getResult();
+        }
 
         // 상품들의 회원, 배송지, 출고상태, 배송시작일이 같아야 함
         boolean isUniformOrder = orderDetails.stream().allMatch(od ->
                 od.getMemberId().equals(orderDetails.get(0).getMemberId()) &&
                         od.getDeliveryAddress().equals(orderDetails.get(0).getDeliveryAddress()) &&
-                        releaseRepository.findByOrderDetailId(od.getOrderDetailId()).getReleaseStatus().equals(releaseRepository.findByOrderDetailId(orderDetails.get(0).getOrderDetailId()).getReleaseStatus()) &&
-                        releaseRepository.findByOrderDetailId(od.getOrderDetailId()).getStartDeliveryDate().equals(releaseRepository.findByOrderDetailId(orderDetails.get(0).getOrderDetailId()).getStartDeliveryDate()));
+                        releaseRepository.findByOrderDetailId(od.getOrderDetailId(), customerId).getReleaseStatus().equals(releaseRepository.findByOrderDetailId(orderDetails.get(0).getOrderDetailId(), customerId).getReleaseStatus()) &&
+                        releaseRepository.findByOrderDetailId(od.getOrderDetailId(), customerId).getStartDeliveryDate().equals(releaseRepository.findByOrderDetailId(orderDetails.get(0).getOrderDetailId(), customerId).getStartDeliveryDate()));
 
 
         // 합포장일 경우, 배송 객체를 단 한개만 생성
@@ -422,7 +451,7 @@ public class ReleaseService {
         if(isUniformOrder){
             // 모든 주문에 대해 상태 변경 수행
             for (OrderDetail orderDetail : orderDetails) {
-                Release currentRelease = releaseRepository.findByOrderDetailId(orderDetail.getOrderDetailId());
+                Release currentRelease = releaseRepository.findByOrderDetailId(orderDetail.getOrderDetailId(), customerId);
                 ReleaseStatusCode currentReleaseStatus =  currentRelease.getReleaseStatus().getStatusName();
 
                 // 출고 상태 전환 규칙 확인

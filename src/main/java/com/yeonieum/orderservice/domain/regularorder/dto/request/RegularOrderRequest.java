@@ -37,7 +37,7 @@ public class RegularOrderRequest {
         private DeliveryPeriod deliveryPeriod;
         private Recipient recipient;
 
-        public RegularDeliveryApplication toApplicationEntity(RegularDeliveryStatus regularDeliveryStatus) {
+        public RegularDeliveryApplication toApplicationEntity(String memberId, RegularDeliveryStatus regularDeliveryStatus) {
             return RegularDeliveryApplication.builder()
                     .orderMemo(this.orderMemo)
                     .startDate(this.deliveryPeriod.startDate)
@@ -45,7 +45,7 @@ public class RegularOrderRequest {
                     .cycle(this.deliveryPeriod.getDeliveryCycle())
                     .recipient(this.recipient.getRecipient())
                     .recipientPhoneNumber(this.recipient.getRecipientPhoneNumber())
-                    .memberId(this.memberId)
+                    .memberId(memberId)
                     .memberPaymentCardId(this.paymentCardId)
                     .address(this.recipient.getRecipientAddress())
                     .customerId(this.customerId)
@@ -59,7 +59,8 @@ public class RegularOrderRequest {
         }
 
         // 단일 배송 날짜에 대한 엔티티 리스트 생성 메서드
-        public List<RegularDeliveryReservation> toReservationEntity(LocalDate deliveryDay,
+        public List<RegularDeliveryReservation> toReservationEntity(String memberId,
+                                                                    LocalDate deliveryDay,
                                                                     RegularDeliveryApplication application,
                                                                     RegularDeliveryStatus status) {
             return productOrderList.getProductOrderList().stream()
@@ -69,19 +70,20 @@ public class RegularOrderRequest {
                             .startDate(deliveryDay)
                             .quantity(productOrder.getQuantity())
                             .productId(productOrder.getProductId())
-                            .memberId(this.memberId)
+                            .memberId(memberId)
                             .build())
                     .collect(Collectors.toList());
         }
 
         // 여러 배송 날짜에 대한 엔티티 리스트 생성 메서드
-        public List<RegularDeliveryReservation> toReservationEntityList(Set<LocalDate> deliveryDates,
+        public List<RegularDeliveryReservation> toReservationEntityList(String memberId,
+                                                                        Set<LocalDate> deliveryDates,
                                                                         RegularDeliveryApplication application,
                                                                         RegularDeliveryStatus status) {
 
             List<RegularDeliveryReservation> reservationList =
                     deliveryDates.stream()
-                    .flatMap(deliveryDay -> toReservationEntity(deliveryDay, application, status).stream())
+                    .flatMap(deliveryDay -> toReservationEntity(memberId, deliveryDay, application, status).stream())
                     .collect(Collectors.toList());
 
             Map<LocalDate, List<RegularDeliveryReservation>> groupedByStartDate = reservationList.stream()

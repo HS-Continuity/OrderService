@@ -38,5 +38,9 @@ public interface OrderDetailRepository extends JpaRepository<OrderDetail, String
             "WHERE od.customerId = :customerId " +
             "GROUP BY os.statusName")
     List<OrderSummaryResponse> countByCustomerIdGroupedByOrderStatus(@Param("customerId") Long customerId);
+
+    @Query("SELECT o FROM OrderDetail o WHERE o.orderDetailId IN :orderDetailIdList AND o.customerId = :customerId")
+    List<OrderDetail> findAllByIdAndCustomerId(@Param("orderDetailIdList") List<String> orderDetailIdList, @Param("customerId") Long customerId);
+
 }
 
