@@ -53,7 +53,7 @@ public class RegularOrderService {
     private final StatisticsRepository statisticsRepository;
 
     /**
-     * 고객용 월별 정기주문 조회(캘린더)
+     * 고객용 일별 정기주문 조회(캘린더에서 상세)
      * @param date
      * @param customerId
      * @param pageable
@@ -113,7 +113,7 @@ public class RegularOrderService {
     }
 
     /**
-     * 고객용 일별 정기 주문 리스트 조회
+     * 고객용 월별 정기 주문 리스트 조회(캘린더)
      * @param startDate
      * @param endDate
      * @param customerId
@@ -122,18 +122,23 @@ public class RegularOrderService {
     @Transactional
     public List<RegularOrderResponse.OfRetrieveDailySummary> retrieveRegularOrderSummaries(LocalDate startDate,LocalDate endDate ,Long customerId) {
         List<RegularOrderResponse.OfRetrieveDailySummary> regularOrderCountsForMonth = regularDeliveryReservationRepository.findRegularOrderCountsBetween(startDate, endDate,customerId);
-
         ResponseEntity<ApiResponse<Map<Long, RegularOrderResponse.ProductOrder>>> productResponse = null;
-
         Map<Long, RegularOrderResponse.ProductOrder> productOrderMap = null;
-        List<String> memberIdList = regularOrderCountsForMonth.stream().map(dailyOrderCount -> dailyOrderCount.getMemberId()).collect(Collectors.toList());
         List<Long> productIdList = regularOrderCountsForMonth.stream().map(dailyOrderCount -> dailyOrderCount.getMainProductId()).collect(Collectors.toList());
+
+        boolean isAvailableProductService = true;
+        try {
+            productResponse = productFeignClient.bulkRetrieveProductInformation(productIdList);
+            isAvailableProductService = productResponse.getStatusCode().is2xxSuccessful() ? true : false;
+            productOrderMap = isAvailableProductService ? productResponse.getBody().getResult() : null;
+        } catch (FeignException e) {
+            e.printStackTrace();
+            isAvailableProductService = false;
+        }
 
 
         // 받아온 응답을 바탕으로 상품명 바인딩
-        boolean isAvailableProductService = true;
         for(RegularOrderResponse.OfRetrieveDailySummary dailyOrderCount : regularOrderCountsForMonth) {
-            productOrderMap = productResponse.getBody().getResult();
             String productName = isAvailableProductService ? productOrderMap.get(dailyOrderCount.getMainProductId()).getProductName() : null;
 
             dailyOrderCount.bindProductName(productName);
