@@ -1,0 +1,17 @@
+spring :
+  application :
+    name : orderservice
+  config :
+    import: "optional:configserver:"
+  cloud :
+    config :
+      uri : http://43.201.146.199:8071
+eureka :
+  instance :
+    preferIpAddress: true
+    ipAddress : ${ecs-instance-ip-address:127.0.0.1}
+  client :
+    registerWithEureka : true
+    fetchRegistry : true
+    serviceUrl :
+      defaultZone : http://54.180.108.102:8070/eureka/ # eureka 서버 주소
