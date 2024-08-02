@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-@FeignClient(name = "productservice", url = "http://localhost:8020", configuration = FeignConfig.class)
+@FeignClient(name = "productservice", configuration = FeignConfig.class)
 public interface ProductServiceFeignClient {
     @PostMapping("/api/inventory/stock-usage")
     ResponseEntity<StockUsageResponse.AvailableResponseList> checkAvailableOrderProduct(@RequestBody StockUsageRequest.IncreaseStockUsageList increaseStockUsageDtoList);
