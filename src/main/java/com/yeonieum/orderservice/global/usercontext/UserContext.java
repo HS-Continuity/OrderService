@@ -18,6 +18,8 @@ public class UserContext {
     public static final String TRANSACTION_ID = "transaction-id";
     public static final String AUTH_TOKEN = "auth-token";
     public static final String USER_ID = "user-id";
+    public static final String UNIQUE_ID = "unique-id";
+    public static final String ROLE_TYPE = "role-type";
     public static final String SERVICE_ID = "service-id";
 
     @Builder.Default
@@ -28,4 +30,9 @@ public class UserContext {
     private String userId = new String();
     @Builder.Default
     private String serviceId = new String();
+    @Builder.Default
+    private String uniqueId = new String();
+    @Builder.Default
+    private String roleType = new String();
+
 }
