@@ -2,7 +2,7 @@ name: Deploy to Amazon ECS
 
 on:
   push:
-    branches: [ "KAN-678--feat/주문서비스-배포자동화-스크립트-작성" ]
+    branches: [ "main" ]
 
 env:
   AWS_REGION: ap-northeast-2
