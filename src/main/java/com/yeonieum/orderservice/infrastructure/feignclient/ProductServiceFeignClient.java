@@ -17,22 +17,22 @@ import java.util.Set;
 
 @FeignClient(name = "productservice", configuration = FeignConfig.class)
 public interface ProductServiceFeignClient {
-    @PostMapping("/api/inventory/stock-usage")
+    @PostMapping("/productservice/api/inventory/stock-usage")
     ResponseEntity<StockUsageResponse.AvailableResponseList> checkAvailableOrderProduct(@RequestBody StockUsageRequest.IncreaseStockUsageList increaseStockUsageDtoList);
 
-    @GetMapping("/api/management/{productId}")
+    @GetMapping("/productservice/api/management/{productId}")
     ResponseEntity<ApiResponse<RegularOrderResponse.ProductOrder>> retrieveProductInformation(@PathVariable("productId") Long productId);
 
-    @GetMapping("/api/management/products")
+    @GetMapping("/productservice/api/management/products")
     ResponseEntity<ApiResponse<Map<Long, RegularOrderResponse.ProductOrder>>> bulkRetrieveProductInformation(@RequestParam List<Long> productIdList);
 
-    @GetMapping("/api/shopping/product/order/{productIdList}")
+    @GetMapping("/productservice/api/shopping/product/order/{productIdList}")
     public ResponseEntity<ApiResponse<RetrieveOrderInformationResponse>> retrieveOrderProductInformation(@RequestParam("productIdList") Long productIdList);
     
-    @GetMapping("/api/shopping/product/orders")
+    @GetMapping("/productservice/api/shopping/product/orders")
     ResponseEntity<ApiResponse<Set<RetrieveOrderInformationResponse>>> retrieveOrderProductInformation(@RequestParam("productIdList") List<Long> productIdList);
 
-    @GetMapping("/api/customer/delivery-fee/{customerId}")
+    @GetMapping("/productservice/api/customer/delivery-fee/{customerId}")
     ResponseEntity<ApiResponse<Integer>> retrieveDeliveryFee(@PathVariable("customerId") Long customerId);
 
 }
