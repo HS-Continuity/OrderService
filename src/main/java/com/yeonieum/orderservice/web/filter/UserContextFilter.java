@@ -14,6 +14,8 @@ public class UserContextFilter implements Filter {
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
         HttpServletRequest httpServletRequest = (HttpServletRequest) request;
         System.out.println(httpServletRequest.getHeader(UserContext.AUTH_TOKEN));
+        System.out.println(httpServletRequest.getHeader("uniqueId" + UserContext.UNIQUE_ID));
+
         UserContextHolder.getContext().builder()
                         .authToken(httpServletRequest.getHeader(UserContext.AUTH_TOKEN))
                         .transactionId(httpServletRequest.getHeader(UserContext.TRANSACTION_ID))
