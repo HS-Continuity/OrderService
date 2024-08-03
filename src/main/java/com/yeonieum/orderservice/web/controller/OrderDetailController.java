@@ -69,9 +69,9 @@ public class OrderDetailController {
                                                           @RequestParam(required = false, defaultValue = "0") int page,
                                                           @RequestParam(required = false, defaultValue = "10") int size){
         Pageable pageable = PageRequest.of(page, size);
-        Long customer = Long.valueOf(UserContextHolder.getContext().getUniqueId());
+        //Long customer = Long.valueOf(UserContextHolder.getContext().getUniqueId());
         return new ResponseEntity<>(ApiResponse.builder()
-                .result(orderTrackingService.retrieveOrdersForCustomer(customer, orderStatusCode, orderDetailId, orderDateTime, recipient, recipientPhoneNumber, recipientAddress, memberId, memberName, memberPhoneNumber, startDate, endDate, pageable))
+                .result(orderTrackingService.retrieveOrdersForCustomer(1L, orderStatusCode, orderDetailId, orderDateTime, recipient, recipientPhoneNumber, recipientAddress, memberId, memberName, memberPhoneNumber, startDate, endDate, pageable))
                 .successCode(SuccessCode.SELECT_SUCCESS)
                 .build(), HttpStatus.OK);
     }

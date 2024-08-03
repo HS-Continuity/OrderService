@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import java.util.List;
 import java.util.Map;
 
-@FeignClient(name = "memberservice", configuration = FeignConfig.class)
+@FeignClient(name = "memberservice", url = "localhost:8010", configuration = FeignConfig.class)
 public interface MemberServiceFeignClient {
 
     @GetMapping("/memberservice/api/member/summaries")
