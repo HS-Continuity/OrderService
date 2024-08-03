@@ -30,7 +30,7 @@ public class UserContextFilter implements Filter {
                         .transactionId(httpServletRequest.getHeader(UserContext.TRANSACTION_ID))
                         .userId(httpServletRequest.getHeader(UserContext.USER_ID))
                         .serviceId(httpServletRequest.getHeader(UserContext.SERVICE_ID))
-                        .uniqueId(httpServletRequest.getHeader(UserContext.UNIQUE_ID))
+                        .uniqueId(httpServletRequest.getHeader(String.valueOf(UserContext.UNIQUE_ID)))
                         .roleType(httpServletRequest.getHeader(UserContext.ROLE_TYPE))
                         .build();
         chain.doFilter(request, response);
