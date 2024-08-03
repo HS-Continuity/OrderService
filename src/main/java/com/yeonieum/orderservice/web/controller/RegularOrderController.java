@@ -133,7 +133,7 @@ public class RegularOrderController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "정기주문상세 조회 성공"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 오류 발생")
     })
-    @Role(role = {"ROLE_MEMBER"}, url = "/api/regular-order/{regularOrderId}", method = "GET")
+    @Role(role = {"ROLE_MEMBER"}, url = "/api/regular-order/{regularOrderId}/detail", method = "GET")
     @GetMapping("/{regularOrderId}/detail")
     public ResponseEntity<ApiResponse> retrieveRegularOrderDetail(@PathVariable(name = "regularOrderId") Long regularDeliveryApplicationId) {
         String member = UserContextHolder.getContext().getUserId();
