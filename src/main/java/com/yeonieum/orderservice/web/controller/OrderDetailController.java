@@ -116,7 +116,7 @@ public class OrderDetailController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "주문상세 조회 성공"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 오류 발생")
     })
-    @Role(role = {"ROLE_MEMBER", "ROLE_CUSTOMER"}, url = "/api/order/{orderDetailId}", method = "GET")
+    @Role(role = {"ROLE_MEMBER", "ROLE_CUSTOMER"}, url = "/api/order/member-service/{orderDetailId}", method = "GET")
     @GetMapping("/member-service/{orderDetailId}")
     public ResponseEntity<ApiResponse> getOrderDetail (@PathVariable String orderDetailId) {
         String member = UserContextHolder.getContext().getUserId();

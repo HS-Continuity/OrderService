@@ -33,7 +33,7 @@ public class RoleMetaDataCollector {
                 Role secured = method.getAnnotation(Role.class);
                 if (secured != null) {
                     String methodName = beanClass.getName() + "." + method.getName();
-                    roleMetadata.put(secured.url(), RoleMetaData.builder()
+                    roleMetadata.put(secured.url()+ ":"+secured.method(), RoleMetaData.builder()
                             .roles(Arrays.asList(secured.role()))
                             .Methods(secured.method())
                             .build());
