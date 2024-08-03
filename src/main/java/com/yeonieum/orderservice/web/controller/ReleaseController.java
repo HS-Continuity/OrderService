@@ -31,6 +31,7 @@ public class ReleaseController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "주문조회 성공"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 오류 발생")
     })
+    @Role(role = {"ROLE_CUSTOMER"}, url = "/api/release/list", method = "GET")
     @GetMapping("/list")
     public ResponseEntity<ApiResponse> getCustomerRelease(@RequestParam Long customerId,
                                                           @RequestParam(required = false) ReleaseStatusCode releaseStatus,
