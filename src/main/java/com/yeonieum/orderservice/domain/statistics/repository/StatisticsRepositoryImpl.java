@@ -54,7 +54,7 @@ public class StatisticsRepositoryImpl implements StatisticsRepositoryCustom{
                         .and(statistics.purchaseDate.after(threeMonthsAgo)))
                 .groupBy(statistics.productId)
                 .orderBy(statistics.productId.count().desc())
-                .limit(3)
+                .limit(2)
                 .fetch();
     }
 
@@ -74,6 +74,7 @@ public class StatisticsRepositoryImpl implements StatisticsRepositoryCustom{
                         .and(statistics.purchaseDate.after(threeMonthsAgo)))
                 .groupBy(statistics.productId)
                 .orderBy(statistics.productId.count().desc())
+                .limit(6)
                 .fetch();
     }
 }
