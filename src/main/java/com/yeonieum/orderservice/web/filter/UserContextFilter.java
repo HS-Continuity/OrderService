@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.util.Enumeration;
 
 @Component
 public class UserContextFilter implements Filter {
@@ -15,6 +16,14 @@ public class UserContextFilter implements Filter {
         HttpServletRequest httpServletRequest = (HttpServletRequest) request;
         System.out.println(httpServletRequest.getHeader(UserContext.AUTH_TOKEN));
         System.out.println(httpServletRequest.getHeader("uniqueId" + UserContext.UNIQUE_ID));
+
+        //헤더 목록 순회하기
+        Enumeration<String> headerNames = httpServletRequest.getHeaderNames();
+        while(headerNames.hasMoreElements()) {
+            String headerName = headerNames.nextElement();
+            System.out.println(headerName + ": " + httpServletRequest.getHeader(headerName));
+        }
+
 
         UserContextHolder.getContext().builder()
                         .authToken(httpServletRequest.getHeader(UserContext.AUTH_TOKEN))
