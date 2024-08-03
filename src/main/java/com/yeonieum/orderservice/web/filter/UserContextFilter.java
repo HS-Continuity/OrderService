@@ -25,14 +25,14 @@ public class UserContextFilter implements Filter {
         }
 
 
-        UserContextHolder.getContext().builder()
+        UserContextHolder.setContext(UserContext.builder()
                         .authToken(httpServletRequest.getHeader(UserContext.AUTH_TOKEN))
                         .transactionId(httpServletRequest.getHeader(UserContext.TRANSACTION_ID))
                         .userId(httpServletRequest.getHeader(UserContext.USER_ID))
                         .serviceId(httpServletRequest.getHeader(UserContext.SERVICE_ID))
                         .uniqueId(httpServletRequest.getHeader(String.valueOf(UserContext.UNIQUE_ID)))
                         .roleType(httpServletRequest.getHeader(UserContext.ROLE_TYPE))
-                        .build();
+                        .build());
         chain.doFilter(request, response);
     }
 }
