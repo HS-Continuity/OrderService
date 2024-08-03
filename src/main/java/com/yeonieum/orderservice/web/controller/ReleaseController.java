@@ -98,7 +98,7 @@ public class ReleaseController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "출고 메모 작성 성공"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "출고 메모 작성 실패")
     })
-    @Role(role = {"ROLE_MEMBER"}, url = "/api/release/memo", method = "PATCH")
+    @Role(role = {"ROLE_CUSTOMER"}, url = "/api/release/memo", method = "PATCH")
     @PatchMapping("/memo")
     public ResponseEntity<ApiResponse> changeReleaseMemo(@RequestBody ReleaseRequest.OfRegisterMemo updateRegisterMemo) {
         Long customer = Long.valueOf(UserContextHolder.getContext().getUniqueId());
@@ -114,7 +114,7 @@ public class ReleaseController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "출고 보류 사유 작성 성공"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "출고 보류 사유 작성 실패")
     })
-    @Role(role = {"ROLE_MEMBER"}, url = "/api/release/hold-memo", method = "PATCH")
+    @Role(role = {"ROLE_CUSTOMER"}, url = "/api/release/hold-memo", method = "PATCH")
     @PatchMapping("/hold-memo")
     public ResponseEntity<ApiResponse> changeReleaseHoldMemo(@RequestBody ReleaseRequest.OfHoldMemo updateHoldMemo) {
         Long customer = Long.valueOf(UserContextHolder.getContext().getUniqueId());
@@ -130,7 +130,7 @@ public class ReleaseController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "출고 상태 일괄 변경 성공"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "출고 상태 일괄 변경 실패")
     })
-    @Role(role = {"ROLE_MEMBER"}, url = "/api/release/bulk-status", method = "PATCH")
+    @Role(role = {"ROLE_CUSTOMER"}, url = "/api/release/bulk-status", method = "PATCH")
     @PatchMapping("/bulk-status")
     public ResponseEntity<ApiResponse> changeBulkReleaseStatus(@RequestBody ReleaseRequest.OfBulkUpdateReleaseStatus updateStatus) {
         String roleType = UserContextHolder.getContext().getRoleType();
@@ -151,7 +151,7 @@ public class ReleaseController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "합포장 성공"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "합포장 실패")
     })
-    @Role(role = {"ROLE_MEMBER"}, url = "/api/release/combined-packaging", method = "PATCH")
+    @Role(role = {"ROLE_CUSTOMER"}, url = "/api/release/combined-packaging", method = "PATCH")
     @PatchMapping("/combined-packaging")
     public ResponseEntity<ApiResponse> changeReleaseStatus(@RequestBody ReleaseRequest.OfBulkUpdateReleaseStatus updateStatus) {
         String roleType = UserContextHolder.getContext().getRoleType();
