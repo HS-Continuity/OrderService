@@ -315,11 +315,11 @@ public class OrderDetailController {
     })
     @Role(role = {"ROLE_CUSTOMER"}, url = "/api/order/ranking/order-type", method = "GET")
     @GetMapping("/ranking/order-type")
-    public ResponseEntity<ApiResponse> getOrderAgeRangeTop3 (@RequestParam Long customerId, @RequestParam OrderType orderTpye) {
+    public ResponseEntity<ApiResponse> getOrderAgeRangeTop3 (@RequestParam Long customerId, @RequestParam OrderType orderType) {
         Long customer = Long.valueOf(UserContextHolder.getContext().getUniqueId());
 
         return new ResponseEntity<>(ApiResponse.builder()
-                .result(statisticsService.orderTypeProductOrderCounts(customer, orderTpye))
+                .result(statisticsService.orderTypeProductOrderCounts(customer, orderType))
                 .successCode(SuccessCode.SELECT_SUCCESS)
                 .build(), HttpStatus.OK);
     }
