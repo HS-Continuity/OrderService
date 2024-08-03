@@ -1,5 +1,6 @@
 package com.yeonieum.orderservice.web.controller;
 
+import com.yeonieum.orderservice.global.auth.Role;
 import com.yeonieum.orderservice.global.auth.RoleMetaDataCollector;
 import com.yeonieum.orderservice.global.responses.ApiResponse;
 import com.yeonieum.orderservice.global.responses.code.SuccessCode;

@@ -133,6 +133,7 @@ public class RegularOrderController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "정기주문상세 조회 성공"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 오류 발생")
     })
+    @Role(role = {"ROLE_MEMBER"}, url = "/api/regular-order/{regularOrderId}", method = "GET")
     @GetMapping("/{regularOrderId}/detail")
     public ResponseEntity<ApiResponse> retrieveRegularOrderDetail(@PathVariable(name = "regularOrderId") Long regularDeliveryApplicationId) {
         String member = UserContextHolder.getContext().getUserId();
@@ -147,6 +148,7 @@ public class RegularOrderController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "정기주문월별 조회 성공"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 오류 발생")
     })
+    @Role(role = {"ROLE_MEMBER"}, url = "/api/regular-order/monthly", method = "GET")
     @GetMapping("/monthly")
     public ResponseEntity<ApiResponse> retrieveRegularOrderCountsBetweenMonth(@RequestParam LocalDate startDate,
                                                                               @RequestParam LocalDate endDate) {
@@ -163,6 +165,7 @@ public class RegularOrderController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "정기주문일별 조회 성공"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 오류 발생")
     })
+    @Role(role = {"ROLE_MEMBER"}, url = "/api/regular-order/daily", method = "GET")
     @GetMapping("/daily")
     public ResponseEntity<ApiResponse> retrieveRegularOrderCountsBetweenDay(@RequestParam LocalDate date,
                                                                             @RequestParam(defaultValue = "10") int size,

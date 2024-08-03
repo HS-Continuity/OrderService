@@ -31,6 +31,7 @@ public class DeliveryController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "배송 조회 성공"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "배송 조회 실패")
     })
+    @Role(role = {"ROLE_CUSTOMER"}, url = "/api/delivery/list", method = "GET")
     @GetMapping("/list")
     public ResponseEntity<ApiResponse> getCustomersDelivery(@RequestParam Long customerId,
                                                             @RequestParam(required = false) LocalDate startDate,

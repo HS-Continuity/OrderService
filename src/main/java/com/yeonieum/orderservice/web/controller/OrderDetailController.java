@@ -245,6 +245,7 @@ public class OrderDetailController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "주문 상태 일괄 변경 성공"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "주문 상태 일괄 변경 실패")
     })
+    @Role(role = {"ROLE_CUSTOMER"}, url = "/api/order/bulk-status", method = "PATCH")
     @PatchMapping("/bulk-status")
     public ResponseEntity<ApiResponse> changeBulkOrderStatus(@RequestBody OrderRequest.OfBulkUpdateOrderStatus updateStatus) throws JsonProcessingException {
         Long customer = Long.valueOf(UserContextHolder.getContext().getUniqueId());
@@ -280,7 +281,7 @@ public class OrderDetailController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "상품 조회 성공"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "상품 조회 실패")
     })
-
+    @Role(role = {"ROLE_CUSTOMER"}, url = "/api/order/ranking/gender", method = "GET")
     @GetMapping("/ranking/gender")
     public ResponseEntity<ApiResponse> getOrderGenderTop3 (@RequestParam Long customerId, @RequestParam Gender gender) {
         Long customer = Long.valueOf(UserContextHolder.getContext().getUniqueId());
@@ -296,7 +297,7 @@ public class OrderDetailController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "상품 조회 성공"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "상품 조회 실패")
     })
-
+    @Role(role = {"ROLE_CUSTOMER"}, url = "/api/order/ranking/age-range", method = "GET")
     @GetMapping("/ranking/age-range")
     public ResponseEntity<ApiResponse> getOrderAgeRangeTop3 (@RequestParam Long customerId, @RequestParam int ageRange) {
         Long customer = Long.valueOf(UserContextHolder.getContext().getUniqueId());
@@ -312,7 +313,7 @@ public class OrderDetailController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "상품 조회 성공"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "상품 조회 실패")
     })
-
+    @Role(role = {"ROLE_CUSTOMER"}, url = "/api/order/ranking/order-type", method = "GET")
     @GetMapping("/ranking/order-type")
     public ResponseEntity<ApiResponse> getOrderAgeRangeTop3 (@RequestParam Long customerId, @RequestParam OrderType orderTpye) {
         Long customer = Long.valueOf(UserContextHolder.getContext().getUniqueId());
