@@ -76,7 +76,7 @@ public class OrderNotificationServiceForCustomer {
             try {
                 emitter.send(SseEmitter.event()
                         .id(String.valueOf(customerId))
-                        .name("order:count")
+                        .name("message")
                         .data(orderDetailRepository.countByCustomerIdGroupedByOrderStatus(customerId)));
             } catch (IOException exception) {
                 emitterRepository.deleteById(customerId, emitter);

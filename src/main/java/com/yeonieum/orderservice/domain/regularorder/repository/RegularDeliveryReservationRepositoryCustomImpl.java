@@ -52,7 +52,7 @@ public class RegularDeliveryReservationRepositoryCustomImpl implements RegularDe
                 .select(Projections.constructor(RegularOrderResponse.OfRetrieveDailyDetail.class,
                         application.regularDeliveryApplicationId,
                         reservation.startDate,
-                        reservation.regularDeliveryReservationId.count(),
+                        reservation.regularDeliveryReservationId,
                         application.memberId,
                         application.startDate,
                         application.endDate,
