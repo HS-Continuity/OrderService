@@ -129,7 +129,7 @@ public class OrderProcessService {
                 throw new IllegalArgumentException("접근 권한이 없습니다.");
             }
         } else {
-            if(!loginId.equals(orderDetail.getCustomerId())) {
+            if(!loginId.equals(String.valueOf(orderDetail.getCustomerId()))) {
                 throw new IllegalArgumentException("접근 권한이 없습니다.");
             }
         }
