@@ -77,7 +77,7 @@ public class OrderProcessService {
                 throw new IllegalArgumentException("접근 권한이 없습니다.");
             }
         } else {
-            if(!loginId.equals(orderDetail.getCustomerId())) {
+            if(!loginId.equals(String.valueOf(orderDetail.getCustomerId()))) {
                 throw new IllegalArgumentException("접근 권한이 없습니다.");
             }
         }
@@ -123,7 +123,7 @@ public class OrderProcessService {
     public OrderResponse.OfResultUpdateStatus changeOrderProductStatus(String roleType, String loginId, OrderRequest.OfUpdateProductOrderStatus updateProductOrderStatus) {
         OrderDetail orderDetail = orderDetailRepository.findById(updateProductOrderStatus.getOrderId())
                 .orElseThrow(() -> new OrderException(ORDER_NOT_FOUND, HttpStatus.NOT_FOUND));
-
+        System.out.println(orderDetail.getCustomerId() + " " + loginId);
         if(roleType.equals("ROLE_MEMBER")) {
             if(!orderDetail.getMemberId().equals(loginId)) {
                 throw new IllegalArgumentException("접근 권한이 없습니다.");
