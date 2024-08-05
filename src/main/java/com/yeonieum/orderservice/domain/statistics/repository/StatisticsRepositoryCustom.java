@@ -8,7 +8,5 @@ import java.util.List;
 
 public interface StatisticsRepositoryCustom {
 
-    List<OrderResponse.ProductOrderCount> findTop3ProductsByGender(Long customerId, Gender gender);
-    List<OrderResponse.ProductOrderCount> findTop3ProductsByAgeRange(Long customerId, int ageRange);
-    List<OrderResponse.ProductOrderCount> findAllProductsByOrderType(Long customerId, OrderType orderType);
+    List<OrderResponse.ProductOrderCount> findAllProductsByCondition(Long customerId, Gender gender, Integer ageRange, OrderType orderType, Integer month);
 }
