@@ -20,7 +20,7 @@ public class RegularOrderResponse {
         String regularDeliveryStatus;
         String orderMemo;
         String storeName;
-
+        boolean isAvailableProductService;
         public static OfRetrieve convertedBy(RegularDeliveryApplication application,
                                              Map<Long, ProductOrder> productOrderMap,
                                              boolean isAvailableProductService) {
@@ -34,6 +34,7 @@ public class RegularOrderResponse {
                     .regularDeliveryStatus(application.getRegularDeliveryStatus().getStatusName())
                     .orderMemo(application.getOrderMemo())
                     .storeName(storeName)
+                    .isAvailableProductService(isAvailableProductService)
                     .build();
         }
     }
