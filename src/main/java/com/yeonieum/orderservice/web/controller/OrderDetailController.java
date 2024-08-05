@@ -275,51 +275,22 @@ public class OrderDetailController {
                 .build(), HttpStatus.OK);
     }
 
-
-    @Operation(summary = "회원 판매상품 성별 top3 조회", description = "회원의 판매상품 중 성별로 top3 상품을 조회합니다.")
+    @Operation(summary = "회원 조건별 통계 데이터 조회", description = "회원의 조건별 통계 데이터를 조회합니다.")
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "상품 조회 성공"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "상품 조회 실패")
     })
-    @Role(role = {"ROLE_CUSTOMER"}, url = "/api/order/ranking/gender", method = "GET")
-    @GetMapping("/ranking/gender")
-    public ResponseEntity<ApiResponse> getOrderGenderTop3 (@RequestParam Long customerId, @RequestParam Gender gender) {
+    @Role(role = {"ROLE_CUSTOMER"}, url = "/api/order/ranking/statistics", method = "GET")
+    @GetMapping("/ranking/statistics")
+    public ResponseEntity<ApiResponse> getOrderStatistics (@RequestParam Long customerId,
+                                                           @RequestParam(required = false) Gender gender,
+                                                           @RequestParam(required = false) Integer ageRange,
+                                                           @RequestParam(required = false) OrderType orderType,
+                                                           @RequestParam(required = false) Integer month) {
         Long customer = Long.valueOf(UserContextHolder.getContext().getUniqueId());
 
         return new ResponseEntity<>(ApiResponse.builder()
-                .result(statisticsService.genderProductOrderCounts(customer, gender))
-                .successCode(SuccessCode.SELECT_SUCCESS)
-                .build(), HttpStatus.OK);
-    }
-
-    @Operation(summary = "회원 판매상품 연령별 top3 조회", description = "회원의 판매상품 중 연령별로 top3 상품을 조회합니다.")
-    @ApiResponses({
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "상품 조회 성공"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "상품 조회 실패")
-    })
-    @Role(role = {"ROLE_CUSTOMER"}, url = "/api/order/ranking/age-range", method = "GET")
-    @GetMapping("/ranking/age-range")
-    public ResponseEntity<ApiResponse> getOrderAgeRangeTop3 (@RequestParam Long customerId, @RequestParam int ageRange) {
-        Long customer = Long.valueOf(UserContextHolder.getContext().getUniqueId());
-
-        return new ResponseEntity<>(ApiResponse.builder()
-                .result(statisticsService.ageProductOrderCounts(customer, ageRange))
-                .successCode(SuccessCode.SELECT_SUCCESS)
-                .build(), HttpStatus.OK);
-    }
-
-    @Operation(summary = "회원 판매타입별 상품 판매량 조회", description = "회원의 판매상품별 상품을 조회합니다.")
-    @ApiResponses({
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "상품 조회 성공"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "상품 조회 실패")
-    })
-    @Role(role = {"ROLE_CUSTOMER"}, url = "/api/order/ranking/order-type", method = "GET")
-    @GetMapping("/ranking/order-type")
-    public ResponseEntity<ApiResponse> getOrderAgeRangeTop3 (@RequestParam Long customerId, @RequestParam OrderType orderType) {
-        Long customer = Long.valueOf(UserContextHolder.getContext().getUniqueId());
-
-        return new ResponseEntity<>(ApiResponse.builder()
-                .result(statisticsService.orderTypeProductOrderCounts(customer, orderType))
+                .result(statisticsService.productOrderCounts(customer, gender, ageRange, orderType, month))
                 .successCode(SuccessCode.SELECT_SUCCESS)
                 .build(), HttpStatus.OK);
     }

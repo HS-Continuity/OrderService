@@ -16,35 +16,16 @@ public class StatisticsService {
     private final StatisticsRepository statisticsRepository;
 
     /**
-     * 고객의 상품 성별 TOP3
+     * 고객의 상품 통계 판매량
      * @param customerId
      * @param gender
-     */
-    public List<OrderResponse.ProductOrderCount> genderProductOrderCounts (Long customerId, Gender gender) {
-
-        List<OrderResponse.ProductOrderCount> productOrderCounts = statisticsRepository.findTop3ProductsByGender(customerId, gender);
-        return productOrderCounts;
-    }
-
-    /**
-     * 고객의 상품 연령별 TOP3
-     * @param customerId
      * @param ageRange
-     */
-    public List<OrderResponse.ProductOrderCount> ageProductOrderCounts (Long customerId, int ageRange) {
-
-        List<OrderResponse.ProductOrderCount> productOrderCounts = statisticsRepository.findTop3ProductsByAgeRange(customerId, ageRange);
-        return productOrderCounts;
-    }
-
-    /**
-     * 고객의 판매타입별 상품 판매량
-     * @param customerId
      * @param orderType
+     * @param month
      */
-    public List<OrderResponse.ProductOrderCount> orderTypeProductOrderCounts (Long customerId, OrderType orderType) {
+    public List<OrderResponse.ProductOrderCount> productOrderCounts (Long customerId, Gender gender, Integer ageRange, OrderType orderType, Integer month) {
 
-        List<OrderResponse.ProductOrderCount> productOrderCounts = statisticsRepository.findAllProductsByOrderType(customerId, orderType);
+        List<OrderResponse.ProductOrderCount> productOrderCounts = statisticsRepository.findAllProductsByCondition(customerId, gender, ageRange, orderType, month);
         return productOrderCounts;
     }
 }
