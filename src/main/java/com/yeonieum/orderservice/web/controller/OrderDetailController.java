@@ -1,6 +1,5 @@
 package com.yeonieum.orderservice.web.controller;
 
-import ch.qos.logback.core.net.SyslogOutputStream;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.yeonieum.orderservice.domain.notification.service.OrderNotificationServiceForCustomer;
 import com.yeonieum.orderservice.domain.order.dto.request.OrderRequest;
@@ -306,17 +305,7 @@ public class OrderDetailController {
     public ResponseEntity<ApiResponse> getTop5ProductsMonthlySales(
             @RequestParam Long customerId,
             @RequestParam(defaultValue = "12") int months) {
-        // 요청 파라미터 로깅
-        System.out.println("customerId: " + customerId + ", months: " + months);
-
-        //Long customer = Long.valueOf(UserContextHolder.getContext().getUniqueId());
-//        List<OrderResponse.ProductMonthlySales> sales = statisticsService.getTop5ProductsMonthlySales(customerId, months);
         List<OrderResponse.ProductMonthlySales> sales = statisticsService.getTop5ProductsMonthlySales(customerId, months);
-
-
-        // 응답 데이터 로깅
-        System.out.println("Sales data: " + sales);
-
         return new ResponseEntity<>(ApiResponse.builder()
                 .result(sales)
                 .successCode(SuccessCode.SELECT_SUCCESS)
@@ -333,7 +322,6 @@ public class OrderDetailController {
     public ResponseEntity<ApiResponse> getMonthlyRevenue(
             @RequestParam Long customerId,
             @RequestParam(defaultValue = "12") int months) {
-        System.out.println("잘 작동하나요?");
         List<OrderResponse.MonthlyRevenue> revenue = statisticsService.getMonthlyRevenue(customerId, months);
         return new ResponseEntity<>(ApiResponse.builder()
                 .result(revenue)
