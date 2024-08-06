@@ -138,7 +138,8 @@ public class OrderProcessService {
         List<ProductOrderEntity> productOrderEntityList = orderDetail.getOrderList().getProductOrderEntityList();
         ProductOrderEntity productOrder = productOrderEntityList.stream().filter(productOrderEntity -> {
             System.out.println(productOrderEntity.getProductId() + " " + updateProductOrderStatus.getProductId());
-            return productOrderEntity.getProductId() == updateProductOrderStatus.getProductId();
+            System.out.println(productOrderEntity.getProductId() == updateProductOrderStatus.getProductId());
+            return productOrderEntity.getProductId().equals(updateProductOrderStatus.getProductId());
         }).findFirst().orElseThrow(
                             () -> new OrderException(PRODUCT_NOT_FOUND, HttpStatus.NOT_FOUND));
 
