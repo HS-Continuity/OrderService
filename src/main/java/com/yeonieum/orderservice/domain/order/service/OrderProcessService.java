@@ -136,9 +136,11 @@ public class OrderProcessService {
         // TODO : 상품 json 변경감지 할 수 있는지 테스트 예정 -> deepcopy 활용
 
         List<ProductOrderEntity> productOrderEntityList = orderDetail.getOrderList().getProductOrderEntityList();
-        ProductOrderEntity productOrder = productOrderEntityList.stream().filter(productOrderEntity ->
-                productOrderEntity.getProductId() == updateProductOrderStatus.getProductId()).findFirst().orElseThrow(
-                () -> new OrderException(PRODUCT_NOT_FOUND, HttpStatus.NOT_FOUND));
+        ProductOrderEntity productOrder = productOrderEntityList.stream().filter(productOrderEntity -> {
+            System.out.println(productOrderEntity.getProductId() + " " + updateProductOrderStatus.getProductId());
+            return productOrderEntity.getProductId() == updateProductOrderStatus.getProductId();
+        }).findFirst().orElseThrow(
+                            () -> new OrderException(PRODUCT_NOT_FOUND, HttpStatus.NOT_FOUND));
 
         OrderStatus requestedStatus = orderStatusRepository.findByStatusName(updateProductOrderStatus.getOrderStatusCode());
         OrderStatusCode requestedStatusCode = requestedStatus.getStatusName();
