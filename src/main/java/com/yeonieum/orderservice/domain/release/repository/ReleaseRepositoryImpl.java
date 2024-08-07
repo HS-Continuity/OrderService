@@ -62,6 +62,7 @@ public class ReleaseRepositoryImpl implements ReleaseRepositoryCustom {
         List<Release> releases = queryFactory
                 .selectFrom(release)
                 .where(builder)
+                .orderBy(release.createdDate.desc())
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .fetch();
