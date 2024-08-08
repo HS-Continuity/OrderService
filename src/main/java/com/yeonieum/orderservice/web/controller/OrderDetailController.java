@@ -294,4 +294,56 @@ public class OrderDetailController {
                 .successCode(SuccessCode.SELECT_SUCCESS)
                 .build(), HttpStatus.OK);
     }
+
+    @Operation(summary = "3개월간 판매량 Top 5 식품 조회", description = "최근 3개월 동안의 판매량 기준 Top 5 식품을 월별 판매량과 함께 조회합니다.")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 오류 발생")
+    })
+    @Role(role = {"ROLE_CUSTOMER"}, url = "/api/order/top5-products-monthly-sales", method = "GET")
+    @GetMapping("/top5-products-monthly-sales")
+    public ResponseEntity<ApiResponse> getTop5ProductsMonthlySales(
+            @RequestParam Long customerId,
+            @RequestParam(defaultValue = "12") int months) {
+        List<OrderResponse.ProductMonthlySales> sales = statisticsService.getTop5ProductsMonthlySales(customerId, months);
+        return new ResponseEntity<>(ApiResponse.builder()
+                .result(sales)
+                .successCode(SuccessCode.SELECT_SUCCESS)
+                .build(), HttpStatus.OK);
+    }
+
+    @Operation(summary = "고객의 월별 수익 비교", description = "고객의 최대 12개월 동안의 월별 수익을 비교합니다.")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "조회 실패")
+    })
+    @Role(role = {"ROLE_CUSTOMER"}, url = "/api/order/monthly-revenue", method = "GET")
+    @GetMapping("/monthly-revenue")
+    public ResponseEntity<ApiResponse> getMonthlyRevenue(
+            @RequestParam Long customerId,
+            @RequestParam(defaultValue = "12") int months) {
+        List<OrderResponse.MonthlyRevenue> revenue = statisticsService.getMonthlyRevenue(customerId, months);
+        return new ResponseEntity<>(ApiResponse.builder()
+                .result(revenue)
+                .successCode(SuccessCode.SELECT_SUCCESS)
+                .build(), HttpStatus.OK);
+    }
+
+    @Operation(summary = "고객의 회원 수 추이", description = "고객의 회원 수 추이를 조회합니다.")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조회 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "조회 실패")
+    })
+    @Role(role = {"ROLE_CUSTOMER"}, url = "/api/order/member-growth", method = "GET")
+    @GetMapping("/member-growth")
+    public ResponseEntity<ApiResponse> getMemberGrowth(
+            @RequestParam Long customerId,
+            @RequestParam(defaultValue = "12") int months) {
+        List<OrderResponse.MemberGrowth> growth = statisticsService.getMemberGrowthCumulative(customerId, months);
+        return new ResponseEntity<>(ApiResponse.builder()
+                .result(growth)
+                .successCode(SuccessCode.SELECT_SUCCESS)
+                .build(), HttpStatus.OK);
+    }
+
 }

@@ -16,6 +16,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import lombok.Setter;
 
 
 public class OrderResponse {
@@ -284,5 +285,31 @@ public class OrderResponse {
         String orderStatusCode;
         List<ProductOrderEntity> productOrderEntityList;
 
+    }
+
+    @Getter
+    @AllArgsConstructor
+    public static class ProductMonthlySales {
+        private Long productId;
+        private int year;
+        private int month;
+        private long totalSales;
+    }
+
+    @Getter
+    @AllArgsConstructor
+    public static class MonthlyRevenue {
+        private int year;
+        private int month;
+        private long totalRevenue;
+    }
+
+    @Setter
+    @Getter
+    @AllArgsConstructor
+    public static class MemberGrowth {
+        private int year;
+        private int month;
+        private long memberCount;
     }
 }

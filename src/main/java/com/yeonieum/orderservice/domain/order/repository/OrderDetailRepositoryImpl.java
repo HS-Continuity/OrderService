@@ -63,6 +63,7 @@ public class OrderDetailRepositoryImpl implements OrderDetailRepositoryCustom {
         List<OrderDetail> orderDetails = queryFactory
                 .selectFrom(orderDetail)
                 .where(builder)
+                .orderBy(orderDetail.orderDateTime.desc())
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
                 .fetch();

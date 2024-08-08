@@ -60,4 +60,71 @@ public class StatisticsRepositoryImpl implements StatisticsRepositoryCustom{
 
         return query.fetch();
     }
+
+    @Override
+    public List<OrderResponse.ProductMonthlySales> findTop5ProductsMonthlySales(Long customerId, int months) {
+        QStatistics statistics = QStatistics.statistics;
+
+        LocalDate startDate = LocalDate.now().minusMonths(months).withDayOfMonth(1);
+
+        // 상위 5개 제품 ID 조회
+        List<Long> top5ProductIds = queryFactory
+                .select(statistics.productId)
+                .from(statistics)
+                .where(statistics.customerId.eq(customerId)
+                        .and(statistics.purchaseDate.goe(startDate)))
+                .groupBy(statistics.productId)
+                .orderBy(statistics.quantity.sum().desc())
+                .limit(5)
+                .fetch();
+
+        // 상위 5개 제품의 이름과 월별 판매량을 조회
+        return queryFactory
+                .select(Projections.constructor(OrderResponse.ProductMonthlySales.class,
+                        statistics.productId,
+                        statistics.purchaseDate.year(),
+                        statistics.purchaseDate.month(),
+                        statistics.quantity.sum().longValue()))
+                .from(statistics)
+                .where(statistics.customerId.eq(customerId)
+                        .and(statistics.purchaseDate.goe(startDate))
+                        .and(statistics.productId.in(top5ProductIds)))
+                .groupBy(statistics.productId, statistics.purchaseDate.year(), statistics.purchaseDate.month())
+                .orderBy(statistics.productId.asc(), statistics.purchaseDate.year().asc(), statistics.purchaseDate.month().asc())
+                .fetch();
+    }
+
+
+    public List<OrderResponse.MonthlyRevenue> findMonthlyRevenue(Long customerId, LocalDate startDate, LocalDate endDate) {
+        QStatistics statistics = QStatistics.statistics;
+
+        return queryFactory
+                .select(Projections.constructor(OrderResponse.MonthlyRevenue.class,
+                        statistics.purchaseDate.year(),
+                        statistics.purchaseDate.month(),
+                        statistics.price.multiply(statistics.quantity).sum().longValue()))
+                .from(statistics)
+                .where(statistics.customerId.eq(customerId)
+                        .and(statistics.purchaseDate.between(startDate, endDate)))
+                .groupBy(statistics.purchaseDate.year(), statistics.purchaseDate.month())
+                .orderBy(statistics.purchaseDate.year().asc(), statistics.purchaseDate.month().asc())
+                .fetch();
+    }
+
+
+    public List<OrderResponse.MemberGrowth> findMemberGrowth(Long customerId, LocalDate startDate, LocalDate endDate) {
+        QStatistics statistics = QStatistics.statistics;
+
+        return queryFactory
+                .select(Projections.constructor(OrderResponse.MemberGrowth.class,
+                        statistics.purchaseDate.year(),
+                        statistics.purchaseDate.month(),
+                        statistics.memberId.countDistinct().longValue()))
+                .from(statistics)
+                .where(statistics.customerId.eq(customerId)
+                        .and(statistics.purchaseDate.between(startDate, endDate)))
+                .groupBy(statistics.purchaseDate.year(), statistics.purchaseDate.month())
+                .orderBy(statistics.purchaseDate.year().asc(), statistics.purchaseDate.month().asc())
+                .fetch();
+    }
 }
