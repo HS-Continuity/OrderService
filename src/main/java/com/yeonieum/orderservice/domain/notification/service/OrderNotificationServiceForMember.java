@@ -35,8 +35,8 @@ public class OrderNotificationServiceForMember {
     public void sendOrderMessage(OrderNotificationMessage orderNotificationMessage) throws NurigoMessageNotReceivedException, NurigoEmptyResponseException, NurigoUnknownException {
         Message message = new Message();
         message.setFrom("01089387607");
-        //message.setTo(orderNotificationMessage.getPhoneNumber().replaceAll("-", ""));
-        message.setTo("01089387607");
+        message.setTo(orderNotificationMessage.getPhoneNumber().replaceAll("-", ""));
+        //message.setTo("01089387607");
         String text = MessageBuilder.createOrderMessage(orderNotificationMessage);
         message.setText("[연이음 주문 안내]\n\n" + text);
 
